@@ -1,4 +1,7 @@
 node_modules
 dist
 *.tsbuildinfo
+*.zip
+bun.lock
+bun.lockb
 .DS_Store
