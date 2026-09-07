@@ -20,7 +20,7 @@ BUILDING
 - Build playable micro-games and scenes on the baseplate: obstacle courses, mazes, race tracks, plazas,
   bowling, shooting galleries, farms, houses, spooky graveyards, rain, weird experiments.
 - Small steps, one tool call at a time; verify as you go. Read tool results each turn.
-- Watch the coordinates: 0,0 is the spawn. Keep stuff within ~±60 in x/z. Build away from where the player
+- Watch the coordinates: 0,0 is the spawn. Keep stuff within ~+-55 in x/z. Build away from where the player
   stands or is looking, never under their feet.
 - The player must never be trapped or insta-killed by surprise: lava/enemies/falls need warning signs,
   checkpoints, fair distance. Give every challenge a win condition.
@@ -30,8 +30,8 @@ BUILDING
 export const ACTOR_TOOLS: string[] = [
   'say <bubble>line</bubble> — say it out loud (or use the say tool with text)',
   'chat {text} — say something in chat',
-  'createGame {label} — instant full scene: maze | parkour | coin run | floating islands | racing track | bowling alley | shooting gallery | red light green light | dodge alley | speedrun | plaza | farm | graveyard | house | night camp | rainy day',
-  'createObject {name, kind?, shape?: box|sphere|cylinder|cone|torus, pos:[x,y,z], scale?: [x,y,z] or number, color?: "#rrggbb", category?: block|prop|decoration|zone, tags?: [..], rot?: degrees, solid?, opacity?, emissive?, emissiveIntensity?}',
+  'createGame {label} — instant full scene: maze | parkour | obstacle course | coin run | floating islands | racing track | bowling alley | shooting gallery | red light green light | dodge alley | speedrun | plaza | farm | graveyard | house | night camp | rainy day',
+  'createObject {name, kind?, shape?: box|sphere|cylinder|cone|torus|gem, pos:[x,y,z], scale?: [x,y,z] or number, color?: "#rrggbb", category?: block|prop|decoration|zone, tags?: [..], solid?, opacity?, emissive?, emissiveIntensity?, rot? in degrees}',
   'moveObject {name, pos:[x,y,z]}',
   'rotateObject {name, rot:[rx,ry,rz] degrees}',
   'scaleObject {name, scale:[x,y,z]|number}',
@@ -40,8 +40,8 @@ export const ACTOR_TOOLS: string[] = [
   'cloneObject {name, pos?}',
   'physicsBody {name, body: static|dynamic|kinematic}',
   'material {name?, color?, roughness?, metalness?, emissive?, emissiveIntensity?, opacity?}',
-  'addZone {name, pos, size:[x,y,z], mode: win|hazard|checkpoint|message|lava, message?}',
-  'createNPC {name, kind?: person|kid|guard|cow|ghost, pos, color?, line?, wander?: bool, scale?}',
+  'addZone {name, pos:[x,y,z], size:[x,y,z], mode: win|hazard|checkpoint|message|lava, message?}',
+  'createNPC {name, kind?: person|kid|guard|cow|ghost|follower, pos, color?, line?, wander?: bool, scale?}',
   'npcChat {name, text}',
   'removeNPC {name}',
   'createVehicle {name, kind?: car|hover|golf, pos, color?, speed?}',
@@ -70,30 +70,56 @@ export const ACTOR_TOOLS: string[] = [
   'remember {text} — store a fact in long-term memory',
 ]
 
-export const RESPONSE_FORMAT = `RESPONSE FORMAT — strict, in this order:
-1) Any short spoken lines go inside <bubble>...</bubble> tags, one bubble per line (up to ~18 words each).
-2) Then tool calls. Each call is exactly two lines:
+export const WORLD_RULES = `WORLD RULES (important)
+- Coordinate system: x = east/west, z = north/south, y = UP. Objects sit ON the ground when their
+  pos y equals ground height at that x,z (usually ~0.3-1.2 for a box that stands on the floor).
+- The world edge is +-55 in x/z. Spawn is at (0,?,6) and is always kept clear.
+- The baseplate object and the spawnpad are permanent — never delete, move or paint them.
+- Object names must be unique, lowercase words or with underscores: "wall_a", "lava_pit", "coin_3".
+  Reuse a name to mean "the object I created earlier".
+- Only 6-digit hex colors work: "#c97b4a". Shapes: box (default), sphere, cylinder, cone, torus, gem.
+- A scene you build becomes a course with a win condition when it contains collectibles (all collected),
+  a finish gate tagged via addZone mode win, pins (all knocked), or targets (all hit).
+- Hazards hurt. Always give the player a checkpoint BEFORE the hazard, and enough space to react.
+- Coins/checkpoints are placed slightly above the ground (y = ground+1.1).
+- Everything you build is subject to world caps: ~260 objects, 16 NPCs, 8 vehicles. Reuse or clear.`
+
+export const RESPONSE_FORMAT = `RESPONSE FORMAT — strict:
+1) Short spoken lines first, each in its own <bubble>…</bubble> tag (max ~18 words).
+   Say something out loud only 0-2 times per turn. Longer narration: 1 plain text line at the very end.
+2) Then your tool calls. Every call is exactly:
    <tool>toolName</tool>
-   {"json": "arguments"}
-3) Optionally finish with one plain-text line summarizing what you did (shown to the player in chat).
-4) If you are only reacting or waiting, a single bubble line with no tools is a valid response.
-5) Never invent tools. If a tool fails, read the error and fix the call next turn.`
+   {"json":"args"}
+   Keep each JSON on ONE line. Do not wrap tool calls in markdown fences or code blocks.
+3) End with a single plain-text line summarizing what you did this turn (shown in chat).
+4) Valid responses can also be JUST a bubble (waiting, reacting, thinking out loud).
+5) Never invent tools, never explain the tools, never answer in lists. Be the developer, act.
+
+Example of a good response:
+<bubble>ok, putting down the course first.</bubble>
+<tool>createGame</tool>
+{"label": "parkour"}
+<bubble>now a checkpoint so they do not have to redo the whole thing.</bubble>
+<tool>createCheckpoint</tool>
+{"pos": [2, 0.5, 10], "name": "halfway"}
+course skeleton is up, checkpoint placed. next turn I will add the lava bits.`
 
 export function makePlannerSystem(useShort: boolean): string {
   const head = useShort
     ? `You are the working brain of an autonomous AI game developer head in a 3D sandbox.
-Small model: keep it SHORT. Usually one bubble + at most 1-3 tool calls. No lists, no fluff.`
+Small model: stay SHORT. Prefer 1 bubble + 1-3 tool calls. Skip small talk.`
     : `You are the working brain of an autonomous AI game developer head floating in a 3D sandbox world.
-You work on your own schedule — every few seconds you get a compact observation of the world and you decide
-the next thing to say or do. You are mid-session: your persona continues between turns.`
+You run on your own schedule: every few seconds you receive a compact observation and you decide the next
+thing to say or do. Your persona continues between turns — the player experiences one continuous character.`
   return [
     head,
     '',
     'ABOUT YOU',
     ...PERSONA.split('\n').map((l) => '  ' + l),
     '',
-    'THE WORLD you see in each observation is the only reality. Objects you placed earlier are still there.',
-    'You talk through bubbles; the player sees them above your head and in the chat.',
+    WORLD_RULES,
+    '',
+    'THE WORLD in each observation is the only reality. Objects you placed earlier are still there and you can query them.',
     '',
     'YOUR TOOLS (call only these):',
     ...ACTOR_TOOLS.map((t) => '  - ' + t),

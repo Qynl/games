@@ -107,12 +107,16 @@ export class GameEngine {
   private eventId = 0
   private npcTimer = new Map<string, number>()
   private npcWander = new Map<string, [number, number, number]>()
+  private autoSpeakAt = new Map<string, number>()
+  private camFov = 74
   private fallBall: WorldObjectState | null = null
   private fallBallTimer = 0
   private vehCfg = { heading: 0, speed: 0 }
   private pinsTracked = 0
   private targetsTracked = 0
   private gemsAtCourse = -1
+  /** red-light cycle anchor (sim seconds when the course started) */
+  private rlOffset = 0
   private spawn: [number, number, number] = SPAWN
   private onFeed?: (e: EngineEvent) => void
   private opts: GameEngineOpts
@@ -497,6 +501,16 @@ export class GameEngine {
           // snappy when angry
           o.rot[1] = Math.atan2(p.pos.x - o.pos[0], p.pos.z - o.pos[2])
         }
+      } else if (npc.follower && p.alive) {
+        // a pet/companion: keeps ~2.6m behind the player, faces them
+        if (pd > 4.2) {
+          moving = moveToward(p.pos.x - p.vel.x * 0.3, p.pos.z - p.vel.z * 0.3)
+        } else if (pd > 3.2) {
+          moving = moveToward(p.pos.x, p.pos.z)
+        } else if (pd < 1.8) {
+          moveToward(o.pos[0] + (o.pos[0] - p.pos.x), o.pos[2] + (o.pos[2] - p.pos.z))
+        }
+        o.rot[1] = Math.atan2(p.pos.x - o.pos[0], p.pos.z - o.pos[2])
       } else if (npc.waypoints && npc.waypoints.length) {
         const wp = npc.waypoints[o.spawnIndex ?? 0]
         const idx = o.spawnIndex ?? 0
@@ -521,11 +535,19 @@ export class GameEngine {
         }
       }
       // avoid walking into the player's face when idle friendly
-      if (!moving && !(kind === 'ghost') && pd < 1.1 && !npc.hostile) {
+      if (!moving && !(kind === 'ghost') && pd < 1.1 && !npc.hostile && !npc.follower) {
         moveToward(o.pos[0] + (o.pos[0] - p.pos.x) * 2, o.pos[2] + (o.pos[2] - p.pos.z) * 2)
       }
       o.pos[1] = kind === 'ghost' ? groundY : groundY + homeY
-      void p
+
+      // occasionally speak unprompted when the player lingers nearby
+      if (npc.chat?.length && !npc.hostile && pd < 4.6 && pd > 0.9) {
+        const lastAuto = this.autoSpeakAt.get(o.id) ?? -1e9
+        if (performance.now() - lastAuto > 15000 && Math.random() < 0.02) {
+          this.autoSpeakAt.set(o.id, performance.now())
+          this.npcSpeak(o)
+        }
+      }
 
       // chatter when the player is near
       if (npc.chat?.length && pd < 5.5) {
@@ -719,30 +741,27 @@ export class GameEngine {
       }
     }
 
-    // red light zone (course-specific, engines know via npc name)
+    // red light zone (course-specific): lamps alternate green/red on a
+    // fixed cycle; running while red sends the player back to the line
     if (this.course?.label.toLowerCase().includes('red light')) {
       const warden = this.api.npcs.find((n) => n.name === 'the warden')
       const lamps = onObjs.filter((o) => (o.tags ?? []).includes('rl_light'))
+      // ~2.2s green, ~1.5s red — deterministically from the course start
+      const t = (this.simT - this.rlOffset) % 3.7
+      const green = t < 2.2
+      const lampColor = green ? '#00ff88' : '#ff3b30'
+      for (const lamp of lamps) if (lamp.color !== lampColor) lamp.color = lampColor
       const moving = vecLen(p.vel.x, 0, p.vel.z) > 1.5
       const zNearWarden = Math.abs(pz - (warden?.pos[2] ?? -30)) < 2.4
       if (zNearWarden) return
       const inField = Math.abs(px + 4) < 24 && Math.abs(pz + 30) < 16
       if (!inField) return
-      const lamp = lamps[0]
-      const red = lamp ? (lamp.color ?? '#ff3b30').toLowerCase() !== '#00ff88' : false
-      void red
-      if (lamps.length && moving) {
-        const color = lamps[0].color ?? '#000'
-        const isRed = color === '#ff3b30' || color === '#ff2d1a'
-        const isGreen = color === '#00e86a' || color === '#2dff5e' || color === '#00ff88'
-        if (isRed && this.hazardCd <= 0) {
-          this.hazardCd = 1.2
-          this.emit('hazard', 'the player got CAUGHT moving on red!!')
-          this.emit('react', 'I SAW THAT.')
-          aifx.hurt()
-          this.player.queueTeleport(-4, 2, -30 + 13 + 6)
-          void isGreen
-        }
+      if (!green && moving && this.hazardCd <= 0 && lamps.length) {
+        this.hazardCd = 1.2
+        this.emit('hazard', 'the player got CAUGHT moving on red!!')
+        this.emit('react', 'I SAW THAT.')
+        aifx.hurt()
+        this.player.queueTeleport(-4, 2, -30 + 13 + 6)
       }
     }
 
@@ -768,6 +787,7 @@ export class GameEngine {
     this.objectivesDone = true
     for (const g of this.api.goals) g.done = true
     aifx.fanfare()
+    this.burstConfetti()
     this.emit('win', `PLAYER COMPLETED: ${this.course.title}`)
     this.log(`course complete: ${this.course.title} (${mode})`, 'ok')
     // remove finish tags so we don't retrigger
@@ -776,6 +796,37 @@ export class GameEngine {
         o.tags = (o.tags ?? []).filter((t) => t !== 'finish')
         this.api.deleteObject(o.id)
       }
+    }
+  }
+
+  /** little celebratory burst of physics confetti over the player */
+  private burstConfetti() {
+    const p = this.player
+    const palette = ['#ffd23f', '#ff5a4e', '#59b7ff', '#7ef0c0', '#ff9fd0', '#b9a7ff']
+    let added = 0
+    for (let i = 0; i < 26; i++) {
+      if (this.api.objects.length >= 220) break
+      try {
+        const o = this.api.createObject({
+          kind: 'confetti',
+          shape: 'box',
+          name: `confetti_${i}`,
+          pos: [p.pos.x, p.pos.y + 1.4 + Math.random() * 1.4, p.pos.z],
+          scale: [0.09, 0.05, 0.09],
+          color: palette[i % palette.length],
+          category: 'prop',
+          body: 'dynamic',
+          tags: ['confetti'],
+        })
+        this.knock(o.id, (Math.random() - 0.5) * 9, 4 + Math.random() * 6, (Math.random() - 0.5) * 9)
+        added++
+      } catch {
+        break
+      }
+    }
+    if (added) {
+      this.log(`${added} bits of confetti thrown`, 'info')
+      this.api.commit('win confetti burst')
     }
   }
 
@@ -960,8 +1011,27 @@ export class GameEngine {
     this.gemsAtCourse = this.api.objects.filter((o) => (o.tags ?? []).includes('collectible')).length
     this.pinsTracked = this.api.objects.filter((o) => (o.tags ?? []).includes('pin')).length
     this.targetsTracked = this.api.objects.filter((o) => (o.tags ?? []).includes('target')).length
+    this.rlOffset = info.label.toLowerCase().includes('red light') ? this.simT : this.rlOffset
     this.rebuild()
     this.emit('scene', `new scene built: ${info.title}`)
+    // if the course starts far from spawn, walk the player to the start
+    // line facing the finish (no one enjoys a 40m blind walk)
+    const startTile = this.api.objects.find((o) => (o.tags ?? []).includes('startZone'))
+    if (startTile) {
+      const sx = startTile.pos[0]
+      const sz = startTile.pos[2]
+      const dist = Math.hypot(sx, sz - this.spawn[2])
+      if (dist > 15) {
+        const fin = this.api.objects.find((o) => (o.tags ?? []).includes('finish'))
+        const gy = this.groundHeightAt(sx, sz) + 1.5
+        this.player.queueTeleport(sx, gy, sz)
+        if (fin) {
+          this.player.yaw = Math.atan2(fin.pos[0] - sx, fin.pos[2] - sz)
+          this.player.pitch = 0
+        }
+        this.emit('interact', 'moved the player to the course start')
+      }
+    }
     return info
   }
 
@@ -1037,7 +1107,8 @@ export class GameEngine {
     const eye = p.eyePos()
     const dir = p.viewDir()
     // subtle head bob while walking
-    const bobAmp = p.grounded && p.moving ? 0.028 * (1 + (p.keysHeld().has('ShiftLeft') ? 0.6 : 0)) : 0
+    const running = p.grounded && p.moving && p.keysHeld().has('ShiftLeft')
+    const bobAmp = p.grounded && p.moving ? 0.028 * (1 + (running ? 0.6 : 0)) : 0
     const bob = Math.sin(p.moveTime * 9.4) * bobAmp
     const bob2 = Math.cos(p.moveTime * 4.7) * bobAmp * 0.6
     this.camera.eye = { x: eye.x, y: eye.y + bob, z: eye.z }
@@ -1046,7 +1117,13 @@ export class GameEngine {
       y: eye.y + dir.y * 30 + bob2,
       z: eye.z + dir.z * 30,
     }
-    this.camera.fov = 74
+    // speed FOV: opens up a touch while sprinting or falling fast, eases back
+    const hSpeed = Math.hypot(p.vel.x, p.vel.z)
+    const speedK = Math.min(1, hSpeed / 9)
+    const airK = !p.grounded ? Math.min(1, Math.max(0, -p.vel.y) / 18) : 0
+    const targetFov = 73 + speedK * 6 + airK * 3
+    this.camFov = damp(this.camFov, targetFov, p.grounded ? 6 : 2.5, dt)
+    this.camera.fov = this.camFov
     this.camera.shake = this.shakeAmt * 0.5
   }
 

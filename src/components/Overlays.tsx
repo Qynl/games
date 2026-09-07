@@ -4,7 +4,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { GameSession } from '../game/Session'
-import { HEAD_POS } from './AiHead'
 import type { Expression, Phase } from '../types'
 
 const PHASE_LABEL: Record<Phase, string> = {
@@ -88,6 +87,7 @@ export function Overlays({ session }: { session: GameSession }) {
   const crossRef = useRef<HTMLDivElement>(null)
   const hintRef = useRef<HTMLDivElement>(null)
   const statusRef = useRef<HTMLDivElement>(null)
+  const flashRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     // head speech bubble
@@ -103,7 +103,10 @@ export function Overlays({ session }: { session: GameSession }) {
           bubbleInfo.current = null
           bubbleRef.current.style.opacity = '0'
         } else {
-          const p = useCameraProjector(session)(HEAD_POS[0], HEAD_POS[1] + 4.1, HEAD_POS[2])
+          const hx = session.headPos.x
+          const hy = session.headPos.y
+          const hz = session.headPos.z
+          const p = useCameraProjector(session)(hx, hy + 4.1, hz)
           bubbleRef.current.textContent = info.text
           if (p) {
             bubbleRef.current.style.left = p.x + '%'
@@ -159,6 +162,17 @@ export function Overlays({ session }: { session: GameSession }) {
           hintRef.current.innerHTML = `[E] ${label}`
         }
       }
+      // damage / win screen flash
+      if (flashRef.current) {
+        const rem = session.flashUntil - performance.now()
+        if (rem > 0) {
+          const k = Math.min(1, rem / (session.flashKind === 'win' ? 900 : 600))
+          flashRef.current.className = `screen-flash flash-${session.flashKind}`
+          flashRef.current.style.opacity = String(k * (session.flashKind === 'win' ? 0.5 : 0.42))
+        } else {
+          flashRef.current.style.opacity = '0'
+        }
+      }
       // status chip refresh (cheap)
       if (statusRef.current) {
         const ui = session.ui
@@ -180,6 +194,9 @@ export function Overlays({ session }: { session: GameSession }) {
 
   return (
     <div className="overlay-root">
+      {/* full-screen damage/win flash + vignette */}
+      <div className="screen-flash" ref={flashRef} style={{ opacity: 0 }} />
+      <div className="vignette" />
       {/* crosshair */}
       <div className={`crosshair${engine.interactHint ? ' crosshair-hot' : ''}`} ref={crossRef}>
         <div className="cross-dot" />

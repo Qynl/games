@@ -11,6 +11,9 @@ import type { Expression } from '../types'
 import { clamp, lerp } from '../utils/helpers'
 
 export const HEAD_POS: [number, number, number] = [0, 20, 24]
+/** preferred flying distance from the player's feet (x/z plane) */
+const MIN_DIST = 9
+const MAX_DIST = 21
 
 interface AiHeadProps {
   session: GameSession
@@ -28,6 +31,10 @@ const EXPR_COLOR: Record<Expression, string> = {
   error: '#ff5a4e',
   focused: '#9fd7ff',
 }
+
+const EXPR_COLOR3 = Object.fromEntries(
+  (Object.keys(EXPR_COLOR) as Expression[]).map((k) => [k, new THREE.Color(EXPR_COLOR[k])]),
+) as Record<Expression, THREE.Color>
 
 export function AiHead({ session }: AiHeadProps) {
   const g = useRef<THREE.Group>(null!)
@@ -62,8 +69,23 @@ export function AiHead({ session }: AiHeadProps) {
     const p = s.engine.player
     const ui = s.ui
 
-    // hover + drift
-    g.current.position.set(HEAD_POS[0] + Math.sin(t * 0.5) * 0.4, HEAD_POS[1] + Math.sin(t * 0.8) * 0.35, HEAD_POS[2])
+    // hover + drift, and a personal-space behaviour: the head hovers at a
+    // comfortable viewing distance — glides closer when curious, backs off
+    // when the player runs at it, parks up high to watch from afar.
+    const pdx = p.pos.x - HEAD_POS[0]
+    const pdz = p.pos.z - HEAD_POS[2]
+    const hd = Math.hypot(pdx, pdz) || 1
+    const wantDist = clamp(hd, MIN_DIST, MAX_DIST)
+    const k = Math.min(1, dt * 0.9)
+    const bx = HEAD_POS[0] + (pdx / hd) * (hd - wantDist) * k
+    const bz = HEAD_POS[2] + (pdz / hd) * (hd - wantDist) * k
+    const busy = ui.phase === 'working' || ui.phase === 'thinking'
+    // hovers a touch lower and closer when inspecting builds, higher when shy
+    const by = HEAD_POS[1] + Math.sin(t * 0.6 + s.engine.simT * 0.1) * 0.3 + (busy ? 0.6 : 0)
+    s.headPos.x = bx
+    s.headPos.y = by
+    s.headPos.z = bz
+    g.current.position.set(bx + Math.sin(t * 0.5) * 0.45, by + Math.sin(t * 0.8) * 0.35, bz + Math.cos(t * 0.43) * 0.45)
     g.current.rotation.x = Math.sin(t * 0.3) * 0.04
     g.current.rotation.z = Math.sin(t * 0.21) * 0.05
 
@@ -71,15 +93,14 @@ export function AiHead({ session }: AiHeadProps) {
     const look = new THREE.Vector3(p.pos.x, p.pos.y + 1.1, p.pos.z)
     g.current.lookAt(look)
 
-    // expression color + glow
-    const target = EXPR_COLOR[ui.expr] ?? EXPR_COLOR.neutral
+    // expression color + glow (pre-built colors, no per-frame allocation)
+    const target = EXPR_COLOR3[ui.expr] ?? EXPR_COLOR3.neutral
     const c = mats.coreMat.color
-    c.lerp(new THREE.Color(target), Math.min(1, dt * 6))
+    c.lerp(target, Math.min(1, dt * 6))
     const er = ui.expr === 'error' ? 1 : ui.expr === 'excited' || ui.expr === 'working' ? 0.55 : 0.25 + Math.sin(t * 1.4) * 0.08
     mats.coreMat.emissiveIntensity = er
 
     // rings rotate faster when busy
-    const busy = ui.phase === 'working' || ui.phase === 'thinking'
     const speed = busy ? 1.6 : 0.35
     ring1.current.rotation.x += dt * speed
     ring1.current.rotation.y += dt * speed * 0.7

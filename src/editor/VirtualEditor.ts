@@ -149,9 +149,20 @@ export class VirtualEditor {
     }
   }
 
+  /** cheap but broad signature of everything scripts can mutate */
   private changeKey(): string {
     const w = this.api
-    return [w.objects.length, w.npcs.length, w.vehicles.length, w.zones.length, w.scripts.length].join(',')
+    const sig = (o: { id: string; pos: [number, number, number]; rot: [number, number, number]; scale: [number, number, number] | number; color?: string; visible?: boolean; solid?: boolean; tags?: string[]; opacity?: number }) =>
+      `${o.id}:${o.pos.map((n) => n.toFixed(1)).join(',')};${o.rot.map((n) => n.toFixed(2)).join(',')};${(Array.isArray(o.scale) ? o.scale : [o.scale, o.scale, o.scale]).map((n) => n.toFixed(2)).join(',')};${o.color ?? ''};${o.visible !== false};${o.solid !== false};${(o.tags ?? []).join('+')}`
+    let hash = 0
+    const feed = (s: string) => {
+      for (let i = 0; i < s.length; i++) hash = (hash * 33 + s.charCodeAt(i)) >>> 0
+    }
+    feed(w.objects.map(sig).join('|'))
+    feed(w.npcs.map(sig).join('|'))
+    feed(w.vehicles.map(sig).join('|'))
+    feed(String(w.terrain !== null) + String(w.weather.rain) + w.timeOfDay.toFixed(2) + w.sky.color + w.goals.length)
+    return String(hash)
   }
 
   runOnce(name: string, code: string): { ok: boolean; out?: unknown; error?: string } {
@@ -160,8 +171,8 @@ export class VirtualEditor {
     const res = runSandboxed(code, api as SandboxApi)
     if (res.ok) {
       this.lastResults[name] = res.output === null || res.output === undefined ? 'ran' : JSON.stringify(res.output)
-      // if the script added/removed world entries, ask the engine to rebuild
-      // (colliders + scene sync); pure position/color edits sync per-frame
+      // scripts can move/scale/paint/clear — any world mutation needs the
+      // engine to rebuild colliders and the scene to resync
       if (this.changeKey() !== before) this.api.commit(`script "${name}" changed the world`)
     } else {
       this.lastResults[name] = `ERROR: ${res.error ?? 'unknown'}`

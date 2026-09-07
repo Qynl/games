@@ -49,11 +49,18 @@ export class GameSession {
   time = 0
   online = false
   startedAt = performance.now()
+  /** live anchor of the AI head (the head moves toward/away from the player) */
+  headPos = { x: 0, y: 20, z: 24 }
+  /** ms timestamp while a red hurt flash should tint the screen (0 = none) */
+  flashUntil = 0
+  flashKind: 'hurt' | 'win' = 'hurt'
   private listeners = new Set<SessionListener>()
   private speechId = 0
   private lastModelCheck = 0
   private connectPromise: Promise<void> | null = null
   private connectTimer: ReturnType<typeof setInterval> | null = null
+  private timers: ReturnType<typeof setTimeout>[] = []
+  private lastTeleRefresh = 0
 
   constructor() {
     this.engine = new GameEngine({
@@ -115,8 +122,15 @@ export class GameSession {
 
   private bump(ch: 'ui' | 'world' | 'speech' | 'editor') {
     if (ch === 'ui' || ch === 'speech') this.uiRev += 1
-    else if (ch === 'world') this.worldRev += 1
-    else if (ch === 'editor') this.editorRev += 1
+    else if (ch === 'world') {
+      this.worldRev += 1
+      // keep the teleport quick-list fresh after AI builds (throttled)
+      const now = performance.now()
+      if (now - this.lastTeleRefresh > 1500) {
+        this.lastTeleRefresh = now
+        this.refreshTeleportList()
+      }
+    } else if (ch === 'editor') this.editorRev += 1
     for (const l of [...this.listeners]) l(ch)
   }
 
@@ -148,9 +162,23 @@ export class GameSession {
         this.npcChats.push({ id: ++this.npcChatId, name, text, t0: performance.now() })
         if (this.npcChats.length > 4) this.npcChats.shift()
         this.bump('ui')
-      } else if (['win', 'death', 'loseLife', 'scene', 'outOfBounds', 'squish', 'checkpoint', 'hazard'].includes(e.kind)) {
+      } else if (['win', 'death', 'loseLife', 'scene', 'outOfBounds', 'squish', 'checkpoint', 'hazard', 'damage'].includes(e.kind)) {
         this.toasts.push({ id: ++this.toastId, text: e.text, t0: performance.now(), dur: e.kind === 'win' ? 7 : e.kind === 'scene' ? 6 : 3.4, kind: e.kind })
         if (this.toasts.length > 5) this.toasts.shift()
+        this.bump('ui')
+      }
+      // screen flash feedback
+      if (e.kind === 'damage' || e.kind === 'hazard') {
+        this.flashKind = 'hurt'
+        this.flashUntil = performance.now() + (e.kind === 'hazard' ? 650 : 420)
+        this.bump('ui')
+      } else if (e.kind === 'death') {
+        this.flashKind = 'hurt'
+        this.flashUntil = performance.now() + 1100
+        this.bump('ui')
+      } else if (e.kind === 'win') {
+        this.flashKind = 'win'
+        this.flashUntil = performance.now() + 900
         this.bump('ui')
       }
     }
@@ -175,6 +203,8 @@ export class GameSession {
 
   dispose() {
     if (this.connectTimer) clearInterval(this.connectTimer)
+    for (const t of this.timers) clearTimeout(t)
+    this.timers = []
   }
 
   async connect() {
@@ -288,6 +318,8 @@ export class GameSession {
 
   hasPlayed = false
 
+  private tutorialShown = false
+
   /** enable first-person controls (pointer locked / playing) */
   setControls(on: boolean) {
     this.ui.controlsOn = on
@@ -296,6 +328,23 @@ export class GameSession {
     if (!on) {
       this.engine.player.vel.x = 0
       this.engine.player.vel.z = 0
+    }
+    if (on && !this.tutorialShown && this.hasPlayed) {
+      this.tutorialShown = true
+      const tips: [string, number][] = [
+        ['[WASD] walk · [mouse] look · [Space] jump', 700],
+        ['[E] use — talk to NPCs, drive cars, press buttons', 5200],
+        ['[T] chat with the AI head · [B] its project editor · [N] look up', 9800],
+      ]
+      for (const [text, delay] of tips) {
+        this.timers.push(
+          setTimeout(() => {
+            this.toasts.push({ id: ++this.toastId, text, t0: performance.now(), dur: 3.6, kind: 'tip' })
+            if (this.toasts.length > 5) this.toasts.shift()
+            this.bump('ui')
+          }, delay),
+        )
+      }
     }
     this.bump('ui')
   }

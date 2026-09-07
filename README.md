@@ -81,10 +81,12 @@ AI places) — or the spawn pad if none.
 
 ## What you're looking at
 
-- **The head** — an AI game developer floating over the sandbox. Its eyes track you,
-  it blinks and squints, glows and pulses while thinking/working, spins its halo rings
-  when busy, and its face shifts mood (happy, excited, annoyed, smug, panicked…).
-  Speech bubbles carry its running commentary — sometimes for you, often for itself.
+- **The head** — an AI game developer floating over the sandbox. It keeps a respectful
+  viewing distance: glides closer when curious about what you're doing, backs off when
+  you run at it, rises to watch from above. Its eyes track you, it blinks and squints,
+  glows and pulses while thinking/working, spins its halo rings when busy, and its face
+  shifts mood (happy, excited, annoyed, smug, panicked…). Speech bubbles carry its
+  running commentary — sometimes for you, often for itself.
 - **The world** — a baseplate with a day/night cycle (the AI can change time, weather,
   sky, terrain and lights), soft shadows and a collision world. The AI clears and
   rebuilds scenes as it changes projects; your checkpoints/spawn survive.
@@ -113,7 +115,25 @@ On a fixed cadence (default every ~2.6 s, adjustable in settings — never per f
    re-shape its agenda: it reacts, fixes, celebrates, gets bored, starts over.
 
 It has its own agenda. Chat is an interrupt it chooses how to handle — not a request
-queue.
+queue. The chat panel offers one-tap ideas, shows a typing indicator while the model
+thinks, and short spoken lines pop above the head while longer narration lands in the
+log.
+
+World details that make it feel lived-in:
+
+- NPCs with `chat` lines **speak unprompted** when you linger near them (~once every
+  15 s, random) — no E press required.
+- `follower` NPCs (pets, companions) trail you around the map and stop beside you.
+- Winning a course pops a **confetti burst** of dynamic physics bits over your head.
+- Sprinting widens the FOV subtly; falling adds a touch; the camera eases back.
+- Taking damage tints the screen red; winning flashes gold.
+- Scenes that start far from spawn **auto-move you to the start line**, facing the
+  finish — no blind 40 m walks. Every built-in scene fits inside the world edge.
+- **Red light, green light** is a real game now: the lamps cycle green (run!) and
+  red (freeze!) on their own schedule, the warden sends you back when you're caught,
+  and a finish tile at the far line wins the round.
+- The first time you enter the world, control tips pop up one at a time; the chat
+  panel has one-tap idea chips and a typing indicator while the model thinks.
 
 ### The tool surface
 

@@ -7,6 +7,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { GameSession } from '../game/Session'
 import type { NpcConfig, VehicleConfig, WorldObjectState } from '../types'
+import { lerp } from '../utils/helpers'
 
 interface Entry {
   root: THREE.Group
@@ -358,8 +359,9 @@ export function WorldLayer({ session }: { session: GameSession }) {
   const objects = useRef(new Map<string, Entry>())
   const npcs = useRef(new Map<string, Entry>())
   const vehicles = useRef(new Map<string, Entry>())
+  const blobRef = useRef<THREE.Mesh>(null!)
   const blobMat = useMemo(() => {
-    const m = new THREE.MeshBasicMaterial({ color: '#0a0f18', transparent: true, opacity: 0.22, depthWrite: false })
+    const m = new THREE.MeshBasicMaterial({ color: '#0a0f18', transparent: true, opacity: 0.22, depthWrite: false, depthTest: true })
     return m
   }, [])
   const disposed = useRef(false)
@@ -494,13 +496,26 @@ export function WorldLayer({ session }: { session: GameSession }) {
       e.root.rotation.set(0, v.rot?.[1] ?? 0, 0)
     }
 
-    // player blob shadow (invisible first-person body, but a soft shadow sells it)
-    void p
+    // player blob shadow: a soft dark ellipse under the feet sells the body
+    if (blobRef.current) {
+      const ground = session.engine.groundHeightAt(p.pos.x, p.pos.z)
+      const onBox = p.grounded && p.pos.y > ground + 0.3
+      const by = onBox ? p.pos.y + 0.03 : ground + 0.03
+      blobRef.current.position.set(p.pos.x, by, p.pos.z)
+      const airborne = !p.grounded
+      const moving = p.grounded && p.moving
+      const targetOp = airborne ? 0.1 : moving ? 0.3 : 0.22
+      blobMat.opacity = lerp(blobMat.opacity, targetOp, dt * 8)
+      const sc = airborne ? 0.75 : p.crouching ? 0.8 : 1
+      blobRef.current.scale.setScalar(lerp(blobRef.current.scale.x, sc, dt * 8))
+      blobRef.current.visible = true
+    }
+    void t
   })
 
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]} material={blobMat} visible={false}>
-      <circleGeometry args={[0.8, 20]} />
+    <mesh ref={blobRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} material={blobMat} visible={false} renderOrder={1}>
+      <circleGeometry args={[0.85, 24]} />
     </mesh>
   )
 }

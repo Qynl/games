@@ -46,11 +46,13 @@ interface Lane {
 
 // Candidate lanes: 1D corridors along x, starting 10-16m from spawn
 // (0,~5,6), always pointing away from the AI head's sky spot (0,20,24).
+// course lanes start closer to spawn than the world edge (±55): the
+// longest recipes extend ~45m so the far end must stay reachable
 const LANES: Lane[] = [
-  { x0: 9, z0: 9, dir: 1 },
-  { x0: 12, z0: -17, dir: 1 },
-  { x0: -11, z0: 9, dir: -1 },
-  { x0: -13, z0: -19, dir: -1 },
+  { x0: 6, z0: 9, dir: 1 },
+  { x0: 8, z0: -15, dir: 1 },
+  { x0: -7, z0: 9, dir: -1 },
+  { x0: -9, z0: -19, dir: -1 },
 ]
 
 const GREEN = '#7ecb6b'
@@ -225,7 +227,7 @@ export class RecipeEngine {
     const startX = this.lx(lane, 2)
     this.tile('is_start', [startX, 0.02, z], [6, 0.05, 8], BLUE, ['startZone'])
     // lava below
-    for (let gx = this.lx(lane, 2); Math.abs(gx - this.lx(lane, 2)) < 50; gx += dir * 6) {
+    for (let gx = this.lx(lane, 2); Math.abs(gx - this.lx(lane, 2)) < 40; gx += dir * 6) {
       this.w.createObject({
         kind: 'lava', name: `is_lava${Math.abs(gx)}`, pos: [gx, 0.06, z], scale: [5.6, 0.12, 12],
         color: '#ff4b22', emissive: '#ff4b22', emissiveIntensity: 0.8, category: 'block',
@@ -380,6 +382,15 @@ export class RecipeEngine {
     }
     lampAt(cx, cz + half + 4, RED)
     lampAt(cx, cz - half - 4, RED)
+    // the far line: touch it and the course is yours (lights turn green by
+    // the engine's red-light cycle — timing is everything)
+    this.tile('rl_fin', [cx, 0.02, cz - half - 1], [9, 0.05, 4], GREEN, ['finish'])
+    // glowing arrow toward the far line (the field lies south of spawn)
+    this.w.createObject({
+      kind: 'arrow', shape: 'cone', name: 'rl_arrow', pos: [cx, 3, cz + 4],
+      rot: [-Math.PI / 2, 0, 0], scale: [1, 1.8, 1], color: BLUE, emissive: BLUE,
+      emissiveIntensity: 1.4, category: 'prop', body: 'kinematic', solid: false,
+    })
     this.w.createNPC({ kind: 'guard', name: 'the warden', pos: [cx + 4, 1.2, cz + half + 7], color: '#3f7fd6', hostile: false, wander: false, chat: ['...i see you.', 'green means GO. red means FREEZE.', 'i have been waiting all day for someone to try me.'] })
     return this.done(label, 'red light green light', 'A floodlit field with a very serious guard.', 'Start at the glowing line. When the lights are GREEN you may run. When they turn RED — freeze. Reach the far side!', 'finish', [cx, 0, cz])
   }

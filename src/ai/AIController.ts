@@ -10,7 +10,7 @@
 // Everything is decoupled from React: the controller only pushes small UI
 // state updates through onUi() and speaks through onSpeech().
 
-import type { Expression, LogLine, Phase, SpeechEntry } from '../types'
+import type { CurrentTask, Expression, LogLine, Phase, SpeechEntry } from '../types'
 import { capLen } from '../utils/helpers'
 import type { OllamaClient } from './OllamaClient'
 import type { Memory } from './Memory'
@@ -94,6 +94,7 @@ export class AIController {
   private errorStreak = 0
   private lastOutcome = ''
   private cycleActive = false
+  private lastOfflineSpeak = 0
   private sessionStart = performance.now()
   private greeted = false
   private offlineIdx = 0
@@ -138,6 +139,14 @@ export class AIController {
   private logSpeech(speaker: SpeechEntry['speaker'], text: string) {
     this.speechLog.push({ id: ++this.speechId, speaker, text, at: Date.now() })
     if (this.speechLog.length > 30) this.speechLog.shift()
+  }
+
+  /** speak without a face bubble (used for longer narration lines) */
+  private chatSay(text: string) {
+    const clean = text.replace(/\s+/g, ' ').trim()
+    if (!clean) return
+    this.logSpeech('ai', clean)
+    this.onSpeech('ai', clean)
   }
 
   speak(text: string, energy = 0.7) {
@@ -196,22 +205,28 @@ export class AIController {
     const online = this.online
     if (now < this.nextTickAt) return
     if (!online) {
-      // offline: occasionally talk, never build
+      // offline: never build, but still a presence — mutters to itself
+      // sometimes and answers when spoken to
       this.idleSince = now
-      if (this.queue.length && now - this.lastReplyAt > 4000) {
+      if (this.queue.length && now - this.lastReplyAt > 3000) {
         this.offlineReact()
+      } else if (now - this.lastOfflineSpeak > 40000 + Math.random() * 30000) {
+        this.lastOfflineSpeak = now
+        const line = OFFLINE_LINES[this.offlineIdx % OFFLINE_LINES.length]
+        this.offlineIdx += 1
+        this.speak(line, 0.35)
       }
-      this.nextTickAt = now + 6000 + Math.random() * 6000
+      this.nextTickAt = now + 8000 + Math.random() * 7000
       return
     }
     if (!s.autonomous) {
       this.setState({ phase: 'idle', phaseDetail: 'autonomous loop paused' })
-      this.nextTickAt = now + 5000
+      this.scheduleNext('auto', true)
       return
     }
-    if (!this.queue.length && !this.engine.course && !this.engine.api.scripts.length && now - this.sessionStart < 20000) {
-      this.nextTickAt = now + 1500
+    if (!this.queue.length && !this.engine.course && !this.engine.api.scripts.length && now - this.sessionStart < 30000) {
       void s
+      this.scheduleNext('startup')
       this.cycle('startup')
       return
     }
@@ -247,6 +262,17 @@ export class AIController {
   }
 
   // ---------------------------------------------------------------- cycles
+  /** next wake-up: respects the user's interval setting */
+  private scheduleNext(reason: 'auto' | 'react' | 'startup', idle = false) {
+    const iv = Math.min(12, Math.max(1.2, this.getSettings().interval || 2.6))
+    const base = idle ? iv * 1.9 : iv
+    const jitter = 0.85 + Math.random() * 0.5
+    let ms = base * 1000 * jitter
+    if (reason === 'react') ms = Math.min(ms, Math.max(1400, iv * 560))
+    if (reason === 'startup') ms = 1100
+    this.nextTickAt = performance.now() + ms
+  }
+
   private async cycle(reason: 'auto' | 'react' | 'startup') {
     if (this.cycleActive) return
     this.cycleActive = true
@@ -269,7 +295,7 @@ export class AIController {
         this.online = false
         this.setState({ phase: 'offline', expr: 'error', phaseDetail: res.error ?? 'ollama offline' })
         this.onLog({ at: Date.now(), text: `AI call failed: ${res.error}`, level: 'error' })
-        this.nextTickAt = performance.now() + 5000
+        this.scheduleNext(reason, true)
         return
       }
       this.online = true
@@ -277,12 +303,12 @@ export class AIController {
       this.setState({ phase: 'working', expr: 'working' })
       await this.actOnReply(res.text)
       this.lastReplyAt = performance.now()
-      this.nextTickAt = performance.now() + (this.lastOutcome.startsWith('idle') ? 4000 + Math.random() * 5000 : 900 + Math.random() * 1300)
+      this.scheduleNext(reason, this.lastOutcome.startsWith('idle'))
       this.idleSince = performance.now()
     } catch (e) {
       this.onLog({ at: Date.now(), text: `AI loop error: ${e instanceof Error ? e.message : String(e)}`, level: 'error' })
       this.setState({ phase: 'error', expr: 'error' })
-      this.nextTickAt = performance.now() + 6000
+      this.scheduleNext(reason, true)
     } finally {
       this.busy = false
       this.cycleActive = false
@@ -298,6 +324,23 @@ export class AIController {
     const sinceLast = this.lastReplyAt
     const playerActions = this.engine.activitySince(Math.max(0, now - 6000))
     const activityMs = now - Math.max(this.engine.lastActivityAt(), this.engine.api.lastMessageAt)
+    // a lightweight sense of "current project" so the model keeps iterating
+    // on what exists instead of starting from zero every single turn
+    const course = this.engine.course
+    const task = course
+      ? {
+          id: 'project',
+          goal: `ongoing project: "${course.title}" — ${course.objective}`,
+          plan: [
+            `check the current state of "${course.title}" (use status/listObjects)`,
+            'fix or improve what the player would notice; keep it playable',
+            `make sure it is winnable (${course.winMode}) — checkpoints, no impossible jumps`,
+          ],
+          stepIndex: 0,
+          startedAt: Date.now(),
+          deadline: Date.now() + 3600e3,
+        }
+      : null
     const ctx = buildContext({
       memory: this.memory,
       player: p,
@@ -306,7 +349,7 @@ export class AIController {
       worldStatus: this.engine.worldStatus(),
       recentHistory: this.engine.history.slice(-8),
       recentSpeech: this.speechLog,
-      task: null,
+      task,
       phase: this.phase,
       chatOpen: false,
       nowSec: (now - this.sessionStart) / 1000,
@@ -355,7 +398,11 @@ export class AIController {
     for (const line of lines) {
       if (line.kind === 'say') {
         said += 1
-        this.speak(line.text ?? '', 0.8)
+        const t = (line.text ?? '').trim()
+        if (!t) continue
+        // short lines pop as face bubbles; longer narration is chat-only
+        if (t.length <= 88 && said <= 3) this.speak(t, 0.8)
+        else this.chatSay(t)
       } else if (line.kind === 'tool') {
         if (tools >= MAX_TOOLS_PER_CYCLE) {
           stoppedEarly = true
@@ -365,7 +412,7 @@ export class AIController {
         this.setState({ phase: 'working', expr: 'working', phaseDetail: `running ${line.name}()` })
         const r = this.runTool(line.name ?? '', line.args)
         results.push(r.trim())
-        if (!r.startsWith('ok:') && !r.startsWith('result:')) this.errorStreak += 1
+        if (r.startsWith('error') || r.startsWith('fail')) this.errorStreak += 1
         else this.errorStreak = 0
         built += 1
         // let the UI breathe between builds
@@ -393,72 +440,127 @@ export class AIController {
   }
 
   // ---------------------------------------------------------------- parser
+  /**
+   * Model replies are fragile free text; we intentionally accept several
+   * shapes: <tool>name</tool> + JSON on the next line, same-line JSON after
+   * the closing tag, multi-line JSON objects, stray markdown fences, quote
+   * bubbles "..." and <bubble>…</bubble> lines. Anything else becomes
+   * spoken narration. Never throws.
+   */
   private parse(reply: string): { kind: 'say' | 'tool'; text?: string; name?: string; args?: unknown }[] {
     const out: { kind: 'say' | 'tool'; text?: string; name?: string; args?: unknown }[] = []
-    const lines = reply.split('\n')
-    let pendingTool: string | null = null
-    let pendingDepth = 0
-    const flushSay = (raw: string) => {
-      const text = raw
-        .replace(/<bubble>(.*?)<\/bubble>/gs, (_m, inner: string) => {
-          out.push({ kind: 'tool', name: 'say', args: { text: inner.trim() } })
-          return ''
-        })
-        .replace(/<\/?[a-z]+>/gi, '')
-        .trim()
-      if (text) out.push({ kind: 'say', text })
+    const lines = reply.split('\n').filter((l) => !/^\s*```/.test(l))
+    let textBuf: string[] = []
+    const pushSay = (raw: string) => {
+      const t = raw.replace(/<\/?[a-zA-Z][^>]*>/g, '').replace(/^[\s*>-]+/, '').trim()
+      if (t) out.push({ kind: 'say', text: t })
     }
-    for (const raw of lines) {
-      const line = raw.trim()
-      if (!line) continue
-      if (line.startsWith('```')) continue
-      const toolMatch = line.match(/^<tool>(.*?)<\/tool>\s*$/i)
-      if (toolMatch) {
-        if (pendingTool) out.push({ kind: 'tool', name: pendingTool, args: {} })
-        void 0
-        pendingTool = toolMatch[1].trim()
-        pendingDepth = 0
+    const flushText = () => {
+      const t = textBuf.join(' ').trim()
+      textBuf = []
+      if (t) {
+        // text that is not a bubble tag goes to chat-style speech
+        out.push({ kind: 'say', text: t })
+      }
+    }
+    const parseJson = (raw: string): unknown | undefined => {
+      const clean = raw.replace(/,\s*([}\]])/g, '$1')
+      try {
+        const v = JSON.parse(clean)
+        return v && typeof v === 'object' && !Array.isArray(v) ? v : undefined
+      } catch {
+        return undefined
+      }
+    }
+
+    let i = 0
+    while (i < lines.length) {
+      const line = lines[i].trim()
+      if (!line) {
+        i++
         continue
       }
-      if (pendingTool) {
-        if (line.startsWith('{')) {
-          let json = line
+      // fence contents may still hold valid calls; skip fence markers only
+      if (line.startsWith('```')) {
+        i++
+        continue
+      }
+      // inline bubble: <bubble>text</bubble> possibly wrapped with other text
+      const bubbleMatch = line.match(/^<bubble>([\s\S]*?)<\/bubble>$/i)
+      if (bubbleMatch) {
+        flushText()
+        const t = bubbleMatch[1].trim()
+        if (t) out.push({ kind: 'say', text: t })
+        i++
+        continue
+      }
+      // <bubble> that opens but closes later — gather until close tag
+      if (/<bubble>/i.test(line) && !/<\/bubble>/i.test(line)) {
+        const buf = [line]
+        let j = i + 1
+        while (j < lines.length && !/<\/bubble>/i.test(lines[j])) {
+          buf.push(lines[j])
+          j++
+        }
+        if (j < lines.length) buf.push(lines[j])
+        const joined = buf.join(' ').replace(/<\/?bubble>/gi, '').trim()
+        flushText()
+        if (joined) out.push({ kind: 'say', text: joined })
+        i = j + 1
+        continue
+      }
+      // tool call: <tool>name</tool> optionally followed by JSON on the same line
+      const toolMatch = line.match(/^<tool>([a-zA-Z0-9_.-]+)<\/tool>\s*(.*)$/i)
+      if (toolMatch) {
+        flushText()
+        const name = toolMatch[1].trim()
+        let argsRaw = toolMatch[2].trim()
+        let consumed = i
+        if (!argsRaw) {
+          // next non-empty line(s) hold the JSON object
+          let j = i + 1
+          const buf: string[] = []
           let depth = 0
-          for (const c of line) {
-            if (c === '{' || c === '[') depth++
-            if (c === '}' || c === ']') depth--
-          }
-          pendingDepth = depth
-          // try to gather multi-line JSON
-          const buf = [line]
-          while (pendingDepth > 0) {
-            const next = lines[lines.indexOf(raw) + buf.length]?.trim() ?? ''
-            if (!next) break
-            buf.push(next)
-            for (const c of next) {
-              if (c === '{' || c === '[') pendingDepth++
-              if (c === '}' || c === ']') pendingDepth--
+          while (j < lines.length) {
+            const cand = lines[j].trim()
+            if (!cand && !buf.length) {
+              j++
+              continue
             }
-            if (pendingDepth <= 0) break
+            // stop at the next call/tag
+            if (/^<\/?[a-zA-Z]/.test(cand) && !cand.startsWith('{')) break
+            buf.push(cand)
+            for (const c of cand) {
+              if (c === '{' || c === '[') depth++
+              else if (c === '}' || c === ']') depth--
+            }
+            if (depth <= 0) break
+            j++
           }
-          try {
-            out.push({ kind: 'tool', name: pendingTool, args: JSON.parse(buf.join(' ')) })
-            pendingTool = null
-            pendingDepth = 0
-            continue
-          } catch {
-            // fall through: treat as text
+          if (buf.length) {
+            argsRaw = buf.join(' ')
+            consumed = Math.min(j, lines.length - 1)
+            if (consumed < i) consumed = i
           }
         }
-        // not JSON — give the pending tool empty args and treat this line as text
-        out.push({ kind: 'tool', name: pendingTool ?? '', args: {} })
-        pendingTool = null
-        flushSay(line)
+        const args = argsRaw ? parseJson(argsRaw) : undefined
+        out.push({ kind: 'tool', name, args: args ?? {} })
+        i = Math.max(i + 1, consumed + 1)
         continue
       }
-      flushSay(line)
+      // quoted one-liner "..." / “...”
+      const quote = line.match(/^["“](.{1,140})["”]$/)
+      if (quote) {
+        flushText()
+        out.push({ kind: 'say', text: quote[1].trim() })
+        i++
+        continue
+      }
+      // plain narration — buffer adjacent lines into one speech entry
+      textBuf.push(line)
+      i++
     }
-    if (pendingTool) out.push({ kind: 'tool', name: pendingTool ?? '', args: {} })
+    flushText()
     return out
   }
 
@@ -708,12 +810,13 @@ export class AIController {
     if (this.online === o) return
     this.online = o
     if (!o) {
-      this.setState({ phase: 'offline', expr: 'error', phaseDetail: 'waiting for Ollama' })
+      // not a crash — the head just dozes until its model server returns
+      this.setState({ phase: 'offline', expr: 'sleep', phaseDetail: 'waiting for Ollama' })
       this.nextTickAt = performance.now() + 3000
     } else {
       this.setState({ phase: 'idle', expr: 'neutral', phaseDetail: 'online' })
-      this.nextTickAt = performance.now() + 800
       this.queue.push({ kind: 'action', text: 'reconnected', at: performance.now(), force: true })
+      this.scheduleNext('startup')
     }
   }
 

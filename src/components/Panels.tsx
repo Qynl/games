@@ -17,6 +17,17 @@ function PanelShell({ title, onClose, children, className }: { title: string; on
   )
 }
 
+const QUICK_IDEAS = [
+  'make me something to play',
+  'build a castle',
+  'make it rain',
+  'turn on the night',
+  'make the ground hilly',
+  'give me a car',
+  'what are you working on?',
+  'scare me',
+]
+
 export function ChatPanel({ session }: { session: GameSession }) {
   useSessionTick(session)
   const [text, setText] = useState('')
@@ -24,13 +35,21 @@ export function ChatPanel({ session }: { session: GameSession }) {
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight })
   }, [session.speech.length])
-  const send = () => {
-    if (!text.trim()) return
-    session.sendChat(text)
+  const send = (t?: string) => {
+    const msg = (t ?? text).trim()
+    if (!msg) return
+    session.sendChat(msg)
     setText('')
   }
+  const busy = session.ui.modelBusy
+  const last = session.speech[session.speech.length - 1]
   return (
     <PanelShell title="CHAT — talk to CREATOR" onClose={() => session.setPanel('chat')}>
+      <div className="chat-suggests">
+        {QUICK_IDEAS.map((q) => (
+          <button key={q} className="chip-btn suggest" onClick={() => send(q)}>{q}</button>
+        ))}
+      </div>
       <div className="chat-list" ref={listRef}>
         {session.speech.map((s) => (
           <div key={s.id} className={`msg msg-${s.speaker}`}>
@@ -38,6 +57,9 @@ export function ChatPanel({ session }: { session: GameSession }) {
             <span className="msg-text">{s.text}</span>
           </div>
         ))}
+        {busy && (!last || last.speaker === 'player') && (
+          <div className="typing-row"><i /><i /><i /></div>
+        )}
       </div>
       <div className="chat-input-row">
         <input
@@ -51,7 +73,7 @@ export function ChatPanel({ session }: { session: GameSession }) {
           }}
           autoFocus
         />
-        <button className="btn-primary small" onClick={send}>send</button>
+        <button className="btn-primary small" onClick={() => send()}>send</button>
       </div>
     </PanelShell>
   )
@@ -170,6 +192,7 @@ function prettyStatus(w: Record<string, unknown>): string {
 export function SettingsPanel({ session }: { session: GameSession }) {
   useSessionTick(session)
   const [endpoint, setEndpoint] = useState(session.settings.ollamaUrl)
+  const [modelText, setModelText] = useState(session.settings.model)
   const ui = session.ui
   return (
     <PanelShell title="SETTINGS — AI connection" onClose={() => session.setSettingsOpen(false)}>
@@ -185,10 +208,22 @@ export function SettingsPanel({ session }: { session: GameSession }) {
         </div>
         <div className="set-row col">
           <label>Model</label>
-          <select className="sel wide" value={ui.model} onChange={(e) => session.setModel(e.target.value)}>
-            {ui.models.length === 0 && <option value="">no models found</option>}
-            {ui.models.map((m) => <option key={m.name} value={m.name}>{m.name}{m.short ? ` (${m.short})` : ''}</option>)}
-          </select>
+          {ui.models.length > 0 ? (
+            <select className="sel wide" value={ui.model} onChange={(e) => session.setModel(e.target.value)}>
+              {ui.models.map((m) => <option key={m.name} value={m.name}>{m.name}{m.short ? ` (${m.short})` : ''}</option>)}
+            </select>
+          ) : (
+            <div className="row">
+              <input
+                className="chat-input"
+                value={modelText}
+                onChange={(e) => setModelText(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') session.setModel(modelText) }}
+                placeholder="type a model name, e.g. qwen2.5:7b"
+              />
+              <button className="btn-primary small" onClick={() => session.setModel(modelText)}>use</button>
+            </div>
+          )}
           {ui.models.length > 0 && (
             <label className="check">
               <input type="checkbox" checked={ui.autoModel} onChange={(e) => session.setAutoModel(e.target.checked)} />

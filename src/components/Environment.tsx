@@ -42,6 +42,7 @@ export function Environment({ session }: EnvironmentProps) {
   const stars = useRef<THREE.Points>(null!)
   const rain = useRef<THREE.Points>(null!)
   const cloud = useRef<THREE.Group>(null!)
+  const grid = useRef<THREE.GridHelper>(null!)
 
   const starGeo = useMemo(() => {
     const g = new THREE.BufferGeometry()
@@ -177,6 +178,11 @@ export function Environment({ session }: EnvironmentProps) {
         posAttr.needsUpdate = true
       }
     }
+    // grid is for the flat baseplate — hide it once hills appear
+    if (grid.current) {
+      const t = api.terrain
+      grid.current.visible = !t || (t.amplitude ?? 0) < 0.08
+    }
     // clouds drift
     if (cloud.current) {
       cloud.current.children.forEach((c, i) => {
@@ -228,8 +234,8 @@ export function Environment({ session }: EnvironmentProps) {
           </group>
         ))}
       </group>
-      {/* baseplate grid accents */}
-      <gridHelper args={[110, 44, '#9db8d8', '#a8c0da']} position={[0, 0.02, 0]} />
+      {/* baseplate grid accents (hidden when terrain is hilly) */}
+      <gridHelper ref={grid} args={[110, 44, '#9db8d8', '#a8c0da']} position={[0, 0.02, 0]} />
     </>
   )
 }

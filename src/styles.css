@@ -830,3 +830,66 @@ body,
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* --------------------------------------------- screen flash + vignette */
+.screen-flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  opacity: 0;
+  border-radius: 0;
+}
+.flash-hurt {
+  background: radial-gradient(ellipse at center, transparent 42%, rgba(255, 30, 40, 0.8) 100%);
+}
+.flash-win {
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(255, 210, 63, 0.75) 100%);
+}
+.vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+  background: radial-gradient(ellipse at center, transparent 58%, rgba(4, 6, 12, 0.42) 100%);
+}
+
+/* chat suggestion chips + typing indicator */
+.chat-suggests {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 4px 12px 2px;
+}
+.chip-btn.suggest {
+  font-size: 11.5px;
+  color: var(--muted);
+  background: rgba(111, 183, 255, 0.08);
+}
+.chip-btn.suggest:hover {
+  color: var(--text);
+  background: rgba(111, 183, 255, 0.18);
+}
+.typing-row {
+  align-self: flex-start;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 12px 12px 12px 3px;
+  background: rgba(111, 183, 255, 0.12);
+  border: 1px solid rgba(111, 183, 255, 0.25);
+}
+.typing-row i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: ty 1s infinite ease-in-out;
+}
+.typing-row i:nth-child(2) { animation-delay: 0.16s; }
+.typing-row i:nth-child(3) { animation-delay: 0.32s; }
+@keyframes ty {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}

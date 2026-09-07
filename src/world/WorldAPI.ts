@@ -171,6 +171,9 @@ export class WorldAPI {
     this.npcs = this.npcs.filter((o) => o.id !== target.id)
     this.vehicles = this.vehicles.filter((o) => o.id !== target.id)
     this.zones = this.zones.filter((o) => o.id !== target.id)
+    // engine-side deletions (collectibles picked up, despawned physics
+    // bodies, doors opened...) must be reflected in the scene right away
+    this.onBuild()
     return true
   }
 
