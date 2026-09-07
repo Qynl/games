@@ -2,7 +2,7 @@ import { GameState } from './state'
 import { BrawlerState, Projectile } from './entities'
 import { BrawlerDef, Look } from './brawlers'
 import { GameMap, tileAt, T_GRASS, T_WALL, T_WATER, T_BUSH } from './maps'
-import { TILE, TEAM_COLORS, TeamId } from './types'
+import { TILE, TEAM_COLORS, TEAM_NAMES, TeamId } from './types'
 import { Vec, v, clamp, lerp, dist } from './util'
 
 export class Renderer {
@@ -93,6 +93,27 @@ export class Renderer {
       vx0, vy0, viewW, viewH,
       vx0, vy0, viewW, viewH
     )
+
+    // spawn-side tint like Brawl Stars lanes
+    if (map.mode === 'gem' || map.mode === 'bounty' || map.mode === 'heist') {
+      const tintH = 2.6 * TILE
+      const lg = ctx.createLinearGradient(0, 0, 0, tintH)
+      lg.addColorStop(0, 'rgba(47,123,255,0.20)')
+      lg.addColorStop(1, 'rgba(47,123,255,0)')
+      ctx.fillStyle = lg
+      ctx.fillRect(vx0, 0, viewW, tintH)
+      const lg2 = ctx.createLinearGradient(0, map.h * TILE, 0, map.h * TILE - tintH)
+      lg2.addColorStop(0, 'rgba(255,75,62,0.20)')
+      lg2.addColorStop(1, 'rgba(255,75,62,0)')
+      ctx.fillStyle = lg2
+      ctx.fillRect(vx0, map.h * TILE - tintH, viewW, tintH)
+    }
+
+    // heist safes
+    for (const s of g.safes) {
+      if (s.dead) continue
+      this.drawSafe(ctx, s.pos, s.team, s.hp / s.maxHp, s.hitFlash, s.shake, g.time)
+    }
 
     // gem mine
     if (map.mine && g.mode.id === 'gem') {
@@ -263,27 +284,30 @@ export class Renderer {
           )
       const range = p.attackRange
       const inRange = dist(p.pos, aimWorld) <= range
+      const autoAim = g.autoTargetId !== null
       ctx.save()
-      ctx.strokeStyle = inRange ? 'rgba(255,255,255,0.28)' : 'rgba(255,80,80,0.4)'
+      ctx.strokeStyle = autoAim ? 'rgba(255,90,90,0.22)' : inRange ? 'rgba(255,255,255,0.2)' : 'rgba(255,80,80,0.28)'
       ctx.lineWidth = 2.5
       ctx.setLineDash([10, 10])
       ctx.beginPath()
       ctx.arc(p.pos.x, p.pos.y, range, 0, Math.PI * 2)
       ctx.stroke()
       ctx.setLineDash([])
-      // reticle
-      const rx = clamp(aimWorld.x, p.pos.x - range, p.pos.x + range)
-      const ry = clamp(aimWorld.y, p.pos.y - range, p.pos.y + range)
-      const pulse = 1 + Math.sin(g.time * 8) * 0.15
-      ctx.strokeStyle = inRange ? 'rgba(255,255,255,0.9)' : 'rgba(255,90,90,0.9)'
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.arc(rx, ry, 7 * pulse, 0, Math.PI * 2)
-      ctx.stroke()
-      ctx.fillStyle = 'rgba(255,255,255,0.5)'
-      ctx.beginPath()
-      ctx.arc(rx, ry, 1.8, 0, Math.PI * 2)
-      ctx.fill()
+      // reticle (hidden while auto-aiming — the target marker shows instead)
+      if (!autoAim) {
+        const rx = clamp(aimWorld.x, p.pos.x - range, p.pos.x + range)
+        const ry = clamp(aimWorld.y, p.pos.y - range, p.pos.y + range)
+        const pulse = 1 + Math.sin(g.time * 8) * 0.15
+        ctx.strokeStyle = inRange ? 'rgba(255,255,255,0.9)' : 'rgba(255,90,90,0.9)'
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.arc(rx, ry, 7 * pulse, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.fillStyle = 'rgba(255,255,255,0.5)'
+        ctx.beginPath()
+        ctx.arc(rx, ry, 1.8, 0, Math.PI * 2)
+        ctx.fill()
+      }
       ctx.restore()
     }
 
@@ -331,6 +355,115 @@ export class Renderer {
     drawGem(ctx, 0, 0, 9, time)
     ctx.restore()
     ctx.restore()
+  }
+
+  private drawSafe(
+    ctx: CanvasRenderingContext2D,
+    pos: Vec,
+    team: number,
+    hpFrac: number,
+    hitFlash: number,
+    shake: number,
+    time: number
+  ) {
+    const sh = (Math.random() - 0.5) * shake * 8
+    ctx.save()
+    ctx.translate(pos.x + sh, pos.y)
+    // shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.28)'
+    ctx.beginPath()
+    ctx.ellipse(0, 18, 30, 12, 0, 0, Math.PI * 2)
+    ctx.fill()
+    // pedestal
+    ctx.fillStyle = '#5d6b7d'
+    rr(ctx, -26, 0, 52, 14, 5)
+    ctx.fill()
+    ctx.strokeStyle = '#2b333f'
+    ctx.lineWidth = 3
+    rr(ctx, -26, 0, 52, 14, 5)
+    ctx.stroke()
+    ctx.fillStyle = '#7b8b9d'
+    rr(ctx, -18, -4, 36, 8, 3)
+    ctx.fill()
+    // vault body
+    const bodyGrad = ctx.createLinearGradient(0, -52, 0, 0)
+    bodyGrad.addColorStop(0, '#7d8ea3')
+    bodyGrad.addColorStop(1, '#4c5a6e')
+    ctx.fillStyle = bodyGrad
+    rr(ctx, -22, -52, 44, 54, 9)
+    ctx.fill()
+    ctx.strokeStyle = '#2b333f'
+    ctx.lineWidth = 4
+    rr(ctx, -22, -52, 44, 54, 9)
+    ctx.stroke()
+    // shine
+    ctx.fillStyle = 'rgba(255,255,255,0.18)'
+    rr(ctx, -16, -48, 10, 46, 5)
+    ctx.fill()
+    // team band
+    ctx.fillStyle = team === 0 ? TEAM_COLORS[0] : TEAM_COLORS[1]
+    ctx.fillRect(-22, -18, 44, 7)
+    ctx.fillStyle = team === 0 ? '#cfe0ff' : '#ffd5d0'
+    ctx.fillRect(-22, -18, 44, 2.5)
+    // door
+    ctx.fillStyle = '#39434f'
+    ctx.beginPath()
+    ctx.arc(0, -34, 14, Math.PI, 0)
+    ctx.fill()
+    ctx.strokeStyle = '#222a33'
+    ctx.lineWidth = 3
+    ctx.stroke()
+    ctx.fillStyle = '#233040'
+    ctx.beginPath()
+    ctx.arc(0, -34, 9, Math.PI, 0)
+    ctx.fill()
+    // dial
+    ctx.fillStyle = team === 0 ? '#ffd23f' : '#ff8a7a'
+    ctx.beginPath()
+    ctx.arc(0, -36, 4.5, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = '#222a33'
+    ctx.lineWidth = 2
+    ctx.stroke()
+    // handle
+    ctx.strokeStyle = '#d8dde3'
+    ctx.lineWidth = 3.5
+    ctx.beginPath()
+    ctx.arc(0, -30, 3.5, 0.3, Math.PI - 0.3)
+    ctx.stroke()
+    // rivets
+    ctx.fillStyle = '#39434f'
+    for (const [rx, ry] of [[-19, -49], [19, -49], [-19, -4], [19, -4]] as const) {
+      ctx.beginPath()
+      ctx.arc(rx, ry, 2.2, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    // hit flash
+    if (hitFlash > 0) {
+      ctx.globalAlpha = hitFlash * 0.5
+      ctx.fillStyle = '#ffffff'
+      rr(ctx, -22, -52, 44, 54, 9)
+      ctx.fill()
+      ctx.globalAlpha = 1
+    }
+    // hp bar
+    const bw = 54
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'
+    rr(ctx, -bw / 2, -66, bw, 6, 3)
+    ctx.fill()
+    ctx.fillStyle = hpFrac > 0.5 ? '#4ade80' : hpFrac > 0.25 ? '#facc15' : '#f87171'
+    rr(ctx, -bw / 2 + 1.5, -65, (bw - 3) * hpFrac, 4, 2)
+    ctx.fill()
+    // team label
+    ctx.font = '800 10px Nunito, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)'
+    ctx.lineWidth = 3
+    ctx.strokeText(TEAM_NAMES[team as TeamId] + ' SAFE', 0, -72)
+    ctx.fillStyle = team === 0 ? '#9ec3ff' : '#ff9d94'
+    ctx.fillText(TEAM_NAMES[team as TeamId] + ' SAFE', 0, -72)
+    ctx.restore()
+    void time
   }
 
   private drawGas(ctx: CanvasRenderingContext2D, g: GameState) {
@@ -405,6 +538,21 @@ export class Renderer {
       ctx.ellipse(0, 4, 20, 12, 0, 0, Math.PI * 2)
       ctx.fill()
     }
+    // spawn beam (light pillar)
+    if (b.spawnFx > 0) {
+      const a = clamp(b.spawnFx / 0.5, 0, 1)
+      const beamW = 26 + Math.sin(g.time * 12) * 4
+      const bg = ctx.createLinearGradient(0, -140, 0, 10)
+      bg.addColorStop(0, `rgba(255,255,255,${0.5 * a})`)
+      bg.addColorStop(1, `rgba(140,210,255,${0.1 * a})`)
+      ctx.fillStyle = bg
+      ctx.fillRect(-beamW / 2, -140, beamW, 150)
+      ctx.strokeStyle = `rgba(255,255,255,${0.8 * a})`
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.ellipse(0, 8, beamW * 0.5, 6, 0, 0, Math.PI * 2)
+      ctx.stroke()
+    }
     // spawn protection
     if (b.spawnProt > 0) {
       ctx.strokeStyle = 'rgba(140,210,255,0.9)'
@@ -424,9 +572,38 @@ export class Renderer {
       ctx.lineWidth = 2
       ctx.stroke()
     }
+    // super aim beam (thick glowing line)
+    if (b.superCharge >= 1 && !b.isPlayer) {
+      const dirX = Math.cos(b.aimVis)
+      const dirY = Math.sin(b.aimVis)
+      const len = b.superRange
+      ctx.strokeStyle = 'rgba(255,210,63,0.55)'
+      ctx.lineWidth = 9
+      ctx.lineCap = 'round'
+      ctx.beginPath()
+      ctx.moveTo(dirX * 24, dirY * 24 - 6)
+      ctx.lineTo(dirX * len, dirY * len - 6)
+      ctx.stroke()
+      ctx.strokeStyle = 'rgba(255,240,180,0.9)'
+      ctx.lineWidth = 3.5
+      ctx.beginPath()
+      ctx.moveTo(dirX * 24, dirY * 24 - 6)
+      ctx.lineTo(dirX * len, dirY * len - 6)
+      ctx.stroke()
+    }
+    // auto-aim target marker
+    if (g.autoTargetId === b.id) {
+      ctx.strokeStyle = 'rgba(255,80,80,0.9)'
+      ctx.lineWidth = 2.5
+      ctx.setLineDash([6, 4])
+      ctx.beginPath()
+      ctx.arc(0, -6, 22 + Math.sin(g.time * 9) * 1.5, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.setLineDash([])
+    }
     ctx.restore()
 
-    // ---- body (upright, squash & bounce) ----
+    // ---- body (upright, squash & bounce, big chibi head) ----
     ctx.save()
     ctx.translate(b.pos.x, b.pos.y)
     ctx.scale(1 + speedNorm * 0.06, 1 - speedNorm * 0.1 + Math.sin(b.bobPhase) * 0.02)
@@ -439,39 +616,62 @@ export class Renderer {
     ctx.ellipse(-3 + step * 0.6, 8, 3.6, 3, 0, 0, Math.PI * 2)
     ctx.ellipse(3 - step * 0.6, 8, 3.6, 3, 0, 0, Math.PI * 2)
     ctx.fill()
-    // body
+    // body (smaller — big-head proportions)
     ctx.fillStyle = b.def.colors.body
-    rr(ctx, -8, -8, 16, 18, 7)
+    rr(ctx, -8, -7, 16, 17, 7)
     ctx.fill()
     ctx.strokeStyle = b.def.colors.outline
     ctx.lineWidth = 2.5
-    rr(ctx, -8, -8, 16, 18, 7)
+    rr(ctx, -8, -7, 16, 17, 7)
     ctx.stroke()
     // belt
     ctx.fillStyle = shade(b.def.colors.body, -45)
     ctx.fillRect(-8, 3, 16, 3.5)
     ctx.fillStyle = b.def.colors.accent
     ctx.fillRect(-2.5, 2.6, 5, 4.4)
-    // head
+    // head (bigger)
+    const headR = 11.5
     ctx.fillStyle = b.def.colors.skin
     ctx.beginPath()
-    ctx.arc(0, -16, 9.5, 0, Math.PI * 2)
+    ctx.arc(0, -17, headR, 0, Math.PI * 2)
     ctx.fill()
     ctx.strokeStyle = b.def.colors.outline
-    ctx.lineWidth = 2.5
+    ctx.lineWidth = 3
     ctx.stroke()
-    // face direction dot eyes
-    const eyeOff = flip * 3
-    ctx.fillStyle = '#1d1d1d'
+    // cheek shading
+    ctx.fillStyle = shade(b.def.colors.skin, -16)
     ctx.beginPath()
-    ctx.arc(eyeOff - 2.5, -17.5, 1.6, 0, Math.PI * 2)
-    ctx.arc(eyeOff + 2.5, -17.5, 1.6, 0, Math.PI * 2)
+    ctx.ellipse(-7, -14, 3.4, 2.4, 0.5, 0, Math.PI * 2)
     ctx.fill()
+    // eyes — blink!
+    const eyeOff = flip * 3.4
+    if (b.blinkT < 0) {
+      ctx.strokeStyle = '#1d1d1d'
+      ctx.lineWidth = 1.6
+      ctx.lineCap = 'round'
+      ctx.beginPath()
+      ctx.moveTo(eyeOff - 4, -18.5)
+      ctx.lineTo(eyeOff - 1.5, -18.5)
+      ctx.moveTo(eyeOff + 1.5, -18.5)
+      ctx.lineTo(eyeOff + 4, -18.5)
+      ctx.stroke()
+    } else {
+      ctx.fillStyle = '#1d1d1d'
+      ctx.beginPath()
+      ctx.arc(eyeOff - 2.8, -18.5, 1.8, 0, Math.PI * 2)
+      ctx.arc(eyeOff + 2.8, -18.5, 1.8, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = '#ffffff'
+      ctx.beginPath()
+      ctx.arc(eyeOff - 2.2, -19.1, 0.7, 0, Math.PI * 2)
+      ctx.arc(eyeOff + 3.4, -19.1, 0.7, 0, Math.PI * 2)
+      ctx.fill()
+    }
     // muzzle
     if (b.def.look.muzzle) {
       ctx.fillStyle = shade(b.def.colors.skin, -18)
       ctx.beginPath()
-      ctx.ellipse(eyeOff, -13.5, 3.4, 2.6, 0, 0, Math.PI * 2)
+      ctx.ellipse(eyeOff, -14, 3.8, 2.8, 0, 0, Math.PI * 2)
       ctx.fill()
     }
     this.drawHat(ctx, b.def)
@@ -569,23 +769,23 @@ export class Renderer {
       case 'helmet': {
         ctx.fillStyle = '#7a8b99'
         ctx.beginPath()
-        ctx.arc(0, -20, 10.5, Math.PI, 0)
+        ctx.arc(0, -24, 12.5, Math.PI, 0)
         ctx.fill()
         ctx.strokeStyle = o
         ctx.stroke()
         ctx.fillStyle = '#94a6b4'
-        ctx.fillRect(-10, -21.5, 20, 3)
+        ctx.fillRect(-12.5, -25.5, 25, 3.5)
         break
       }
       case 'goggles': {
         ctx.fillStyle = '#f4b942'
-        ctx.fillRect(-11, -20.5, 22, 3.4)
+        ctx.fillRect(-12.5, -24, 25, 3.8)
         ctx.strokeStyle = o
-        ctx.strokeRect(-11, -20.5, 22, 3.4)
+        ctx.strokeRect(-12.5, -24, 25, 3.8)
         ctx.fillStyle = '#5dd9ff'
         ctx.beginPath()
-        ctx.arc(-4.5, -19.2, 4.4, 0, Math.PI * 2)
-        ctx.arc(4.5, -19.2, 4.4, 0, Math.PI * 2)
+        ctx.arc(-5.5, -22.4, 5.2, 0, Math.PI * 2)
+        ctx.arc(5.5, -22.4, 5.2, 0, Math.PI * 2)
         ctx.fill()
         ctx.strokeStyle = o
         ctx.stroke()
@@ -594,25 +794,25 @@ export class Renderer {
       case 'cap': {
         ctx.fillStyle = '#2e6fd8'
         ctx.beginPath()
-        ctx.arc(0, -20, 10, Math.PI, 0)
+        ctx.arc(0, -23.5, 12, Math.PI, 0)
         ctx.fill()
         ctx.strokeStyle = o
         ctx.stroke()
         ctx.fillStyle = '#2e6fd8'
-        rr(ctx, 2, -21, 12, 3.5, 2)
+        rr(ctx, 2, -24.5, 14, 4, 2)
         ctx.fill()
         break
       }
       case 'headband': {
         ctx.fillStyle = '#f5c542'
-        ctx.fillRect(-9.5, -21.5, 19, 4)
+        ctx.fillRect(-11.5, -25, 23, 4.5)
         ctx.strokeStyle = o
-        ctx.strokeRect(-9.5, -21.5, 19, 4)
+        ctx.strokeRect(-11.5, -25, 23, 4.5)
         ctx.fillStyle = '#f5c542'
         ctx.beginPath()
-        ctx.moveTo(9, -22)
-        ctx.lineTo(14, -16)
-        ctx.lineTo(9, -12)
+        ctx.moveTo(11, -25.5)
+        ctx.lineTo(17, -18)
+        ctx.lineTo(11, -13)
         ctx.closePath()
         ctx.fill()
         break
@@ -620,51 +820,51 @@ export class Renderer {
       case 'beaker': {
         ctx.fillStyle = '#8fd3ff'
         ctx.beginPath()
-        ctx.arc(0, -21, 9, Math.PI, 0.15)
+        ctx.arc(0, -24.5, 10.5, Math.PI, 0.15)
         ctx.fill()
         ctx.strokeStyle = o
         ctx.stroke()
         ctx.fillStyle = '#c86bff'
-        ctx.fillRect(-4, -23.5, 8, 2.5)
+        ctx.fillRect(-4.5, -27, 9, 3)
         break
       }
       case 'headphones': {
         ctx.fillStyle = '#2ec4a8'
         ctx.beginPath()
-        ctx.arc(0, -21, 9.5, Math.PI, 0)
+        ctx.arc(0, -24.5, 11.5, Math.PI, 0)
         ctx.fill()
         ctx.strokeStyle = o
         ctx.stroke()
         ctx.fillStyle = '#1d7a6c'
         ctx.beginPath()
-        ctx.arc(-9.5, -19, 3, 0, Math.PI * 2)
-        ctx.arc(9.5, -19, 3, 0, Math.PI * 2)
+        ctx.arc(-11.5, -22, 3.6, 0, Math.PI * 2)
+        ctx.arc(11.5, -22, 3.6, 0, Math.PI * 2)
         ctx.fill()
         break
       }
       case 'hood': {
         ctx.fillStyle = '#26221a'
         ctx.beginPath()
-        ctx.arc(0, -19.5, 10, Math.PI * 1.05, -Math.PI * 0.05)
+        ctx.arc(0, -23, 12, Math.PI * 1.05, -Math.PI * 0.05)
         ctx.fill()
         ctx.strokeStyle = o
         ctx.stroke()
         ctx.fillStyle = '#e8c820'
-        ctx.fillRect(-9, -19, 18, 3)
+        ctx.fillRect(-11, -22.5, 22, 3.5)
         break
       }
       case 'visor': {
         ctx.fillStyle = '#0d47a1'
         ctx.beginPath()
-        ctx.arc(0, -19.5, 10, Math.PI * 0.92, Math.PI * 0.08)
+        ctx.arc(0, -23, 12, Math.PI * 0.92, Math.PI * 0.08)
         ctx.fill()
         ctx.strokeStyle = o
         ctx.stroke()
         ctx.fillStyle = '#26e0ff'
-        rr(ctx, -6.5, -21, 13, 5, 2.5)
+        rr(ctx, -8, -24.5, 16, 6, 3)
         ctx.fill()
         ctx.fillStyle = '#aef6ff'
-        ctx.fillRect(-5, -20.4, 4, 2)
+        ctx.fillRect(-6, -23.6, 5, 2.4)
         break
       }
     }
@@ -1002,30 +1202,50 @@ function drawCrate(
 function drawMapTo(ctx: CanvasRenderingContext2D, map: GameMap) {
   const w = map.w
   const h = map.h
-  // grass base
-  ctx.fillStyle = '#79c74f'
-  ctx.fillRect(0, 0, w * TILE, h * TILE)
-  const grassA = '#79c74f'
-  const grassB = '#71be47'
+  const W = w * TILE
+  const H = h * TILE
+  // grass base with two-tone checker
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      const t = tileAt(map, x, y)
-      if ((x + y) % 2 === 0) {
-        ctx.fillStyle = grassA
-        ctx.fillRect(x * TILE, y * TILE, TILE, TILE)
-      } else {
-        ctx.fillStyle = grassB
-        ctx.fillRect(x * TILE, y * TILE, TILE, TILE)
-      }
-      void t
+      ctx.fillStyle = (x + y) % 2 === 0 ? '#79c74f' : '#71be47'
+      ctx.fillRect(x * TILE, y * TILE, TILE, TILE)
     }
   }
-  // subtle grass blades
-  ctx.fillStyle = 'rgba(40,110,30,0.16)'
-  for (let i = 0; i < w * h * 1.2; i++) {
-    const x = (i * 37 % (w * TILE))
-    const y = (i * 71 % (h * TILE))
-    ctx.fillRect(x, y, 1.5, 3)
+  // scattered grass tufts (deterministic-ish via hash)
+  const hash = (n: number) => {
+    const s = Math.sin(n * 127.1) * 43758.5453
+    return s - Math.floor(s)
+  }
+  for (let i = 0; i < w * h * 2.2; i++) {
+    const hx = hash(i)
+    const hy = hash(i + 999)
+    const px = hx * W
+    const py = hy * H
+    const tx = Math.floor(px / TILE)
+    const ty = Math.floor(py / TILE)
+    const t = tileAt(map, tx, ty)
+    if (t !== T_GRASS && t !== T_BUSH) continue
+    const inBush = t === T_BUSH
+    const blades = inBush ? 2 : 3
+    const tint = inBush ? 'rgba(16,90,40,0.5)' : 'rgba(35,105,28,0.28)'
+    const hl = inBush ? 'rgba(90,190,90,0.4)' : 'rgba(140,220,110,0.35)'
+    ctx.strokeStyle = tint
+    ctx.lineWidth = 1.2
+    for (let k = 0; k < blades; k++) {
+      const bx = px + hash(i * 3 + k) * 10
+      const by = py + hash(i * 5 + k) * 10
+      const lean = (hash(i * 7 + k) - 0.5) * 3
+      ctx.beginPath()
+      ctx.moveTo(bx, by + 3)
+      ctx.quadraticCurveTo(bx + lean * 0.5, by, bx + lean, by - 3)
+      ctx.stroke()
+    }
+    ctx.strokeStyle = hl
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(px + 6, py + 14)
+    ctx.quadraticCurveTo(px + 5, py + 10, px + 7, py + 8)
+    ctx.stroke()
   }
 
   // water
@@ -1036,9 +1256,11 @@ function drawMapTo(ctx: CanvasRenderingContext2D, map: GameMap) {
       const py = y * TILE
       ctx.fillStyle = '#2f8fdd'
       ctx.fillRect(px, py, TILE, TILE)
-      ctx.fillStyle = 'rgba(255,255,255,0.25)'
-      ctx.fillRect(px + 4, py + 8, 14, 2.5)
-      ctx.fillRect(px + 14, py + 20, 12, 2.5)
+      ctx.fillStyle = 'rgba(255,255,255,0.22)'
+      ctx.fillRect(px + 4, py + 8, 15, 2.5)
+      ctx.fillRect(px + 13, py + 21, 12, 2.5)
+      ctx.fillStyle = 'rgba(16,80,150,0.4)'
+      ctx.fillRect(px + 18, py + 5, 8, 2)
     }
   }
   // water edges
@@ -1057,8 +1279,23 @@ function drawMapTo(ctx: CanvasRenderingContext2D, map: GameMap) {
     }
   }
   ctx.stroke()
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (tileAt(map, x, y) !== T_WATER) continue
+      const px = x * TILE
+      const py = y * TILE
+      if (tileAt(map, x, y - 1) !== T_WATER) { ctx.moveTo(px + 4, py + 3); ctx.lineTo(px + TILE - 4, py + 3) }
+      if (tileAt(map, x, y + 1) !== T_WATER) { ctx.moveTo(px + 4, py + TILE - 3); ctx.lineTo(px + TILE - 4, py + TILE - 3) }
+      if (tileAt(map, x - 1, y) !== T_WATER) { ctx.moveTo(px + 3, py + 4); ctx.lineTo(px + 3, py + TILE - 4) }
+      if (tileAt(map, x + 1, y) !== T_WATER) { ctx.moveTo(px + TILE - 3, py + 4); ctx.lineTo(px + TILE - 3, py + TILE - 4) }
+    }
+  }
+  ctx.stroke()
 
-  // walls
+  // walls: brick blocks with bevel
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       if (tileAt(map, x, y) !== T_WALL) continue
@@ -1066,12 +1303,31 @@ function drawMapTo(ctx: CanvasRenderingContext2D, map: GameMap) {
       const py = y * TILE
       ctx.fillStyle = '#a56a33'
       ctx.fillRect(px + 1, py + 1, TILE - 2, TILE - 2)
-      ctx.fillStyle = 'rgba(255,255,255,0.14)'
-      ctx.fillRect(px + 2, py + 2, TILE - 4, 5)
-      ctx.fillStyle = 'rgba(60,35,12,0.25)'
+      // top bevel
+      const topOpen = tileAt(map, x, y - 1) !== T_WALL
+      const leftOpen = tileAt(map, x - 1, y) !== T_WALL
+      if (topOpen || leftOpen) {
+        ctx.fillStyle = 'rgba(255,235,190,0.5)'
+        if (topOpen) ctx.fillRect(px + 2, py + 2, TILE - 4, 4)
+        if (leftOpen) ctx.fillRect(px + 2, py + 2, 4, TILE - 4)
+      }
+      ctx.fillStyle = 'rgba(60,35,12,0.3)'
       ctx.fillRect(px + 2, py + TILE - 8, TILE - 4, 6)
+      // brick lines
+      ctx.strokeStyle = 'rgba(74,42,16,0.5)'
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(px + 1, py + TILE / 2)
+      ctx.lineTo(px + TILE - 1, py + TILE / 2)
+      const off = (y % 2) * (TILE / 2)
+      ctx.moveTo(px + TILE / 2 + off * 0.5, py + 1)
+      ctx.lineTo(px + TILE / 2 + off * 0.5, py + TILE / 2)
+      ctx.moveTo(px + off, py + TILE / 2)
+      ctx.lineTo(px + off, py + TILE - 1)
+      ctx.stroke()
     }
   }
+  // wall outline
   ctx.strokeStyle = '#4a2f16'
   ctx.lineWidth = 4
   ctx.beginPath()
@@ -1101,19 +1357,22 @@ function drawMapTo(ctx: CanvasRenderingContext2D, map: GameMap) {
       ctx.fill()
     }
   }
-  // bush texture dots
-  ctx.fillStyle = 'rgba(16,90,40,0.5)'
+  // bush leafy bumps
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       if (tileAt(map, x, y) !== T_BUSH) continue
-      const seed = x * 7 + y * 13
-      for (let i = 0; i < 4; i++) {
-        const ox = ((seed * (i + 3) * 17) % (TILE - 8)) + 4
-        const oy = ((seed * (i + 5) * 31) % (TILE - 8)) + 4
-        ctx.beginPath()
-        ctx.arc(x * TILE + ox, y * TILE + oy, 2, 0, Math.PI * 2)
-        ctx.fill()
-      }
+      const px = x * TILE
+      const py = y * TILE
+      ctx.fillStyle = 'rgba(60,180,80,0.55)'
+      ctx.beginPath()
+      ctx.arc(px + 8, py + 9, 7, 0, Math.PI * 2)
+      ctx.arc(px + 24, py + 20, 6, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = 'rgba(16,90,40,0.45)'
+      ctx.beginPath()
+      ctx.arc(px + 19, py + 7, 5, 0, Math.PI * 2)
+      ctx.arc(px + 6, py + 24, 5, 0, Math.PI * 2)
+      ctx.fill()
     }
   }
   // bush outline
@@ -1135,7 +1394,7 @@ function drawMapTo(ctx: CanvasRenderingContext2D, map: GameMap) {
   ctx.stroke()
 
   // map border
-  ctx.strokeStyle = 'rgba(20,40,16,0.8)'
+  ctx.strokeStyle = 'rgba(20,40,16,0.85)'
   ctx.lineWidth = 6
-  ctx.strokeRect(0, 0, w * TILE, h * TILE)
+  ctx.strokeRect(0, 0, W, H)
 }

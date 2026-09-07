@@ -1,7 +1,10 @@
 export const TILE = 32
 export const STEP = 1 / 60
 
+export type ModeId = 'gem' | 'showdown' | 'bounty' | 'heist'
+
 export type TeamId = 0 | 1 | 2 // 0 = blue, 1 = red, 2 = solo (showdown)
+
 
 export const TEAM_COLORS: Record<TeamId, string> = {
   0: '#2f7bff',
@@ -13,8 +16,6 @@ export const TEAM_NAMES: Record<TeamId, string> = {
   1: 'RED',
   2: 'SOLO',
 }
-
-export type ModeId = 'gem' | 'showdown' | 'bounty'
 
 export interface ModeDef {
   id: ModeId
@@ -54,12 +55,22 @@ export const MODES: ModeDef[] = [
     teamSize: 3,
     duration: 120,
   },
+  {
+    id: 'heist',
+    name: 'Heist',
+    icon: '💰',
+    tagline: 'DESTROY THE ENEMY SAFE',
+    desc: 'Blast the enemy vault to smithereens before they crack yours. Most damage wins on time-out!',
+    teamSize: 3,
+    duration: 150,
+  },
 ]
 
 export const MODE_MAP: Record<ModeId, string> = {
   gem: 'gem_grotto',
   showdown: 'skull_pit',
   bounty: 'deadline',
+  heist: 'heist_hideout',
 }
 
 export interface MatchConfig {
@@ -81,6 +92,8 @@ export interface MatchResult {
   gemsCollected: number
   stars: number
   duration: number
+  safeDamage?: number
+  starPlayer?: { name: string; isPlayer: boolean; kills: number; damage: number }
 }
 
 // Trophy ranks per brawler

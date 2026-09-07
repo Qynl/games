@@ -17,17 +17,20 @@ Open the preview, hit **PLAY**, pick a mode and brawl!
 | Action | Keyboard / Mouse | Touch |
 |---|---|---|
 | Move | WASD / arrows | Left-side joystick |
-| Aim | Mouse | Right-side joystick |
-| Fire | Left click / hold | Hold aim joystick |
-| Super | Right-click or E | Super button |
+| Aim | Mouse | Right-side joystick (drag to aim) |
+| Fire | Left click / hold (auto-aim!) | Hold the joystick / FIRE button |
+| Super | Right-click or E | Release the aim joystick / SUPER button |
 | Gadget | Q | Gadget button |
 | Emote | C | — |
 | Pause | ESC | ⏸ button |
+
+Firing is **auto-aimed** like a mobile brawler: hold fire and you'll snap to the best target in range.
 
 ## 🎯 Game modes
 
 - **Gem Grab (3v3)** — fight for crystals erupting from the central mine. Collect 10 as a team and survive the 15s countdown!
 - **Bounty (3v3)** — every takedown earns stars. The more stars your target carries, the more you claim. First team to 10 wins!
+- **Heist (3v3)** — smash the enemy's armored safe before they crack yours. Most damage on time-out wins!
 - **Showdown (Solo, 10 players)** — smash boxes for power cubes, outfight 9 bots, and outrun the closing gas. Last brawler standing wins!
 
 ## 🧑‍🎤 Roster (8 original brawlers)
@@ -40,8 +43,8 @@ Each has a unique attack, super, and 3-use gadget.
 ## 🛠️ Tech
 
 - **Game loop**: fixed-step 60fps simulation, canvas renderer with camera, screen shake, particles
-- **AI**: goal-based bots — lane rally, gem countdown logic, target prioritization, pathfinding (A*), projectile dodging, showdown behavior tree
+- **AI**: goal-based bots — lane rally, gem countdown tactics, heist safe defense/offense, target prioritization, A* pathfinding, line-of-sight shooting, projectile dodging, showdown behavior tree
 - **Audio**: 100% procedural WebAudio SFX + chiptune battle/menu music (no audio files)
-- **Progress**: local save — trophies per brawler, ranks, unlocks, boxes, daily gift, win streaks
+- **Progress**: local save — trophies per brawler, ranks, unlocks, boxes, daily gift, win streaks, star player
 
 > Fan-made project with original characters and art. Not affiliated with any commercial game.

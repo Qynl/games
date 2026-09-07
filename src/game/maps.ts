@@ -16,6 +16,7 @@ export interface GameMap {
   mine: Vec | null
   boxes: Vec[]
   spawns: { team: 0 | 1 | 2; pos: Vec }[]
+  safes: { team: 0 | 1; pos: Vec }[]
 }
 
 // ============ GEM GROTTO (Gem Grab, mirror-symmetric) ============
@@ -68,6 +69,46 @@ const GEM_ROWS = [
   '..............###.......',
   '.............B...#......',
   '..................#.....',
+  '........................',
+]
+
+// ============ HEIST HIDEOUT (Heist, mirror-symmetric) ============
+const HEIST_ROWS = [
+  '........................',
+  '........................',
+  '..Ab....................',
+  '.....###.........###....',
+  '.....#....#....#....#...',
+  '.....#....#....#....#...',
+  '.....#..BB#....#..BB#...',
+  'a.B..#......BB......#...',
+  '..b..###..........###...',
+  '.........B......B.......',
+  '........................',
+  '...####..........####...',
+  '...#..............#.....',
+  '...#....####......#.....',
+  '...#....#..#......#.....',
+  '...#....#..#..B...#.....',
+  '...#....#..#......#.....',
+  '...#....####......#.....',
+  '...#..............#.....',
+  '...####..........####...',
+  '........................',
+  '.........B......B.......',
+  '.....###..........###...',
+  '..c......BB......#..B...',
+  '...#..BB#....#..BB#.....',
+  '...#....#....#....#.....',
+  '...#....#....#....#.....',
+  '.....###.........###....',
+  '........................',
+  '........................',
+  '........................',
+  '........................',
+  '........~~~~~~~.........',
+  '.......B~~~~~~~.........',
+  '........................',
   '........................',
 ]
 
@@ -187,6 +228,7 @@ function parseMap(
   const w = mirror ? halfW * 2 : halfW
   const tiles = new Uint8Array(w * h)
   const spawns: GameMap['spawns'] = []
+  const safes: GameMap['safes'] = []
   const boxes: Vec[] = []
   let mine: Vec | null = null
   let mineSum = v()
@@ -214,6 +256,12 @@ function parseMap(
       case 's':
         spawns.push({ team: 2, pos: v(tx + 0.5, ty + 0.5) })
         break
+      case 'A':
+        safes.push({ team: 0, pos: v(tx + 0.5, ty + 0.5) })
+        break
+      case 'Z':
+        safes.push({ team: 1, pos: v(tx + 0.5, ty + 0.5) })
+        break
       default:
         break
     }
@@ -224,6 +272,7 @@ function parseMap(
       case 'a': return 'x'
       case 'b': return 'y'
       case 'c': return 'z'
+      case 'A': return 'Z'
       default: return ch
     }
   }
@@ -243,12 +292,13 @@ function parseMap(
 
   if (mineCount > 0) mine = { x: mineSum.x / mineCount, y: mineSum.y / mineCount }
 
-  return { id, name, mode, w, h, tiles, mine, boxes, spawns }
+  return { id, name, mode, w, h, tiles, mine, boxes, spawns, safes }
 }
 
 export const MAPS: GameMap[] = [
   parseMap('gem_grotto', 'Gem Grotto', 'gem', GEM_ROWS, true),
   parseMap('deadline', 'Deadline', 'bounty', BOUNTY_ROWS, true),
+  parseMap('heist_hideout', 'Heist Hideout', 'heist', HEIST_ROWS, true),
   parseMap('skull_pit', 'Skull Pit', 'showdown', SHOWDOWN_ROWS, false),
 ]
 

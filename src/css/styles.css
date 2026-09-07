@@ -730,6 +730,55 @@ body,
   margin-bottom: 8px;
 }
 
+/* ================= BOTTOM TABS ================= */
+.bottom-tabs {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  gap: 4px;
+  background: rgba(10, 16, 30, 0.92);
+  border: 3px solid rgba(255, 255, 255, 0.14);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  padding: 6px 10px 10px;
+}
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 18px;
+  border-radius: 12px;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+  font-family: 'Nunito', sans-serif;
+}
+.tab-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.tab-btn.active {
+  background: rgba(255, 210, 63, 0.16);
+  color: var(--yellow);
+}
+.tab-btn.active .tab-icon {
+  transform: scale(1.15) translateY(-2px);
+}
+.tab-icon {
+  font-size: 24px;
+  transition: transform 0.15s;
+}
+.tab-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
 /* ================= GAME SCREEN ================= */
 .game-screen {
   width: 100%;
@@ -1091,14 +1140,82 @@ body,
   align-items: center;
   justify-content: center;
 }
+.aim-base {
+  background: rgba(255, 210, 63, 0.07);
+  border-color: rgba(255, 210, 63, 0.4);
+}
 .aim-knob {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.4);
-  background: rgba(255, 210, 63, 0.25);
+  border: 3px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 210, 63, 0.35);
   position: absolute;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
 }
+.fire-btn {
+  position: absolute;
+  bottom: 52px;
+  right: 96px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ff6b5e, #c0392b);
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
+  color: #fff;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+.fire-btn.active {
+  transform: scale(0.94);
+  background: linear-gradient(180deg, #ffe066, #e09f00);
+  color: #4a3000;
+}
+.hud-safes {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 190px;
+  background: rgba(8, 12, 22, 0.55);
+  padding: 5px 10px;
+  border-radius: 10px;
+}
+.safe-hud-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.safe-label {
+  font-size: 10px;
+  font-weight: 900;
+  width: 62px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.safe-label.blue { color: #9ec3ff; }
+.safe-label.red { color: #ff9d94; }
+.safe-hud-track {
+  flex: 1;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+.safe-hud-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.2s;
+}
+.safe-hud-fill.blue { background: linear-gradient(180deg, #6fb1ff, #2f6fe0); }
+.safe-hud-fill.red { background: linear-gradient(180deg, #ff8a7a, #d33c30); }
 .pause-overlay {
   position: absolute;
   inset: 0;
@@ -1201,6 +1318,45 @@ body,
   display: flex;
   gap: 12px;
   align-items: center;
+}
+.results-card {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+  transform: translateY(30px);
+  opacity: 0;
+}
+.results-card.revealed {
+  transform: translateY(0);
+  opacity: 1;
+}
+.star-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(180deg, rgba(255, 210, 63, 0.18), rgba(255, 210, 63, 0.05));
+  border: 2px solid var(--yellow);
+  border-radius: 999px;
+  padding: 8px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffe9a8;
+  transition: transform 0.4s 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s 0.25s;
+  transform: scale(0.6);
+  opacity: 0;
+}
+.star-player.revealed {
+  transform: scale(1);
+  opacity: 1;
+}
+.star-player b {
+  color: #fff;
+}
+.star-icon {
+  font-size: 20px;
+  animation: star-spin 2.5s linear infinite;
+}
+@keyframes star-spin {
+  0%, 100% { transform: rotate(-8deg) scale(1); }
+  50% { transform: rotate(8deg) scale(1.25); }
 }
 
 /* ================= MODALS ================= */

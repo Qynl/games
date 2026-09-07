@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react'
 import { SaveData } from '../game/save'
 import { MatchResult, ModeDef } from '../game/types'
 import { brawlerById } from '../game/brawlers'
 import { UiButton, Portrait } from '../ui/ui'
 import { fmtTime } from '../game/util'
+import { audio } from '../game/audio'
 
 interface Props {
   save: SaveData
@@ -17,6 +19,15 @@ export default function ResultsScreen({ save, result, mode, brawlerId, onContinu
   const b = brawlerById(brawlerId)
   const won = result.won
   const draw = result.draw
+  const [revealed, setRevealed] = useState(false)
+
+  useEffect(() => {
+    if (won) audio.win()
+    else if (draw) audio.countTick()
+    else audio.lose()
+    const t = window.setTimeout(() => setRevealed(true), 300)
+    return () => window.clearTimeout(t)
+  }, [won, draw])
 
   return (
     <div className="screen results-screen">
@@ -26,7 +37,9 @@ export default function ResultsScreen({ save, result, mode, brawlerId, onContinu
       <div className="results-sub">
         {result.mode === 'showdown'
           ? `You placed #${result.placement} of ${result.placementTotal}`
-          : `${mode.name}${result.mode === 'bounty' ? ` · ${result.stars} stars` : ` · ${result.gemsCollected} gems collected`}`}
+          : result.mode === 'heist'
+            ? `Smashed ${Math.round((result.safeDamage ?? 0) / 1000)}k damage into the enemy safe`
+            : `${mode.name}${result.mode === 'bounty' ? ` · ${result.stars} stars` : ` · ${result.gemsCollected} gems collected`}`}
       </div>
 
       <div className="results-trophy">
@@ -39,7 +52,7 @@ export default function ResultsScreen({ save, result, mode, brawlerId, onContinu
         </span>
       </div>
 
-      <div className="results-card">
+      <div className={`results-card ${revealed ? 'revealed' : ''}`}>
         <Portrait id={b.id} className="results-portrait" />
         <div className="results-stats">
           <div className="stat"><span>💥 Kills</span><b>{result.kills}</b></div>
@@ -48,10 +61,23 @@ export default function ResultsScreen({ save, result, mode, brawlerId, onContinu
           {result.mode === 'gem' && (
             <div className="stat"><span>💎 Gems collected</span><b>{result.gemsCollected}</b></div>
           )}
+          {result.mode === 'heist' && (
+            <div className="stat"><span>💰 Safe damage</span><b>{(result.safeDamage ?? 0).toLocaleString()}</b></div>
+          )}
           <div className="stat"><span>⏱ Match time</span><b>{fmtTime(result.duration)}</b></div>
           <div className="stat"><span>🔥 Streak</span><b>{save.streak}</b></div>
         </div>
       </div>
+
+      {result.starPlayer && result.starPlayer.kills > 0 && (
+        <div className={`star-player ${revealed ? 'revealed' : ''}`}>
+          <span className="star-icon">⭐</span>
+          <span>
+            STAR PLAYER: <b>{result.starPlayer.name}</b> — {result.starPlayer.kills} kills,{' '}
+            {result.starPlayer.damage.toLocaleString()} damage
+          </span>
+        </div>
+      )}
 
       <div className="results-actions">
         <UiButton variant="primary" className="btn-huge" onClick={onContinue}>

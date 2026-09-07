@@ -24,6 +24,8 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'menu' })
   const [showSettings, setShowSettings] = useState(false)
 
+  const showTabs = !['game', 'results'].includes(screen.name)
+
   useEffect(() => {
     applyAudioSettings(save)
   }, [save.muted, save.settings.sfx, save.settings.music])
@@ -105,6 +107,39 @@ export default function App() {
           setSave={setSave}
           onClose={() => setShowSettings(false)}
         />
+      )}
+
+      {showTabs && (
+        <nav className="bottom-tabs">
+          <button
+            className={`tab-btn ${screen.name === 'menu' ? 'active' : ''}`}
+            onClick={() => setScreen({ name: 'menu' })}
+          >
+            <span className="tab-icon">🏠</span>
+            <span className="tab-label">Home</span>
+          </button>
+          <button
+            className={`tab-btn ${['modes', 'results'].includes(screen.name) ? 'active' : ''}`}
+            onClick={() => setScreen({ name: 'modes' })}
+          >
+            <span className="tab-icon">⚔️</span>
+            <span className="tab-label">Battle</span>
+          </button>
+          <button
+            className={`tab-btn ${screen.name === 'brawlers' ? 'active' : ''}`}
+            onClick={() => setScreen({ name: 'brawlers' })}
+          >
+            <span className="tab-icon">🧑‍🎤</span>
+            <span className="tab-label">Brawlers</span>
+          </button>
+          <button
+            className={`tab-btn ${screen.name === 'shop' ? 'active' : ''}`}
+            onClick={() => setScreen({ name: 'shop' })}
+          >
+            <span className="tab-icon">🛒</span>
+            <span className="tab-label">Shop</span>
+          </button>
+        </nav>
       )}
     </div>
   )

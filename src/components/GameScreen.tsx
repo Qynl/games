@@ -6,6 +6,12 @@ import { ModeDef, MODE_MAP, MatchResult } from '../game/types'
 import { fmtTime } from '../game/util'
 import { Vec, v } from '../game/util'
 import { brawlerById } from '../game/brawlers'
+
+function clampVec(p: { x: number; y: number }, max: number) {
+  const l = Math.hypot(p.x, p.y)
+  if (l <= max) return { x: p.x, y: p.y }
+  return { x: (p.x / l) * max, y: (p.y / l) * max }
+}
 import { audio } from '../game/audio'
 import SettingsModal from './SettingsModal'
 import { loadSave } from '../game/save'
@@ -36,6 +42,7 @@ interface HudState {
   placement: number | null
   phase: string
   countdownT: number
+  safeHp: [number, number]
 }
 
 export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props) {
@@ -47,17 +54,20 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
   const pointerWorld = useRef<Vec | null>(null)
   const pausedRef = useRef(false)
   const finishedRef = useRef(false)
+  const touchFiringRef = useRef(false)
+  const touchRef = useRef(false)
   const [paused, setPaused] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [hud, setHud] = useState<HudState>({
     hp: 1, maxHp: 1, ammo: 0, ammoMax: 3, reloadFrac: 0, superCharge: 0, gadgets: 3,
     timeLeft: mode.duration, teamGems: [0, 0], teamStars: [0, 0], gemTimer: null,
     gemTimerTeam: null, alive: 0, total: mode.teamSize, cubes: 1, placement: null,
-    phase: 'countdown', countdownT: 3.4,
+    phase: 'countdown', countdownT: 3.4, safeHp: [1, 1],
   })
   const [events, setEvents] = useState<GameEvent[]>([])
   const [touch, setTouch] = useState(false)
   const [endedText, setEndedText] = useState<{ title: string; sub: string; won: boolean } | null>(null)
+  const [touchFiring, setTouchFiring] = useState(false)
   const hudRef = useRef(hud)
   hudRef.current = hud
 
@@ -85,6 +95,10 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
       placement: g.playerPlacement,
       phase: g.phase,
       countdownT: g.countdownT,
+      safeHp: [
+        g.safes.find((s) => s.team === 0) ? (g.safes.find((s) => s.team === 0)!.hp / g.safes.find((s) => s.team === 0)!.maxHp) : 1,
+        g.safes.find((s) => s.team === 1) ? (g.safes.find((s) => s.team === 1)!.hp / g.safes.find((s) => s.team === 1)!.maxHp) : 1,
+      ],
     }
   }, [])
 
@@ -109,6 +123,11 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
     input.onSuperPressed = () => g.queueSuper()
     input.onGadgetPressed = () => g.queueGadget()
     input.onEmotePressed = () => g.queueEmote('😤')
+    input.onTouchDown = () => {
+      touchRef.current = true
+      setTouch(true)
+    }
+    input.onTouchUp = () => g.queueSuper()
     g.onEvent = () => setEvents([...g.events])
     g.onEnd = (r) => {
       if (finishedRef.current) return
@@ -139,8 +158,12 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
         const st = inputState.current
         const p = g.player
         if (p) {
-          if (st.mode === 'touch' && Math.hypot(st.aim.x, st.aim.y) > 8) {
-            g.setAim(st.aim.x, st.aim.y)
+          const touchAim = touchFiringRef.current && touchRef.current
+          if (touchAim) {
+            // fire button held: auto-aim snap handled by the game state
+            if (Math.hypot(st.aim.x, st.aim.y) > 8) {
+              g.setAim(st.aim.x, st.aim.y)
+            }
             pointerWorld.current = null
           } else {
             const aimWorld = screenToWorld(g, renderer, st.aimScreen.x, st.aimScreen.y)
@@ -155,7 +178,6 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
       if (now - hudLast > 90) {
         hudLast = now
         setHud(readHud())
-        setTouch(inputState.current.mode === 'touch')
       }
     }
     raf = requestAnimationFrame(loop)
@@ -198,7 +220,6 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
   const phase = hud.phase
 
   const superReady = hud.superCharge >= 1
-  const aimScreen = inputState.current.aimScreen
 
   return (
     <div className="game-screen">
@@ -248,6 +269,22 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
               <span>💀 {hud.alive} alive</span>
               <span className="gem-vs">·</span>
               <span>⚡ {hud.cubes} cubes</span>
+            </div>
+          )}
+          {mode.id === 'heist' && (
+            <div className="hud-safes">
+              <div className="safe-hud-bar">
+                <span className="safe-label blue">🔵 {Math.round(hud.safeHp[0] * 100)}%</span>
+                <div className="safe-hud-track">
+                  <div className="safe-hud-fill blue" style={{ width: `${hud.safeHp[0] * 100}%` }} />
+                </div>
+              </div>
+              <div className="safe-hud-bar">
+                <span className="safe-label red">🔴 {Math.round(hud.safeHp[1] * 100)}%</span>
+                <div className="safe-hud-track">
+                  <div className="safe-hud-fill red" style={{ width: `${hud.safeHp[1] * 100}%` }} />
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -317,12 +354,35 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
               />
             </div>
             <div className="aim-zone">
+              <div className="joy-base aim-base" />
               <div
                 className="aim-knob"
                 style={{
-                  transform: `translate(${(Math.min(1, Math.hypot(aimScreen.x, aimScreen.y) / 120)) * 0}px, 0px)`,
+                  transform: `translate(${clampVec(inputState.current.aim, 40).x}px, ${clampVec(inputState.current.aim, 40).y}px)`,
                 }}
               />
+            </div>
+            <div
+              className={`fire-btn ${touchFiring ? 'active' : ''}`}
+              onPointerDown={(e) => {
+                e.preventDefault()
+                touchFiringRef.current = true
+                setTouchFiring(true)
+                gameRef.current && (gameRef.current.playerFiring = true)
+              }}
+              onPointerUp={(e) => {
+                e.preventDefault()
+                touchFiringRef.current = false
+                setTouchFiring(false)
+                gameRef.current && (gameRef.current.playerFiring = false)
+              }}
+              onPointerLeave={() => {
+                touchFiringRef.current = false
+                setTouchFiring(false)
+                gameRef.current && (gameRef.current.playerFiring = false)
+              }}
+            >
+              {touchFiring ? '🔥' : '✊'}
             </div>
           </>
         ) : (

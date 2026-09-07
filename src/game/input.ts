@@ -104,6 +104,7 @@ export class InputManager {
 
   private onTouchStart = (e: TouchEvent) => {
     e.preventDefault()
+    this.onTouchDown()
     const rect = this.canvas.getBoundingClientRect()
     for (const t of Array.from(e.changedTouches)) {
       const x = t.clientX - rect.left
@@ -112,12 +113,17 @@ export class InputManager {
       if (isAim) {
         if (!this.aimJoy) {
           this.aimJoy = { id: t.identifier, ox: x, oy: y }
+          this.aimBaseX = x
+          this.aimBaseY = y
           this.state.aimScreen = v(x, y)
+          this.state.aim = v(0, 0) // release fires toward last drag / auto-aim
         }
         this.fireTouches.add(t.identifier)
-        this.state.firing = true
+        this.state.firing = false
       } else if (!this.joy) {
         this.joy = { id: t.identifier, ox: x, oy: y }
+        this.joyBaseX = x
+        this.joyBaseY = y
       }
     }
   }
@@ -139,19 +145,26 @@ export class InputManager {
   }
 
   private onTouchEnd = (e: TouchEvent) => {
+    let releasedFire = false
     for (const t of Array.from(e.changedTouches)) {
       if (this.joy && t.identifier === this.joy.id) this.joy = null
-      if (this.aimJoy && t.identifier === this.aimJoy.id) this.aimJoy = null
+      if (this.aimJoy && t.identifier === this.aimJoy.id) {
+        this.aimJoy = null
+        releasedFire = true
+      }
       this.fireTouches.delete(t.identifier)
     }
     this.state.firing = this.fireTouches.size > 0
     if (!this.aimJoy) this.state.firing = false
+    if (releasedFire) this.onTouchUp()
   }
 
   // -------- hook callbacks (set by GameScreen) --------
   onSuperPressed: () => void = () => {}
   onGadgetPressed: () => void = () => {}
   onEmotePressed: () => void = () => {}
+  onTouchDown: () => void = () => {}
+  onTouchUp: () => void = () => {}
 
   update(g: GameState) {
     const st = this.state
@@ -163,7 +176,6 @@ export class InputManager {
     if (this.keys.has('a') || this.keys.has('arrowleft')) mx -= 1
     if (this.keys.has('d') || this.keys.has('arrowright')) mx += 1
     if (this.joy) {
-      const rect = this.canvas.getBoundingClientRect()
       const dx = (this.joy.ox - (this.joyBaseX ?? this.joy.ox)) / 40
       const dy = (this.joy.oy - (this.joyBaseY ?? this.joy.oy)) / 40
       const l = Math.hypot(dx, dy)
@@ -182,19 +194,22 @@ export class InputManager {
 
     // ---- aim ----
     if (this.aimJoy) {
-      const rect = this.canvas.getBoundingClientRect()
       const dx = this.aimJoy.ox - (this.aimBaseX ?? this.aimJoy.ox)
       const dy = this.aimJoy.oy - (this.aimBaseY ?? this.aimJoy.oy)
       if (Math.hypot(dx, dy) > 8) {
         st.aim = v(dx, dy)
       }
     } else {
-      // keyboard aim = aimScreen (mouse position) converted to world in GameScreen
       st.aim = v(st.aimScreen.x, st.aimScreen.y)
     }
 
     g.setMove(st.move.x, st.move.y)
-    g.setFiring(st.firing || this.mouseDown)
+    if (this.aimJoy) {
+      // touch aim stick: hold = auto-fire (classic), release = fire once
+      g.setFiring(this.fireTouches.size > 0 && Math.hypot(st.aim.x, st.aim.y) > 6)
+    } else {
+      g.setFiring(this.mouseDown)
+    }
   }
 
   // joy base for visuals

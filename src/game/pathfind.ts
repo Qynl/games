@@ -1,5 +1,6 @@
 import { GameMap, T_WALL, T_WATER, tileAt } from './maps'
 import { Vec, v, dist } from './util'
+import { TILE } from './types'
 
 // A* grid pathfinding. Walls + water block movement; bushes are passable.
 export function findPath(map: GameMap, from: Vec, to: Vec, radiusTiles = 0): Vec[] | null {
@@ -97,15 +98,15 @@ export function findPath(map: GameMap, from: Vec, to: Vec, radiusTiles = 0): Vec
   return null
 }
 
-// Simple line-of-sight: blocked by walls only.
+// Simple line-of-sight: blocked by walls only. (a, b in world pixels)
 export function hasLineOfSight(map: GameMap, a: Vec, b: Vec): boolean {
   const dx = b.x - a.x
   const dy = b.y - a.y
-  const steps = Math.ceil(Math.hypot(dx, dy) / 0.25)
+  const steps = Math.ceil(Math.hypot(dx, dy) / (TILE / 4))
   for (let i = 0; i <= steps; i++) {
-    const t = i / steps
-    const tx = Math.floor(a.x + dx * t)
-    const ty = Math.floor(a.y + dy * t)
+    const t = steps === 0 ? 0 : i / steps
+    const tx = Math.floor((a.x + dx * t) / TILE)
+    const ty = Math.floor((a.y + dy * t) / TILE)
     const tile = tileAt(map, tx, ty)
     if (tile === T_WALL) return false
   }

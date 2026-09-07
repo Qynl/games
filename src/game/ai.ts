@@ -37,13 +37,18 @@ export function registerSpawns(g: GameState) {
 
 function findRallyPoint(g: GameState, team: number): Vec {
   if (g.mode.id === 'showdown') return v()
+  if (g.mode.id === 'heist') {
+    const enemySafe = g.safes.find((s) => s.team !== team && !s.dead)
+    if (enemySafe) return v(enemySafe.pos.x + rand(-1, 1) * TILE, enemySafe.pos.y + rand(-1, 1) * TILE)
+    return v((g.map.w / 2) * TILE, (g.map.h / 2) * TILE)
+  }
   const m = g.map.mine
   if (!m) return v()
   const mine = m
-  // rally behind the mine, toward your own side
-  const jitter = v(rand(-1.2, 1.2), rand(-1.2, 1.2))
+  // rally at the mine, slightly toward your own side
+  const jitter = v(rand(-1.2, 1.2) * TILE, rand(-1.2, 1.2) * TILE)
   void SPAWN[team]
-  return v(mine.x + jitter.x, mine.y + jitter.y)
+  return v(mine.x * TILE + jitter.x, mine.y * TILE + jitter.y)
 }
 
 function enemiesOf(g: GameState, me: BrawlerState): BrawlerState[] {
@@ -70,6 +75,87 @@ export function updateAI(g: GameState, me: BrawlerState, ai: AIData, dt: number)
 
   const myTeam = me.team
   const enemyTeam = myTeam === 0 ? 1 : 0
+
+  // --- HEIST brain: keep pressure on the enemy safe ---
+  if (g.mode.id === 'heist') {
+    const enemySafe = g.safes.find((s) => s.team !== myTeam && !s.dead)
+    const mySafe = g.safes.find((s) => s.team === myTeam && !s.dead)
+    // defense duty: if enemies are near OUR safe, fight them
+    let defenders = 0
+    let bestDefender: BrawlerState | null = null
+    let bestD = Infinity
+    if (mySafe) {
+      for (const e of enemies) {
+        if (dist(e.pos, mySafe.pos) < 5 * TILE) {
+          defenders++
+          const d = dist(me.pos, e.pos)
+          if (d < bestD) {
+            bestD = d
+            bestDefender = e
+          }
+        }
+      }
+    }
+    if (defenders >= 1 && (chance(0.6) || defenders >= 2)) {
+      // peel off to defend
+      const target = bestDefender
+      if (target) {
+        const d = dist(me.pos, target.pos)
+        if (d < me.attackRange * 0.95 && hasLineOfSight(g.map, me.pos, target.pos)) {
+          const lead = v(target.pos.x + target.vel.x * 0.25, target.pos.y + target.vel.y * 0.25)
+          const a = Math.atan2(lead.y - me.pos.y, lead.x - me.pos.x) + rand(-0.15, 0.15)
+          ai.aimAngle = a
+          me.aim = a
+          ai.shotTimer -= dt
+          if (ai.shotTimer <= 0) {
+            g.tryFire(me)
+            ai.shotTimer = rand(0.28, 0.6)
+          }
+        } else {
+          const away = norm(v(me.pos.x - target.pos.x, me.pos.y - target.pos.y))
+          const desired = v(me.pos.x + away.x * 3 * TILE, me.pos.y + away.y * 3 * TILE)
+          moveToward(g, me, ai, desired, dt, def.speed)
+        }
+        if (me.superCharge >= 1) {
+          ai.superTimer -= dt
+          if (ai.superTimer <= 0) {
+            g.trySuper(me, ai.aimAngle)
+            ai.superTimer = rand(2.5, 5)
+          }
+        }
+        return
+      }
+    }
+    // attack the safe
+    if (enemySafe) {
+      const d = dist(me.pos, enemySafe.pos)
+      if (d < me.attackRange * 0.9 && hasLineOfSight(g.map, me.pos, enemySafe.pos)) {
+        const a = Math.atan2(enemySafe.pos.y - me.pos.y, enemySafe.pos.x - me.pos.x) + rand(-0.12, 0.12)
+        ai.aimAngle = a
+        me.aim = a
+        ai.shotTimer -= dt
+        if (ai.shotTimer <= 0) {
+          g.tryFire(me)
+          ai.shotTimer = rand(0.25, 0.5)
+        }
+      } else if (d > 1.6 * TILE) {
+        moveToward(g, me, ai, enemySafe.pos, dt, def.speed)
+      } else {
+        const away = norm(v(me.pos.x - enemySafe.pos.x, me.pos.y - enemySafe.pos.y))
+        const desired = v(me.pos.x + away.x * 4 * TILE, me.pos.y + away.y * 4 * TILE)
+        moveToward(g, me, ai, desired, dt, def.speed)
+      }
+      if (me.superCharge >= 1) {
+        ai.superTimer -= dt
+        if (ai.superTimer <= 0) {
+          g.trySuper(me, ai.aimAngle)
+          ai.superTimer = rand(2.5, 5)
+        }
+      }
+      return
+    }
+    // safe already destroyed: fall through to normal combat
+  }
 
   // --- target selection: gem carrier > lowest hp > nearest ---
   let target: BrawlerState | null = null
@@ -102,8 +188,11 @@ export function updateAI(g: GameState, me: BrawlerState, ai: AIData, dt: number)
   let desired: Vec | null = null
   if (wish === 'retreat') {
     // toward our spawn corner
-    const spawn = SPAWN[myTeam] ?? v(g.map.w / 2, g.map.h / 2)
-    desired = spawn
+    const spawnPts = g.map.spawns.filter((s) => s.team === myTeam).map((s) => s.pos)
+    desired =
+      spawnPts.length > 0
+        ? v(pick(spawnPts).x * TILE + rand(-2, 2) * TILE, pick(spawnPts).y * TILE + rand(-2, 2) * TILE)
+        : v((g.map.w / 2) * TILE, (g.map.h / 2) * TILE)
   } else if (wish === 'push') {
     desired = target ? target.pos : findRallyPoint(g, myTeam)
   } else if (wish === 'hold') {
@@ -128,6 +217,7 @@ export function updateAI(g: GameState, me: BrawlerState, ai: AIData, dt: number)
     const lead = v(aimTarget.x + target!.vel.x * 0.25, aimTarget.y + target!.vel.y * 0.25)
     const a = Math.atan2(lead.y - me.pos.y, lead.x - me.pos.x) + rand(-0.16, 0.16)
     ai.aimAngle = a
+    me.aim = a
     ai.shotTimer -= dt
     if (ai.shotTimer <= 0) {
       g.tryFire(me)
@@ -199,6 +289,7 @@ function updateShowdownAI(
       const lead = v(victim.pos.x + victim.vel.x * 0.3, victim.pos.y + victim.vel.y * 0.3)
       const a = Math.atan2(lead.y - me.pos.y, lead.x - me.pos.x) + rand(-0.14, 0.14)
       ai.aimAngle = a
+      me.aim = a
       const d = dist(me.pos, victim.pos)
       if (d > def.attack.range * 0.55 && d < def.attack.range * 0.98) {
         ai.shotTimer -= dt
@@ -220,6 +311,7 @@ function updateShowdownAI(
         if (d < def.attack.range * 0.8 && hasLineOfSight(g.map, me.pos, box.pos)) {
           const a = Math.atan2(box.pos.y - me.pos.y, box.pos.x - me.pos.x)
           ai.aimAngle = a
+          me.aim = a
           ai.shotTimer -= dt
           if (ai.shotTimer <= 0) {
             g.tryFire(me)
@@ -272,12 +364,19 @@ function moveToward(
   const blockedMove = dist(me.pos, target) > 0.6 * TILE && dist(me.pos, ai.wanderTarget) < 0.3 * TILE
   if (ai.repath <= 0 || tooFar || blockedMove) {
     ai.repath = rand(0.7, 1.2)
-    const jx = clamp(Math.floor(target.x), 0, g.map.w - 1)
-    const jy = clamp(Math.floor(target.y), 0, g.map.h - 1)
+    const jx = clamp(Math.floor(target.x / TILE), 0, g.map.w - 1)
+    const jy = clamp(Math.floor(target.y / TILE), 0, g.map.h - 1)
     if (dist(me.pos, target) > 0.7 * TILE) {
-      const path = findPath(g.map, me.pos, v(jx + 0.5, jy + 0.5))
+      const path = findPath(
+        g.map,
+        v(Math.floor(me.pos.x / TILE) + 0.5, Math.floor(me.pos.y / TILE) + 0.5),
+        v(jx + 0.5, jy + 0.5)
+      )
       if (path && path.length > 0) {
-        ai.wanderTarget = pick(path.slice(0, Math.min(4, path.length)))
+        // follow the furthest node in the lookahead window
+        const node = path[Math.min(3, path.length - 1)]
+        // path nodes are in tile space — convert to world pixels
+        ai.wanderTarget = v(node.x * TILE, node.y * TILE)
       } else {
         ai.wanderTarget = v(me.pos.x + rand(-3, 3) * TILE, me.pos.y + rand(-3, 3) * TILE)
       }

@@ -62,6 +62,8 @@ export interface BrawlerState {
   attackRange: number
   superRange: number
   healPulse: number
+  blinkT: number
+  spawnFx: number
 }
 
 let NEXT_ID = 1
@@ -130,11 +132,13 @@ export function createBrawler(
     attackRange: attackRangeOf(def),
     superRange: superRangeOf(def),
     healPulse: 0,
+    blinkT: rand(1.5, 4),
+    spawnFx: 0,
   }
 }
 
 export function updateBrawler(
-  g: { map: GameMap; time: number },
+  g: { map: GameMap; time: number; safes?: { team: number; pos: Vec }[] },
   b: BrawlerState,
   dt: number,
   particles: ParticleSystem
@@ -155,6 +159,9 @@ export function updateBrawler(
   b.reloadMul = b.reloadMulT > 0 ? 1.9 : 1
   b.gadgetCd = Math.max(0, b.gadgetCd - dt)
   b.healPulse = Math.max(0, b.healPulse - dt * 2)
+  b.blinkT -= dt
+  if (b.blinkT < -0.13) b.blinkT = rand(1.8, 4.5)
+  b.spawnFx = Math.max(0, b.spawnFx - dt)
 
   // reload
   if (b.ammo < b.def.ammoMax) {
@@ -203,9 +210,9 @@ export function updateBrawler(
   b.knockVy *= Math.exp(-5 * dt)
 
   b.pos.x += vx * dt
-  if (collideMap(g.map, b.pos, 12)) b.pos.x -= vx * dt
+  if (collideMap(g.map, b.pos, 12) || collideSafes(g.safes, b.pos)) b.pos.x -= vx * dt
   b.pos.y += vy * dt
-  if (collideMap(g.map, b.pos, 12)) b.pos.y -= vy * dt
+  if (collideMap(g.map, b.pos, 12) || collideSafes(g.safes, b.pos)) b.pos.y -= vy * dt
 
   b.pos.x = clamp(b.pos.x, 0.5 * TILE, g.map.w * TILE - 0.5 * TILE)
   b.pos.y = clamp(b.pos.y, 0.5 * TILE, g.map.h * TILE - 0.5 * TILE)
@@ -252,6 +259,19 @@ function collideMap(map: GameMap, pos: Vec, r: number): boolean {
       const cy = clamp(pos.y, ty * TILE, ty * TILE + TILE)
       if (dist2(pos, v(cx, cy)) < r * r) return true
     }
+  }
+  return false
+}
+
+const SAFE_RADIUS = 27
+
+export function collideSafes(
+  safes: { team: number; pos: Vec }[] | undefined,
+  pos: Vec
+): boolean {
+  if (!safes || safes.length === 0) return false
+  for (const s of safes) {
+    if (dist2(pos, s.pos) < Math.pow(SAFE_RADIUS + 11, 2)) return true
   }
   return false
 }
@@ -334,11 +354,14 @@ export function updateProjectiles(
   },
   dt: number,
   onHit: (target: BrawlerState, dmg: number, sourceId: number, opts?: { knock?: number; color?: string }) => void,
-  onExplode: (pos: Vec, splash: number, dmg: number, sourceId: number, knock: number, color: string) => void
+  onExplode: (pos: Vec, splash: number, dmg: number, sourceId: number, knock: number, color: string) => void,
+  onSafeHit?: (team: number, dmg: number, sourceId: number, pos: Vec) => void,
+  onBoxHit?: (pos: Vec, dmg: number) => void
 ) {
   const projs = g.projectiles
   for (let i = projs.length - 1; i >= 0; i--) {
     const p = projs[i]
+    let hit = false
     p.life -= dt
     p.spin += dt * 10
     if (p.life <= 0) {
@@ -391,9 +414,55 @@ export function updateProjectiles(
       continue
     }
 
+    // box collision (showdown loot boxes)
+    const boxes = (g as any).boxes as { pos: Vec; broken: boolean }[] | undefined
+    if (boxes && p.kind !== 'rocket' && p.kind !== 'megarocket' && p.kind !== 'lob') {
+      for (const box of boxes) {
+        if (box.broken) continue
+        if (dist2(p.pos, box.pos) < Math.pow(16 + p.size, 2)) {
+          onBoxHit?.(box.pos, p.damage)
+          g.particles.sparkBurst(p.pos, '#c98a4e', 5, 90)
+          projs.splice(i, 1)
+          hit = true
+          break
+        }
+      }
+    }
+    if (hit) continue
+
+    // safe collision (heist): safes block enemy shots
+    const safes = (g as any).safes as { team: number; pos: Vec; dead?: boolean }[] | undefined
+    let safeHit = false
+    if (safes) {
+      for (const s of safes) {
+        if (s.dead) continue
+        if (s.team === p.ownerTeam) continue
+        if (dist2(p.pos, s.pos) < Math.pow(27 + (p.size || 6), 2)) {
+          safeHit = true
+          break
+        }
+      }
+    }
+    if (safeHit) {
+      if (p.kind === 'rocket' || p.kind === 'megarocket') {
+        onExplode(p.pos, p.splash, p.damage, p.ownerId, p.knock, p.color)
+      }
+      if (onSafeHit && safes) {
+        for (const s of safes) {
+          if (s.dead || s.team === p.ownerTeam) continue
+          if (dist2(p.pos, s.pos) < Math.pow(34, 2)) {
+            onSafeHit(s.team, p.damage, p.ownerId, p.pos)
+            break
+          }
+        }
+      }
+      g.particles.sparkBurst(p.pos, p.color, 5, 90)
+      projs.splice(i, 1)
+      continue
+    }
+
     // brawler hit
     const radius = p.kind === 'wave' ? p.width / 2 : p.size + 6
-    let hit = false
     if (p.damage > 0) {
       for (const b of g.brawlers) {
       if (b.dead || b.id === p.ownerId || b.spawnProt > 0 || b.invulnT > 0) continue

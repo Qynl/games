@@ -104,13 +104,15 @@ export class GameState {
   placement = 0
   placements: number[] = []
   playerPlacement: number | null = null
+  safes: { team: number; pos: Vec; hp: number; maxHp: number; dead: boolean; hitFlash: number; shake: number }[] = []
+  playerFiring = false
+  autoTargetId: number | null = null
   playerInput = { mx: 0, my: 0, aimX: 1, aimY: 0, firing: false }
   onEvent: ((e: GameEvent) => void) | null = null
   onEnd: ((r: MatchResult) => void) | null = null
-  private playerSuperQueued = false
+  playerSuperQueued = false
   private playerGadgetQueued = false
   private superFlashT = new Map<number, number>()
-  private emoteTimers: [number, number][] = []
 
   constructor(mode: ModeDef, mapId: string, playerBrawlerId: string, botBrawlerIds?: string[]) {
     this.mode = mode
@@ -123,11 +125,11 @@ export class GameState {
   private setupBrawlers(playerDef: BrawlerDef, botBrawlerIds?: string[]) {
     const botPool = shuffle(BOT_NAMES)
     if (this.mode.id === 'showdown') {
-      const spots = this.map.spawns.filter((s) => s.team === 2).map((s) => s.pos)
+      const spots = this.map.spawns.filter((s) => s.team === 2).map((s) => v(s.pos.x * TILE, s.pos.y * TILE))
       const picked = shuffle(spots).slice(0, this.mode.teamSize)
       const defs = this.pickBotDefs(botBrawlerIds, this.mode.teamSize - 1)
       for (let i = 0; i < this.mode.teamSize; i++) {
-        const pos = picked[i] ?? v(rand(this.map.w) * 0.8 + 0.1, rand(this.map.h) * 0.8 + 0.1)
+        const pos = picked[i] ?? v(rand(this.map.w) * 0.8 * TILE, rand(this.map.h) * 0.8 * TILE)
         if (i === 0) {
           const p = createBrawler(playerDef, 2, pos, 'You', true, false)
           this.player = p
@@ -139,34 +141,51 @@ export class GameState {
         }
       }
     } else {
-      const blueSpots = this.map.spawns.filter((s) => s.team === 0).map((s) => s.pos)
-      const redSpots = this.map.spawns.filter((s) => s.team === 1).map((s) => s.pos)
+      const blueSpots = this.map.spawns.filter((s) => s.team === 0).map((s) => v(s.pos.x * TILE, s.pos.y * TILE))
+      const redSpots = this.map.spawns.filter((s) => s.team === 1).map((s) => v(s.pos.x * TILE, s.pos.y * TILE))
       const size = this.mode.teamSize
       const defs = this.pickBotDefs(botBrawlerIds, size * 2 - 1)
       let di = 0
       for (let i = 0; i < size; i++) {
         if (i === 0) {
-          const p = createBrawler(playerDef, 0, blueSpots[i] ?? v(2, 2), 'You', true, false)
+          const p = createBrawler(playerDef, 0, blueSpots[i] ?? v(2 * TILE, 2 * TILE), 'You', true, false)
           this.player = p
           this.brawlers.push(p)
         } else {
-          const b = createBrawler(defs[di], 0, blueSpots[i] ?? v(2, 2), botPool[di], false, true)
+          const b = createBrawler(defs[di], 0, blueSpots[i] ?? v(2 * TILE, 2 * TILE), botPool[di], false, true)
           b.bot = makeAI(b)
           this.brawlers.push(b)
           di++
         }
       }
       for (let i = 0; i < size; i++) {
-        const b = createBrawler(defs[di], 1, redSpots[i] ?? v(30, 30), botPool[di], false, true)
+        const b = createBrawler(defs[di], 1, redSpots[i] ?? v(30 * TILE, 30 * TILE), botPool[di], false, true)
         b.bot = makeAI(b)
         this.brawlers.push(b)
         di++
       }
     }
     // initial spawn protection
-    for (const b of this.brawlers) b.spawnProt = 2.2
+    for (const b of this.brawlers) {
+      b.spawnProt = 2.2
+      b.spawnFx = 0.45
+    }
     for (const box of this.map.boxes) {
-      this.boxes.push({ pos: box, hp: 1000, broken: false, shake: 0 })
+      this.boxes.push({ pos: v(box.x * TILE, box.y * TILE), hp: 1000, broken: false, shake: 0 })
+    }
+    // heist safes
+    if (this.mode.id === 'heist') {
+      for (const s of this.map.safes) {
+        this.safes.push({
+          team: s.team,
+          pos: v(s.pos.x * TILE, s.pos.y * TILE),
+          hp: 30000,
+          maxHp: 30000,
+          dead: false,
+          hitFlash: 0,
+          shake: 0,
+        })
+      }
     }
     if (this.mode.id === 'showdown') {
       this.gas = {
@@ -212,6 +231,7 @@ export class GameState {
   }
   setFiring(f: boolean) {
     this.playerInput.firing = f
+    this.playerFiring = f
   }
   queueSuper() {
     this.playerSuperQueued = true
@@ -261,6 +281,7 @@ export class GameState {
     this.updateBoxes(dt)
     this.updateTurrets(dt)
     this.updatePuddles(dt)
+    this.updateSafes(dt)
     this.updateTombstones()
     this.updateEvents(dt)
     this.particles.update(dt)
@@ -324,6 +345,11 @@ export class GameState {
       } else if (this.mode.id === 'bounty') {
         if (this.teamStars[0] === this.teamStars[1]) this.endMatch(false, true)
         else this.endMatch(this.teamStars[0] > this.teamStars[1], false)
+      } else if (this.mode.id === 'heist') {
+        const mineHp = this.safes.find((s) => s.team === 0)?.hp ?? 0
+        const theirsHp = this.safes.find((s) => s.team === 1)?.hp ?? 0
+        if (mineHp === theirsHp) this.endMatch(false, true)
+        else this.endMatch(mineHp > theirsHp, false)
       } else {
         this.endShowdownTime()
       }
@@ -345,13 +371,14 @@ export class GameState {
         if (b.dead) {
           b.respawnT -= dt
           if (b.respawnT <= 0) {
-            const spots = this.map.spawns.filter((s) => s.team === b.team).map((s) => s.pos)
+            const spots = this.map.spawns.filter((s) => s.team === b.team).map((s) => v(s.pos.x * TILE, s.pos.y * TILE))
             b.pos = { ...pick(spots) }
             b.hp = b.maxHp
             b.ammo = b.def.ammoMax
             b.dead = false
             b.deathT = 0
             b.spawnProt = 2.2
+            b.spawnFx = 0.5
             b.superCharge = Math.max(0.25, b.superCharge)
             this.particles.burst(b.pos, '#ffffff', 16, { speed: 140, size: 5, life: 0.5 })
             audio.spawn()
@@ -366,7 +393,12 @@ export class GameState {
       this,
       dt,
       (target, dmg, sourceId, opts) => this.onProjectileHit(target, dmg, sourceId, opts),
-      (pos, splash, dmg, sourceId, knock, color) => this.explode(pos, splash, dmg, sourceId, knock, color)
+      (pos, splash, dmg, sourceId, knock, color) => this.explode(pos, splash, dmg, sourceId, knock, color),
+      (team, dmg, sourceId, pos) => this.damageSafe(team, dmg, sourceId, pos),
+      (pos, dmg) => {
+        const box = this.boxes.find((bx) => !bx.broken && dist2(bx.pos, pos) < Math.pow(24, 2))
+        if (box) this.damageBox(box, dmg)
+      }
     )
   }
 
@@ -391,7 +423,19 @@ export class GameState {
     if (al > 0.1) {
       p.aim = Math.atan2(inp.aimY / al, inp.aimX / al)
     }
-    if (inp.firing) this.tryFire(p)
+    // AUTO-AIM: when firing (or holding), snap to the best target in range
+    if (this.playerFiring) {
+      const t = this.pickAutoTarget(p)
+      if (t) {
+        p.aim = Math.atan2(t.pos.y - p.pos.y, t.pos.x - p.pos.x)
+        this.autoTargetId = t.id
+        this.tryFire(p)
+      } else {
+        this.autoTargetId = null
+      }
+    } else {
+      this.autoTargetId = null
+    }
     if (this.playerSuperQueued) {
       this.playerSuperQueued = false
       this.trySuper(p, p.aim)
@@ -400,6 +444,27 @@ export class GameState {
       this.playerGadgetQueued = false
       this.tryGadget(p)
     }
+  }
+
+  private pickAutoTarget(p: BrawlerState): BrawlerState | null {
+    const range = p.attackRange * 1.02
+    let best: BrawlerState | null = null
+    let bestScore = Infinity
+    for (const e of this.brawlers) {
+      if (e.dead || e.id === p.id || e.spawnProt > 0) continue
+      if (this.mode.id !== 'showdown' && e.team === p.team) continue
+      const d = dist(p.pos, e.pos)
+      if (d > range) continue
+      const dir = v(e.pos.x - p.pos.x, e.pos.y - p.pos.y)
+      const dot = Math.cos(angDiff(Math.atan2(dir.y, dir.x), p.aim))
+      const offAim = (1 - dot) * 90
+      const score = d + offAim
+      if (score < bestScore) {
+        bestScore = score
+        best = e
+      }
+    }
+    return best
   }
 
   private updateBots(dt: number) {
@@ -747,6 +812,22 @@ export class GameState {
       this.damageBrawler(e, damage, b.id, { knock, color: '#ff6a3d' })
       hitCount++
     }
+    // melee can whack the enemy safe (heist)
+    for (const s of this.safes) {
+      if (s.dead || s.team === b.team) continue
+      if (dist(b.pos, s.pos) > range + 22) continue
+      const toS = norm(v(s.pos.x - b.pos.x, s.pos.y - b.pos.y))
+      if (Math.abs(angDiff(Math.atan2(toS.y, toS.x), b.aim)) > arc) continue
+      this.damageSafe(s.team, damage, b.id, s.pos)
+    }
+    // melee breaks boxes (showdown)
+    for (const box of this.boxes) {
+      if (box.broken) continue
+      if (dist(b.pos, box.pos) > range + 16) continue
+      const toB = norm(v(box.pos.x - b.pos.x, box.pos.y - b.pos.y))
+      if (Math.abs(angDiff(Math.atan2(toB.y, toB.x), b.aim)) > arc) continue
+      this.damageBox(box, damage)
+    }
     return hitCount
   }
 
@@ -778,6 +859,16 @@ export class GameState {
     for (const box of this.boxes) {
       if (!box.broken && dist(pos, box.pos) < splash + 10) {
         this.damageBox(box, dmg)
+      }
+    }
+    // damage enemy safes in blast
+    const source = this.brawlers.find((x) => x.id === sourceId)
+    if (source) {
+      for (const s of this.safes) {
+        if (s.dead || s.team === source.team) continue
+        if (dist(pos, s.pos) < splash + 18) {
+          this.damageSafe(s.team, dmg, sourceId, pos)
+        }
       }
     }
   }
@@ -893,6 +984,17 @@ export class GameState {
         }
       }
       target.respawnT = 3
+    } else if (this.mode.id === 'heist') {
+      target.respawnT = 4
+      if (killer) {
+        this.pushEvent({
+          kind: 'kill',
+          text: `${killer.name} ☠️ ${target.name}`,
+          killerName: killer.name,
+          victimName: target.name,
+          team: killer.team,
+        })
+      }
     } else if (this.mode.id === 'showdown') {
       // killer steals a cube, victim is out
       if (killer) {
@@ -916,6 +1018,42 @@ export class GameState {
         else this.endShowdown(false)
         return
       }
+    }
+  }
+
+  damageSafe(team: number, amount: number, sourceId: number, hitPos: Vec) {
+    const s = this.safes.find((x) => !x.dead && x.team === team)
+    if (!s || s.dead) return
+    s.hp -= amount
+    s.hitFlash = 1
+    s.shake = 0.3
+    const source = this.brawlers.find((x) => x.id === sourceId)
+    if (source) {
+      source.damage += amount
+      source.superCharge = Math.min(1, source.superCharge + amount / (source.def.superNeed * 2))
+    }
+    this.particles.floatText(hitPos, `${Math.round(amount)}`, '#ffd23f', 13)
+    this.particles.sparkBurst(hitPos, '#ffd23f', 6, 120)
+    if (Math.random() < 0.2) audio.hit()
+    if (s.hp <= 0) {
+      s.dead = true
+      s.hp = 0
+      audio.explosion()
+      this.shake = Math.max(this.shake, 0.7)
+      this.particles.burst(s.pos, '#ffb545', 40, { speed: 320, size: 7, life: 0.9, gravity: 260 })
+      this.particles.burst(s.pos, '#ffffff', 20, { speed: 200, size: 5, life: 0.6 })
+      this.pushEvent({
+        kind: 'info',
+        text: team === 1 ? '💰 ENEMY SAFE DESTROYED!' : '💥 YOUR SAFE IS DOWN!',
+      })
+      this.endMatch(team === 1, false)
+    }
+  }
+
+  private updateSafes(dt: number) {
+    for (const s of this.safes) {
+      s.hitFlash = Math.max(0, s.hitFlash - dt * 6)
+      s.shake = Math.max(0, s.shake - dt * 2)
     }
   }
 
@@ -1216,6 +1354,18 @@ export class GameState {
     this.phase = 'ended'
     this.endedT = 0
     const trophies = draw ? 0 : won ? 8 : -4
+    // star player: most kills, then most damage
+    let star: MatchResult['starPlayer'] = undefined
+    let bestKills = 0
+    let bestDamage = 0
+    for (const b of this.brawlers) {
+      if (b.kills > bestKills || (b.kills === bestKills && b.damage > bestDamage)) {
+        bestKills = b.kills
+        bestDamage = b.damage
+        star = { name: b.name, isPlayer: b.isPlayer, kills: b.kills, damage: b.damage }
+      }
+    }
+    const enemySafe = this.safes.find((s) => s.team === 1)
     const result: MatchResult = {
       mode: this.mode.id,
       won,
@@ -1229,6 +1379,8 @@ export class GameState {
       gemsCollected: this.player?.gemsCollected ?? 0,
       stars: this.teamStars[0],
       duration: this.mode.duration - Math.max(0, this.timeLeft),
+      safeDamage: enemySafe ? enemySafe.maxHp - enemySafe.hp : undefined,
+      starPlayer: star,
     }
     this.result = result
     if (won) {
