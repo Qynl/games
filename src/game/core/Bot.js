@@ -191,6 +191,42 @@ export class Bot {
       if (w && w.ammo <= 0 && !w.reloading) f.requestReload = true
     }
     f.wantAds = dist > 16 && los && this.fireHold <= 0
+
+    this.gear(dt, game, dist, los)
+  }
+
+  // ── utility + weapon management: bots play their whole kit ──────────────
+  gear (dt, game, dist, los) {
+    const f = this.f
+    this.utilCd = (this.utilCd ?? 4 + Math.random() * 8) - dt
+    const u = f.utility
+    if (this.utilCd <= 0 && u && u.canUse()) {
+      const kind = u.def.stats.type
+      const hurt = f.health < f.maxHealth * 0.55
+      let use = false
+      if (kind === 'throw' && !los && this.hasSeen && dist < 32) use = true             // flush them out
+      else if (kind === 'throw' && los && dist > 9 && dist < 26 && Math.random() < 0.4) use = true
+      else if (kind === 'stim' && (hurt || dist > 22)) use = true
+      else if (kind === 'dash' && (dist > 14 || hurt)) use = true
+      else if ((kind === 'place' || kind === 'beam' || kind === 'hook' || kind === 'emp') && dist < 24 && Math.random() < 0.5) use = true
+      if (use) {
+        game.useUtility(f)
+        this.utilCd = 7 + Math.random() * 9
+      } else this.utilCd = 2 + Math.random() * 3
+    }
+
+    // don't stand there clicking an empty gun
+    const w = f.weapons[f.slot]
+    if (w && !w.isMelee && w.ammo === 0 && !w.reloading) {
+      if (w.reserve === 0) {
+        const alt = f.weapons.secondary.ammo > 0 ? 'secondary' : 'melee'
+        if (f.slot !== alt) game.switchSlotFor(f, alt)
+      } else f.requestReload = true
+    }
+    // close the last metres with the knife rather than reloading in their face
+    if (dist < 4.2 && f.weapons[f.slot] && !f.weapons[f.slot].isMelee && f.weapons[f.slot].ammo === 0 && f.switchTimer <= 0) {
+      game.switchSlotFor(f, 'melee')
+    }
   }
 }
 

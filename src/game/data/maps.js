@@ -290,6 +290,54 @@ function range () {
   return b
 }
 
+
+// ── 6. FRACTURE — split level: upper deck over a bowl, drop-downs, long slides
+function fracture () {
+  const b = []
+  // ground bowl
+  b.push(slab(-44, -44, 44, 44, 0, PAL.floor))
+  // perimeter
+  const H = 14
+  b.push(wall(-44, -44, 44, -44, H), wall(-44, 44, 44, 44, H), wall(-44, -44, -44, 44, H), wall(44, -44, 44, 44, H))
+
+  // ── upper deck: a long ring on the north half you can drop off anywhere
+  b.push(B(-20, 4.2, -20, 24, 0.35, 16, [0, 0, 0], PAL.plat))
+  b.push(wall(-44, -36, 4, -36, 1.1, 4.2, 0.5, PAL.trim))
+  b.push(wall(-44, -4, 4, -4, 1.1, 4.2, 0.5, PAL.trim))
+  b.push(wall(4, -36, 4, -20, 1.1, 4.2, 0.5, PAL.trim))
+  // deck cover so it isn't a shooting gallery
+  for (const [x, z] of [[-30, -28], [-10, -12], [0, -30], [-24, -8]]) {
+    b.push(B(x, 5.7, z, 2.4, 1.5, 2.4, [0, 0, 0], PAL.cover))
+  }
+  // ways up: a long ramp on the west, stairs on the east, and a launch ramp
+  b.push(ramp(-42, 0, 6, -34, 4.5, -2, 7, PAL.ramp))
+  b.push(...stairs(2, 0, 2, 0, -1, 18, 0.25, 0.5, 5))
+  b.push(ramp(-6, 4.5, -6, 6, 4.5, -6, 6, PAL.rampWarm))
+
+  // ── the bowl: pits, platforms and a long downhill to slide
+  b.push(B(0, 1.6, 16, 12, 1.6, 8, [0, 0, 0], PAL.platHigh))
+  b.push(ramp(-12, 1.6, 24, -12, 0, 34, 6, PAL.rampWarm))
+  b.push(ramp(12, 1.6, 24, 12, 0, 34, 6, PAL.rampWarm))
+  b.push(B(-26, 0.9, 26, 7, 0.9, 7, [0, 0, 0], PAL.plat))
+  b.push(B(26, 0.9, 26, 7, 0.9, 7, [0, 0, 0], PAL.plat))
+  // connective platforms across the middle
+  b.push(B(-14, 2.6, 2, 3, 0.3, 3, [0, 0, 0], PAL.platHigh))
+  b.push(B(14, 2.6, 2, 3, 0.3, 3, [0, 0, 0], PAL.platHigh))
+  b.push(B(0, 3.6, -2, 5, 0.3, 5, [0, 0, 0], PAL.platHigh))
+  b.push(ramp(0, 3.9, 3, 0, 1.6, 8, 5, PAL.ramp))
+  // cover in the bowl
+  for (const [x, z] of [[-18, 12], [18, 12], [-6, 30], [8, 30], [0, 20]]) {
+    b.push(B(x, 0.9, z, 1.8, 0.9, 1.8, [0, 0, 0], PAL.cover))
+  }
+  // corner towers with a ramp between them (slide-jump the gap)
+  b.push(B(-34, 3, 34, 5, 3, 5, [0, 0, 0], PAL.wall))
+  b.push(B(34, 3, 34, 5, 3, 5, [0, 0, 0], PAL.wall))
+  b.push(ramp(-29, 3, 34, -22, 0, 34, 5, PAL.ramp))
+  b.push(ramp(29, 3, 34, 22, 0, 34, 5, PAL.ramp))
+  b.push(B(-8, 0.1, 38, 10, 0.1, 5, [0, 0, 0], PAL.floorAlt))
+  return b
+}
+
 export const MAPS = [
   {
     id: 'yard', name: 'QYN YARD', sub: 'MOVEMENT PLAYGROUND',
@@ -332,6 +380,17 @@ export const MAPS = [
     spawns: {
       a: [[-38, 23, 0, Math.PI / 2], [-38, 23, -8, Math.PI / 2], [-38, 23, 8, Math.PI / 2]],
       b: [[36, 1.5, 0, -Math.PI / 2], [36, 1.5, -8, -Math.PI / 2], [36, 1.5, 8, -Math.PI / 2], [24, 3, 0, -Math.PI / 2]],
+    },
+    bots: true, killY: -25, modes: ['1v1', '2v2', '3v3', 'bots'],
+  },
+  {
+    id: 'fracture', name: 'FRACTURE', sub: 'SPLIT LEVEL',
+    desc: 'Upper deck over a bowl. Drop, slide the downhill, come back up the long ramp.',
+    sky: [0x0e1116, 0x243b44], fog: 0x17242c, fogNear: 55, fogFar: 180,
+    brushes: fracture(),
+    spawns: {
+      a: [[-30, 4.6, -28, 0.6], [-8, 4.6, -30, 0.2], [-28, 4.6, -10, 0.9], [-14, 4.6, -16, 0.4]],
+      b: [[0, 0.2, 38, Math.PI], [-20, 0.2, 38, Math.PI + 0.3], [20, 0.2, 38, Math.PI - 0.3], [-4, 0.2, 30, Math.PI]],
     },
     bots: true, killY: -25, modes: ['1v1', '2v2', '3v3', 'bots'],
   },

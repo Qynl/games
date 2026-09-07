@@ -3,7 +3,7 @@ import { CHAINS } from '../game/core/Movement.js'
 
 const f1 = (n) => (Math.round(n * 10) / 10).toFixed(1)
 
-export default function HUD ({ hud, paused, onResume, onQuit, showMv, mapName, mode }) {
+export default function HUD ({ hud, paused, needsLock, onResume, onQuit, showMv, mapName, mode }) {
   if (!hud) return null
   const gap = Math.min(26, 3 + (hud.spread || 0) * 2.6)
   const spd = hud.speed || 0
@@ -28,6 +28,22 @@ export default function HUD ({ hud, paused, onResume, onQuit, showMv, mapName, m
         <div className={`hm ${hud.hitmarker > 0 ? 'on' : ''} ${hud.hitmarker > 0 && hud.headshot ? 'hs' : ''}`}>
           <i /><i /><i /><i />
         </div>
+      </div>
+
+      {/* ── damage direction ──────────────────────────────────────── */}
+      <div className="center dmgring">
+        {(hud.hitDirs || []).map((h) => (
+          <div key={h.id} className="dmga" style={{ transform: `rotate(${h.ang * 57.2958}deg)`, opacity: Math.min(1, h.t / 0.9) }}>
+            <i />
+          </div>
+        ))}
+      </div>
+
+      {/* ── callout banners (double kill, match point…) ───────────── */}
+      <div className="banners">
+        {(hud.banners || []).map((b) => (
+          <div key={b.id} className={`bann ${b.kind || 'info'}`} style={{ opacity: Math.min(1, b.t / 0.45) }}>{b.text}</div>
+        ))}
       </div>
 
       {/* ── movement readout ──────────────────────────────────────── */}
@@ -65,6 +81,7 @@ export default function HUD ({ hud, paused, onResume, onQuit, showMv, mapName, m
 
       {/* ── health ────────────────────────────────────────────────── */}
       <div className="panel hp">
+        {hud.spawnGuard > 0 && <div className="shield">SPAWN SHIELD {hud.spawnGuard.toFixed(1)}s</div>}
         <div className="n" style={{ color: low ? 'var(--rd)' : '#fff' }}>{hud.hp}<small> / {hud.maxHp} HP</small></div>
         <div className={`hpbar ${low ? 'low' : ''}`}><i style={{ width: (hud.hp / hud.maxHp) * 100 + '%' }} /></div>
         <div style={{ marginTop: 6, fontSize: 10, color: 'var(--dim)', letterSpacing: '.1em' }}>
@@ -96,7 +113,8 @@ export default function HUD ({ hud, paused, onResume, onQuit, showMv, mapName, m
         <span className="a">{hud.round?.scoreA}</span>
         <span style={{ color: 'var(--dim)' }}>:</span>
         <span className="b">{hud.round?.scoreB}</span>
-        <span className="r">FIRST TO 5</span>
+        <span className="r" style={hud.matchPoint ? { color: 'var(--gd)', fontWeight: 700 } : undefined}>
+          {hud.matchPoint ? 'MATCH POINT' : 'FIRST TO 5'}</span>
       </div>
 
       {/* ── killfeed ──────────────────────────────────────────────── */}
@@ -106,6 +124,7 @@ export default function HUD ({ hud, paused, onResume, onQuit, showMv, mapName, m
             <b style={{ color: k.mine ? 'var(--cy)' : 'var(--txt)' }}>{k.killer}</b>
             <span style={{ color: 'var(--dim)' }}> {k.head ? '⌖' : '›'} </span>
             <b>{k.victim}</b>
+            {k.weapon && <i style={{ color: 'var(--dim2)', fontStyle: 'normal', marginLeft: 6 }}>{k.weapon}</i>}
           </div>
         ))}
       </div>
@@ -120,7 +139,7 @@ export default function HUD ({ hud, paused, onResume, onQuit, showMv, mapName, m
       {!hud.alive && hud.round?.phase === 'live' && (
         <div className="banner lose" style={{ fontSize: 22 }}>
           ELIMINATED
-          <small>{Math.ceil(hud.respawnTimer || 0)}s</small>
+          <small>{hud.spectating ? `SPECTATING — ${hud.spectating} · ${Math.ceil(hud.respawnTimer || 0)}s` : `${Math.ceil(hud.respawnTimer || 0)}s`}</small>
         </div>
       )}
       {hud.round?.phase === 'roundend' && (
@@ -134,7 +153,7 @@ export default function HUD ({ hud, paused, onResume, onQuit, showMv, mapName, m
       {hud.scoreboard && hud.board && (
         <div className="board">
           <div className="bh">
-            <span>{mapName} · {String(mode).replace('_', ' ')}</span>
+            <span>{mapName} · {String(mode).replace('_', ' ')} · {hud.ping}ms</span>
             <span className="cy">{hud.round?.scoreA} — {hud.round?.scoreB}</span>
             <span>FIRST TO 5 · ROUND {hud.round?.round}</span>
           </div>
@@ -143,21 +162,28 @@ export default function HUD ({ hud, paused, onResume, onQuit, showMv, mapName, m
               <div className="bt">{t === 'a' ? 'YOUR TEAM' : 'ENEMY'}</div>
               {hud.board.filter((r) => r.team === t).sort((x, y) => y.kills - x.kills).map((r) => (
                 <div key={r.name} className={`br ${r.you ? 'you' : ''} ${r.alive ? '' : 'dead'}`}>
-                  <span className="bn">{r.name}</span>
+                  <span className="bn">{r.name}<i className="bw">{r.weapon}</i></span>
                   <span className="bk">{r.kills}</span>
                   <span className="bd">{r.deaths}</span>
+                  <span className="ba">{r.assists}</span>
                   <span className="bm">{r.damage}</span>
                 </div>
               ))}
             </div>
           ))}
-          <div className="bf"><span>NAME</span><span>K</span><span>D</span><span>DMG</span></div>
+          <div className="bf"><span>NAME</span><span>K</span><span>D</span><span>A</span><span>DMG</span></div>
         </div>
       )}
 
       {paused && (
         <div className="pause">
-          <h2>PAUSED</h2>
+          <h2>{needsLock ? 'CLICK TO PLAY' : 'PAUSED'}</h2>
+          {needsLock && (
+            <div className="hint" style={{ textAlign: 'center', maxWidth: 460, marginBottom: 10 }}>
+              Click the arena to capture your mouse. Mouse look, shooting and movement all live
+              behind the pointer lock — press <span className="kbd">ESC</span> to release it.
+            </div>
+          )}
           <div className="hint" style={{ textAlign: 'center', maxWidth: 460, marginBottom: 10 }}>
             <span className="kbd">W</span><span className="kbd">A</span><span className="kbd">S</span><span className="kbd">D</span> move
             · <span className="kbd">SHIFT</span> sprint · <span className="kbd">CTRL</span> slide/crouch
@@ -166,7 +192,7 @@ export default function HUD ({ hud, paused, onResume, onQuit, showMv, mapName, m
             · <span className="kbd">R</span> reload
           </div>
           <div className="row">
-            <button className="btn pri" onClick={onResume}>RESUME</button>
+            <button className="btn pri" onClick={onResume}>{needsLock ? 'CLICK TO PLAY' : 'RESUME'}</button>
             <button className="btn" onClick={onQuit}>LEAVE MATCH</button>
           </div>
         </div>

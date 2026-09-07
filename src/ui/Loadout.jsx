@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { WEAPONS, bySlot, RARITY, SLOTS } from '../game/data/weapons.js'
+import { WEAPONS, bySlot, RARITY, SLOTS, WEAPON_MAP } from '../game/data/weapons.js'
 import { MAPS } from '../game/data/maps.js'
+import { rollName, rollPing } from '../game/data/names.js'
 
 function WeaponCard ({ w, owned, equipped, onPick, onBuy, qyns }) {
   const r = RARITY[w.rarity]
@@ -48,6 +49,21 @@ export default function Loadout ({ profile, onStart, onBack, mapId, mode, save }
 
   const bots = useMemo(() => Array.from({ length: teamSize + enemySize - 1 }, (_, i) => i), [teamSize, enemySize])
 
+  // the rest of the lobby: names, pings, and the gun they locked in
+  const roster = useMemo(() => {
+    const pool = WEAPONS.filter((w) => w.slot === 'primary')
+    const mk = (team) => ({
+      name: rollName(),
+      ping: rollPing(),
+      team,
+      weapon: pool[Math.floor(Math.random() * pool.length)],
+    })
+    return {
+      mates: Array.from({ length: Math.max(0, teamSize - 1) }, () => mk('a')),
+      foes: Array.from({ length: enemySize }, () => mk('b')),
+    }
+  }, [teamSize, enemySize])
+
   useEffect(() => {
     if (phase !== 'waiting') return
     let n = 0
@@ -59,19 +75,26 @@ export default function Loadout ({ profile, onStart, onBack, mapId, mode, save }
         setTimeout(() => { setPhase('go'); setTimeout(() => onStart(loadout), 700) }, 500)
       }
     }, 260 + Math.random() * 220)
-    return () => clearInterval(t)
+    // hard safety net: never strand the player on this screen
+    const bail = setTimeout(() => { if (phase === 'waiting') onStart(loadout) }, 6000)
+    return () => { clearInterval(t); clearTimeout(bail) }
   }, [phase])
+
+  const lockIn = (next) => {
+    const l = next || loadout
+    const p = { ...profile, loadout: l }
+    save(p)
+    setPhase('waiting')
+  }
 
   const pick = (w) => {
     const next = { ...loadout, [slot.id]: w.id }
     setLoadout(next)
     if (step < SLOTS.length - 1) setStep(step + 1)
-    else {
-      const p = { ...profile, loadout: next }
-      save(p)
-      setPhase('waiting')
-    }
+    else lockIn(next)
   }
+
+  const readyUp = () => { if (phase === 'pick') lockIn() }
 
   const buy = (w) => {
     if (profile.qyns < w.qyns) return
@@ -80,26 +103,40 @@ export default function Loadout ({ profile, onStart, onBack, mapId, mode, save }
   }
 
   if (phase !== 'pick') {
+    const row = (p, i, mine) => (
+      <div key={i} className={`prow ${p.team === 'a' ? 'a' : 'b'} ${mine ? 'you' : ''} ${ready.includes(i + 1) || mine ? 'rdy' : ''}`}>
+        <span className="pdot" />
+        <span className="pnm">{mine ? 'YOU' : p.name}</span>
+        <span className="pwp">{mine ? (WEAPON_MAP[loadout.primary] || {}).name : p.weapon?.name}</span>
+        <span className="ppg">{mine ? 'HOST' : p.ping + 'ms'}</span>
+        <span className="prd">{ready.includes(i + 1) || mine ? '✓ READY' : 'CHOOSING…'}</span>
+      </div>
+    )
     return (
       <div className="screen">
-        <div className="hero">
-          <h1 style={{ fontSize: 'clamp(40px,7vw,86px)' }}>{phase === 'go' ? 'MATCH START' : 'LOCKING IN'}</h1>
-          <p>{map?.name} · {mode.name}</p>
-          <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div className="hero" style={{ maxWidth: 760 }}>
+          <h1 style={{ fontSize: 'clamp(34px,6vw,64px)' }}>{phase === 'go' ? 'MATCH START' : 'LOCKING IN'}</h1>
+          <p>{map?.name} · {mode.name} · FIRST TO 5 · 150 HP</p>
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
             {SLOTS.map((s) => (
               <div key={s.id} className="chip" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 3 }}>
                 <span style={{ fontSize: 8.5, letterSpacing: '.2em', color: 'var(--dim)' }}>{s.name}</span>
-                <b style={{ color: 'var(--cy)' }}>{(WEAPONS.find((w) => w.id === loadout[s.id]) || {}).name}</b>
+                <b style={{ color: 'var(--cy)' }}>{(WEAPON_MAP[loadout[s.id]] || {}).name}</b>
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 30, display: 'flex', gap: 10 }}>
-            {bots.map((b) => (
-              <div key={b} className={`chip ${ready.includes(b + 1) ? 'cy' : ''}`} style={{ minWidth: 108, justifyContent: 'center' }}>
-                {ready.includes(b + 1) ? '✓ READY' : 'CHOOSING…'}
-              </div>
-            ))}
-            <div className="chip cy" style={{ minWidth: 108, justifyContent: 'center' }}>✓ YOU</div>
+
+          <div className="pboard">
+            <div className="pteam">
+              <div className="pth a">YOUR TEAM</div>
+              {row({ name: 'YOU', team: 'a' }, 0, true)}
+              {roster.mates.map((p, i) => row(p, i + 1))}
+            </div>
+            <div className="pteam">
+              <div className="pth b">ENEMY TEAM</div>
+              {roster.foes.map((p, i) => row(p, i + 1 + roster.mates.length))}
+            </div>
           </div>
         </div>
       </div>
@@ -136,9 +173,9 @@ export default function Loadout ({ profile, onStart, onBack, mapId, mode, save }
             Slot {step + 1} of {SLOTS.length} — pick your <b style={{ color: 'var(--cy)' }}>{slot.name}</b>.
             Keys buy the rest in the Armory.
           </div>
-          <button className="btn pri" onClick={() => setStep(Math.min(SLOTS.length - 1, step + 1))}>
-            {step === SLOTS.length - 1 ? 'READY ▶' : 'NEXT ▶'}
-          </button>
+          {step === SLOTS.length - 1
+            ? <button className="btn pri" onClick={readyUp}>START MATCH ▶</button>
+            : <button className="btn pri" onClick={() => setStep(step + 1)}>NEXT ▶</button>}
         </div>
       </div>
     </div>

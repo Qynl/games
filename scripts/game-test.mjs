@@ -9,7 +9,11 @@ const canvas = {
   requestPointerLock () {}, getContext: () => null, style: {},
 }
 globalThis.window = { ...listeners(), devicePixelRatio: 1, innerWidth: 1280, innerHeight: 720 }
-globalThis.document = { ...listeners(), exitPointerLock () {}, pointerLockElement: null }
+const ctx2d = new Proxy({}, { get: () => () => {} })
+globalThis.document = {
+  ...listeners(), exitPointerLock () {}, pointerLockElement: null,
+  createElement: () => ({ width: 0, height: 0, getContext: () => ctx2d, style: {} }),
+}
 globalThis.requestAnimationFrame = () => 0
 globalThis.cancelAnimationFrame = () => {}
 globalThis.structuredClone = globalThis.structuredClone || ((o) => JSON.parse(JSON.stringify(o)))
@@ -162,6 +166,58 @@ for (const mode of MODES) {
   g.dispose()
 }
 
+// ── the HUD must arrive even while paused (the pause menu lives in React) ──
+{
+  const g = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
+  let n = 0, last = null
+  g.onHud = (h) => { n++; last = h }
+  g.load({ mapId: 'vertex', modeId: '1v1', loadout: { primary: 'vex9', secondary: 'q1', melee: 'knife', utility: 'frag' }, skin: SKINS[0] })
+  check('HUD pushed immediately after load', n > 0, `pushes=${n}`)
+  g.setPaused(true)
+  let t = performance.now()
+  g.last = t
+  for (let i = 0; i < 120; i++) { t += 16.7; g.frame(t) }
+  check('HUD keeps flowing while paused', n > 4, `pushes=${n}`)
+  check('paused HUD carries match state', !!last?.round && last.hp === 150, JSON.stringify({ round: last?.round?.round, hp: last?.hp }))
+  check('paused never advances the simulation', g.time === 0, `t=${g.time}`)
+  g.dispose()
+}
+
+// ── feedback systems: spawn guard, damage direction, streaks, spectate ─────
+{
+  const g = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
+  g.load({ mapId: 'vertex', modeId: '1v1', loadout: { primary: 'vex9', secondary: 'q1', melee: 'knife', utility: 'frag' }, skin: SKINS[0] })
+  const p = g.player
+  const e = g.fighters.find((f) => f.team === 'b')
+  const hp0 = e.health
+  e.applyDamage(40, p, false, null)
+  check('spawn guard blocks damage', e.health === hp0, `hp ${e.health}`)
+  e.spawnGuard = 0
+  e.applyDamage(40, p, false, null)
+  check('damage lands once the guard is gone', e.health === hp0 - 40, `hp ${e.health}`)
+
+  g.damageTarget(p, 12, e, false, new THREE.Vector3(0, 0, -1), true)
+  check('taking damage pings a direction', g.hitDirs.length === 1, `n=${g.hitDirs.length}`)
+
+  // killing two in a row announces a double kill
+  g.killFighter(e, p, false)
+  g.killFighter(e, p, false)   // already dead → ignored
+  const alive2 = g.fighters.filter((x) => x.team === 'b')
+  for (const f of alive2) { f.alive = true; g.killFighter(f, p, false) }
+  check('kill streak counts', g.killStreak >= 1, `streak ${g.killStreak}`)
+  check('first blood announced', g.banners.some((b) => b.text === 'FIRST BLOOD'), g.banners.map((b) => b.text).join(','))
+
+  // leave one standing so there is someone to watch
+  const watchable = g.fighters.find((f) => f.team === 'b')
+  watchable.alive = true
+  watchable.model.visible = true
+  p.alive = false
+  const spec = g.spectateTarget()
+  check('dead player spectates someone', !!spec && spec !== p, spec ? spec.name : 'nobody')
+  check('spectating does not watch a corpse', !!spec && spec.alive)
+  g.dispose()
+}
+
 // ── every weapon can fire without exploding ────────────────────────────────
 {
   const g = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
@@ -186,6 +242,36 @@ for (const mode of MODES) {
     } catch (e) { bad.push(w.id + ': ' + e.message) }
   }
   check('all 40 weapons fire / deploy without errors', bad.length === 0, bad.slice(0, 3).join(' | '))
+  g.dispose()
+}
+
+// ── soak: every bot difficulty plays a full match without exploding ───────
+for (const level of ['easy', 'normal', 'hard', 'qyn']) {
+  const g = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
+  let err = null
+  let ended = null
+  g.onEvent = (t, d) => { if (t === 'matchend') ended = d }
+  g.load({ mapId: 'conduit', modeId: '3v3', loadout: { primary: 'vex9', secondary: 'q1', melee: 'knife', utility: 'frag' }, skin: SKINS[0], botLevel: level })
+  const K = g.input.keys
+  try {
+    for (let i = 0; i < 120 * 120 && !ended; i++) {
+      K.KeyW = (i % 200) < 150
+      K.ShiftLeft = (i % 90) < 60
+      K.ControlLeft = (i % 170) < 40
+      K.Space = (i % 130) < 3
+      K.KeyD = (i % 240) < 120
+      K.KeyA = !K.KeyD
+      g.player.mv.yaw += Math.sin(i / 90) * 0.02
+      g.input.mouseButtons[0] = (i % 16) < 6
+      g.input.mousePressed[0] = (i % 16) === 0
+      if (g.player.weapon.ammo === 0) g.input.pressed.KeyR = true
+      g.fixedStep(STEP)
+      if (i % 4 === 0) g.renderFrame(STEP * 4)
+    }
+  } catch (e) { err = e }
+  check(`${level} bots: 2 min match runs clean`, !err, err ? err.message : (ended ? `${ended.scoreA}-${ended.scoreB}` : 'no result'))
+  const dmg = g.fighters.reduce((a, f) => a + f.stats.damage, 0)
+  check(`${level} bots: they fight`, dmg > 100, `match damage ${Math.round(dmg)}`)
   g.dispose()
 }
 

@@ -43,6 +43,8 @@ export default function Settings ({ profile, save, onBack }) {
           </select>
         </div>
         <Toggle label="MOVEMENT TELEMETRY PANEL" value={s.showMovement} onChange={(v) => set('showMovement', v)} />
+        <Toggle label="ADAPTIVE RESOLUTION" value={s.adaptive !== false} onChange={(v) => set('adaptive', v)} />
+        <div className="hint" style={{ marginTop: 4 }}>Drops pixels instead of frames when the FPS dips.</div>
 
         <div className="h" style={{ marginTop: 26 }}>GAME</div>
         <div className="set">

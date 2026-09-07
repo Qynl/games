@@ -18,6 +18,7 @@ export default function App () {
   const [matchCfg, setMatchCfg] = useState(null) // active match config
   const [hud, setHud] = useState(null)
   const [paused, setPaused] = useState(false)
+  const [needsLock, setNeedsLock] = useState(true)
   const [result, setResult] = useState(null)
   const [toastMsg, setToast] = useState(null)
   const [rangePicker, setRangePicker] = useState(false)
@@ -39,6 +40,7 @@ export default function App () {
   useEffect(() => {
     if (screen !== 'playing' || !canvasRef.current || !matchCfg) return
     const g = new Game(canvasRef.current, {
+      rendererFactory: window.__qyngunRendererFactory,   // headless test hook
       settings: profile.settings,
       onHud: setHud,
       onEvent: (type, data) => {
@@ -62,12 +64,17 @@ export default function App () {
     g.audio.resume()
     g.start()
     g.setPaused(true)
+    setPaused(true)
+    setNeedsLock(true)
     gameRef.current = g
     window.__qyn = g   // debug hook
-    g.input.onLockChange((locked) => {
-      setPaused(!locked)
-      g.setPaused(!locked)
+    g.input.onLockChange((engaged) => {
+      setPaused(!engaged)
+      g.setPaused(!engaged)
+      if (engaged) setNeedsLock(false)
     })
+    // best effort: some browsers honour the lock straight from the queue click
+    g.input.requestLock(true, false)
     return () => {
       g.dispose()
       gameRef.current = null
@@ -95,8 +102,8 @@ export default function App () {
       scoreA: data.scoreA, scoreB: data.scoreB,
       kills: st.kills || 0, deaths: st.deaths || 0,
       damage: st.damage || 0, headshots: st.headshots || 0,
-      topSpeed: st.topSpeed || 0,
       chains: Object.keys(st.chains || {}).length,
+      topSpeed: g.player?.mv?.topSpeed || st.topSpeed || 0,
     })
     // remember completed chains for the profile
     const chains = g.player?.mv?.tracker?.done || {}
@@ -182,9 +189,10 @@ export default function App () {
 
       {screen === 'playing' && (
         <div className="gwrap">
-          <canvas ref={canvasRef} onClick={() => gameRef.current?.input.requestLock()} />
+          <canvas ref={canvasRef} className={paused ? '' : 'live'}
+            onClick={() => gameRef.current?.input.requestLock()} />
           {hud && (
-            <HUD hud={hud} paused={paused}
+            <HUD hud={hud} paused={paused} needsLock={needsLock}
               showMv={profile.settings.showMovement}
               mapName={hud.mapName} mode={matchCfg?.modeId}
               onResume={() => gameRef.current?.input.requestLock()}

@@ -16,7 +16,7 @@ export const DEFAULT_PROFILE = {
   stats: { matches: 0, wins: 0, rounds: 0, kills: 0, deaths: 0, damage: 0, topSpeed: 0, chains: {}, headshots: 0 },
   settings: {
     fov: 95, sensitivity: 1.0, volume: 0.7, sound: true, quality: 'high',
-    crosshair: 'dot', showMovement: true, invertY: false, botLevel: 'normal',
+    crosshair: 'dot', showMovement: true, invertY: false, botLevel: 'normal', adaptive: true,
   },
 }
 

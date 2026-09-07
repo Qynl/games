@@ -4,7 +4,9 @@ import { xpForLevel } from '../game/core/Persistence.js'
 export default function Result ({ data, profile, onAgain, onLobby }) {
   const won = data.winner === 'a'
   const st = data.stats || {}
-  const acc = st.kills + st.deaths > 0 ? st.kills / Math.max(1, st.kills) : 0
+  const acc = st.shots ? Math.round((st.hits / st.shots) * 100) : 0
+  const board = (data.board || []).slice().sort((a, b) => b.damage - a.damage)
+  const mvp = board[0]
   return (
     <div className="screen">
       <div className="hero">
@@ -21,6 +23,7 @@ export default function Result ({ data, profile, onAgain, onLobby }) {
             ['DEATHS', st.deaths || 0],
             ['HEADSHOTS', st.headshots || 0],
             ['DAMAGE', Math.round(st.damage || 0)],
+            ['ACCURACY', acc + '%'],
             ['TOP SPEED', (st.topSpeed || 0).toFixed(1) + ' m/s'],
           ].map(([k, v]) => (
             <div key={k} className="chip" style={{ flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 116 }}>
@@ -29,6 +32,29 @@ export default function Result ({ data, profile, onAgain, onLobby }) {
             </div>
           ))}
         </div>
+        {board.length > 1 && (
+          <div style={{ width: 460, marginTop: 28 }}>
+            <div className="h" style={{ textAlign: 'left' }}>SCOREBOARD</div>
+            {board.map((r, i) => (
+              <div key={r.name} className={`br ${r.you ? 'you' : ''}`} style={{
+                display: 'grid', gridTemplateColumns: '1fr 40px 40px 40px 70px 48px', gap: 8,
+                fontFamily: 'var(--mono)', fontSize: 11, padding: '4px 6px',
+                background: i === 0 ? 'rgba(255,209,102,.09)' : 'rgba(255,255,255,.022)',
+                borderLeft: `2px solid ${r.you ? 'var(--cy)' : r.team === 'a' ? 'rgba(110,231,255,.35)' : 'rgba(255,138,61,.35)'}`,
+              }}>
+                <span style={{ textAlign: 'left' }}>{r.name}{i === 0 ? ' ★' : ''}</span>
+                <span style={{ textAlign: 'right', color: 'var(--gr)' }}>{r.kills}</span>
+                <span style={{ textAlign: 'right', color: 'var(--rd)' }}>{r.deaths}</span>
+                <span style={{ textAlign: 'right', color: 'var(--vi)' }}>{r.assists || 0}</span>
+                <span style={{ textAlign: 'right', color: 'var(--dim)' }}>{r.damage}</span>
+                <span style={{ textAlign: 'right', color: 'var(--dim2)' }}>{r.acc}%</span>
+              </div>
+            ))}
+            {mvp && <div style={{ marginTop: 8, fontSize: 10, color: 'var(--gd)', letterSpacing: '.2em' }}>
+              MVP — {mvp.name} · {mvp.damage} DAMAGE · TOP {mvp.topSpeed} M/S</div>}
+          </div>
+        )}
+
         <div className="h" style={{ marginTop: 34, width: 460, textAlign: 'left' }}>REWARDS</div>
         <div style={{ width: 460 }}>
           {Object.entries(data.breakdown || {}).map(([k, v]) => (

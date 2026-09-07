@@ -20,6 +20,20 @@ import { MODES, MAPS } from '../src/game/data/maps.js'
 import { DEFAULT_PROFILE } from '../src/game/core/Persistence.js'
 
 const noop = () => {}
+const BOARD_BASE = {
+  hp: 150, maxHp: 150, alive: true, respawn: 0, speed: 12.4, vel: [3, 0, 11], momentum: 1.42, topSpeed: 14.1,
+  grounded: true, sliding: true, sprinting: true, crouching: false, slope: 1,
+  chains: { done: {}, count: 2 }, chainFlash: 1, slot: 'primary', weapon: 'VEX-9', weaponId: 'vex9',
+  ammo: 24, reserve: 150, reloading: false, ads: 0, reloadProgress: 0, spread: 1.2,
+  utility: { n: 'FRAG', name: 'FRAG', uses: 2, id: 'frag' }, hitmarker: 0.2, headshot: false,
+  damageFlash: 0.3, flashTime: 0, haste: false, slow: false, stats: { kills: 3, deaths: 1, damage: 640 },
+  round: { phase: 'live', timer: 62, round: 6, scoreA: 3, scoreB: 2, roundTime: 12 },
+  killfeed: [{ id: 'a', killer: 'YOU', victim: 'BOT-1', head: true, mine: true, weapon: 'VEX-9' }],
+  hitDirs: [{ id: 'h1', ang: 1.2, t: 0.8 }], banners: [{ id: 'b1', text: 'DOUBLE KILL', kind: 'good', t: 1.2 }],
+  spectating: 'VEXA-3', spawnGuard: 0.6, streak: 2, matchPoint: true, ping: 34, fps: 144,
+  mode: '1v1', mapName: 'QYN YARD', enemies: 2, allies: 1, lastWin: true,
+}
+
 const screens = [
   ['App', UI.App, {}],
   ['Title', UI.Title, { onNav: noop, profile: DEFAULT_PROFILE }],
@@ -33,6 +47,11 @@ const screens = [
       qyns: 620, xp: 500, level: 4, levelUp: true, unlocks: ['nova'] },
     profile: DEFAULT_PROFILE, onAgain: noop, onLobby: noop,
   }],
+  ['HUD-board', UI.HUD, {
+    showMv: true, mapName: 'QYN YARD', mode: '1v1',
+    hud: { ...BOARD_BASE, scoreboard: true, board: [1, 2, 3, 4].map((i) => ({ name: 'BOT-' + i, team: i % 2 ? 'b' : 'a', you: i === 1, kills: i, deaths: 5 - i, damage: i * 210, assists: i % 3, weapon: 'VEX-9', alive: i % 2 === 0, ping: 20 + i * 9 })) },
+    paused: false, onResume: noop, onQuit: noop, profile: DEFAULT_PROFILE,
+  }],
   ['HUD', UI.HUD, { showMv: true, mapName: 'QYN YARD', mode: '1v1',
     hud: {
       hp: 150, alive: true, respawn: 0, speed: 12.4, vel: [3, 0, 11], momentum: 1.42,
@@ -41,6 +60,9 @@ const screens = [
       utility: { name: 'FRAG', count: 2, cooldown: 0 },
       scoreA: 3, scoreB: 2, round: 6, phase: 'live', timer: 62,
       killfeed: [{ id: 'a', killer: 'YOU', victim: 'BOT-1', head: true, mine: true }],
+      hitDirs: [{ id: 'h1', ang: 1.2, t: 0.8 }, { id: 'h2', ang: -2.4, t: 0.4 }],
+      banners: [{ id: 'b1', text: 'DOUBLE KILL', kind: 'good', t: 1.2 }],
+      spectating: 'VEXA-3', spawnGuard: 0.6, streak: 2, matchPoint: true,
       banner: 'ROUND 6', lastWin: true, hitmarker: 0.2, hitHead: false, damageFlash: 0.3,
       lowAmmo: false, fps: 144, spread: 1.2,
     },

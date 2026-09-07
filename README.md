@@ -81,15 +81,21 @@ The HUD shows your live multiplier. A full-speed melee hit one-shots a 150 HP fi
 
 ## Content
 
-- **5 maps** — `QYN YARD` (movement playground: flats, ramps, stairs, gaps, long platforms, corners),
-  `VERTEX` (duel), `CONDUIT` (three lanes), `DESCENT` (the hill), `RANGE` (firing line 15/30/50 m + speed track).
+- **6 maps** — `QYN YARD` (movement playground: flats, ramps, stairs, gaps, long platforms, corners),
+  `VERTEX` (duel), `CONDUIT` (three lanes), `DESCENT` (the hill), `FRACTURE` (upper deck over a bowl,
+  drop-downs and a long downhill), `RANGE` (firing line 15/30/50 m + speed track).
 - **7 modes** — 1v1, 2v2, 3v3, 1 v Bots, 1+Bot v 2 Bots, 1+2 Bots v 3 Bots, Shooting Range.
 - **40 weapons** — 10 primary, 10 secondary, 10 melee, 10 utility. Hit-scan, pellets, beams,
   charged lances, projectiles, placeables (barrier / mine / decoy), a grapnel, stim, EMP.
 - **12 skins**, bought with Qyns.
 - **Loadout** chosen slot by slot at match start (primary → secondary → melee → utility).
 - **Round loop** — 150 HP, first to 5, 90 s rounds, instant reset, Qyns + XP + levels on match end.
-- **Bots** at four difficulties (`easy`, `normal`, `hard`, `qyn`).
+- **Bots** at four difficulties (`easy`, `normal`, `hard`, `qyn`). They slide-hop, use their utility,
+  swap weapons when dry, and read as real lobby players: names, pings, loadouts.
+- **Team play** — nameplates with health over team-mates, kill cam (you watch whoever got you),
+  spectate a team-mate while dead, assists, a `V`/`TAB` scoreboard with K/D/A/damage/ping/weapon.
+- **Combat feedback** — damage-direction arcs, hit markers, floating damage, first blood / double /
+  triple / rampage callouts, match point, a 0.9 s spawn shield so nobody is spawn-killed.
 
 Everything is procedural: geometry, characters, viewmodels, audio (WebAudio synth) and VFX.
 No external assets, no downloads.
@@ -105,7 +111,12 @@ No browser needed — the whole engine is testable headlessly (the renderer is i
 | `scripts/movement-test.mjs` | 30 checks: the nine chains, no snapping, no stickiness, slope behaviour, step-up, stairs. |
 | `scripts/maps-test.mjs` | Every spawn point is solid, 24 randomised 10-second runs per map never fall through the floor or wedge, brush counts sane. |
 | `scripts/game-test.mjs` | Real matches on every mode: bots fight, damage registers, rounds progress, a full match reaches first-to-5, all 40 weapons fire. |
+| `scripts/flow-test.mjs` | Drives the real React UI in jsdom: title → lobby → all four loadout slots → START MATCH → HUD. Catches dead buttons and stuck loading screens. |
 | `scripts/ui-test.mjs` | Every screen renders with `react-dom/server`. |
 | `scripts/balance-test.mjs` | TTK table + momentum damage curve; warns when a weapon is off the curve. |
 
-`scripts/browser-test.mjs` is kept for when a headless Chrome is available in your environment.
+### Notes
+- The renderer is injectable (`window.__qyngunRendererFactory`) so the whole simulation can be
+  driven headlessly — that is how the engine, flow and UI suites run without a GPU.
+- If pointer lock is unavailable (embedded iframe, permission denied) the game falls back to
+  free-cursor mouse look instead of stranding you on a frozen screen.

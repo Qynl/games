@@ -6,16 +6,17 @@ import { AudioKit } from './Audio.js'
 import { CameraRig } from './Camera.js'
 import { Input } from './Input.js'
 import { Weapon, UtilitySlot, momentumScale } from './Weapons.js'
-import { buildViewModel, buildCharacter } from './ViewModels.js'
+import { buildViewModel, buildCharacter, buildFighterModel } from './ViewModels.js'
 import { Bot } from './Bot.js'
-import { Match, ROUND_HP } from './Match.js'
+import { Match, ROUND_HP, FIRST_TO } from './Match.js'
 import { MAP_BY_ID, MODES } from '../data/maps.js'
 import { WEAPON_MAP, DEFAULT_LOADOUT } from '../data/weapons.js'
 import { SKIN_MAP } from '../data/skins.js'
+import { rollName, rollPing } from '../data/names.js'
 
 const STEP = 1 / 120
 const TEAM_COLORS = { a: 0x6ee7ff, b: 0xff8a3d }
-const BOT_NAMES = ['VEXA', 'K0RR', 'NILL', 'ZEPH', 'ORYX', 'SABLE', 'MOTH', 'QUEN', 'DRIFT', 'HALO', 'RUIN', 'ONYX']
+
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v)
 const lerp = (a, b, t) => a + (b - a) * t
 
@@ -47,7 +48,7 @@ class Fighter {
     this.wantFireReleased = false
     this.wantAds = false
     this.requestReload = false
-    this.stats = { kills: 0, deaths: 0, damage: 0, headshots: 0, best: 0 }
+    this.stats = { kills: 0, deaths: 0, damage: 0, headshots: 0, best: 0, shots: 0, hits: 0, topSpeed: 0, assists: 0 }
     this.haste = 0
     this.slow = 0
     this.hook = null
@@ -56,10 +57,12 @@ class Fighter {
     this.hitFlash = 0
     this.switchTimer = 0
     this.stepPhase = 0
+    this.spawnGuard = 0
 
-    this.model = buildCharacter(TEAM_COLORS[this.team], this.isBot)
+    this.model = buildFighterModel(TEAM_COLORS[this.team], this.isBot, WEAPON_MAP[this.loadout.primary])
     game.world.scene.add(this.model)
     this.radius = 0.42
+    this.ping = rollPing()
   }
 
   get weapon () { return this.weapons[this.slot] }
@@ -80,10 +83,15 @@ class Fighter {
 
   applyDamage (amount, from, head, dir) {
     if (!this.alive) return 0
+    if (this.spawnGuard > 0 && from && from !== this) return 0
     const dmg = Math.round(amount)
     this.health -= dmg
     this.hitFlash = 1
     this.lastAttacker = from
+    if (from && from !== this) {
+      this.credit = this.credit || []
+      if (!this.credit.some((c) => c.f === from)) this.credit.push({ f: from, t: this.game.time })
+    }
     if (from && from !== this) from.stats.damage += dmg
     if (this.health <= 0) {
       this.health = 0
@@ -102,6 +110,7 @@ class Fighter {
     this.mv.grounded = true
     this.health = this.maxHealth
     this.alive = true
+    this.spawnGuard = this.isDummy ? 0 : 0.9   // brief shield so nobody is spawn-killed
     this.haste = 0
     this.slow = 0
     this.flashTime = 0
@@ -133,6 +142,10 @@ export class Game {
     // renderer is injectable so the whole simulation can be tested headlessly
     const makeRenderer = opts.rendererFactory || ((c) => new THREE.WebGLRenderer({ canvas: c, antialias: true, powerPreference: 'high-performance' }))
     this.renderer = makeRenderer(canvas)
+    if ('toneMapping' in this.renderer) {
+      this.renderer.toneMapping = THREE.ACESFilmicToneMapping
+      this.renderer.toneMappingExposure = 1.06
+    }
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.settings.quality === 'high' ? 2 : 1.35))
     this.renderer.setSize(canvas.clientWidth || 1280, canvas.clientHeight || 720, false)
 
@@ -163,13 +176,26 @@ export class Game {
     this.lastRoundWin = null
     this.killfeed = []
     this.scoreboard = false
+    this.hitDirs = []          // damage-direction pings
+    this.banners = []          // DOUBLE KILL / MATCH POINT / …
+    this.killStreak = 0
+    this.killStreakT = 0
+    this.firstBlood = false
+    this.spectate = null
+    this.killCam = null
+    this.hitmarker = 0
+    this.plates = new Map()
+    this.platesEnabled = typeof document !== 'undefined' && typeof document.createElement === 'function'
+    this.renderScale = 1
+    this.basePR = Math.min(typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1, this.settings.quality === 'high' ? 2 : 1.35)
+    this._qT = 2.5
+    this._plateT = 0
+    this._pv = new THREE.Vector3()
     this.vm = null
     this.vmState = { sway: new THREE.Vector2(), kick: new THREE.Vector3(), kickVel: new THREE.Vector3(), swing: 0, swingDir: 1, reload: 0 }
     this._cap = { a: new THREE.Vector3(), b: new THREE.Vector3() }
     this._from = new THREE.Vector3()
     this._dir = new THREE.Vector3()
-    this.hitmarker = 0
-    this.scoreboard = false
     this.lastHitWasHead = false
     this.damageFlash = 0
     this.hudAcc = 0
@@ -212,11 +238,10 @@ export class Game {
 
     const teamSize = this.mode.teamB
     const botsNeeded = this.mode.bots
-    const names = [...BOT_NAMES].sort(() => Math.random() - 0.5)
     // enemy team: bots (or human-shaped bots in PvP modes we fill with bots anyway)
     for (let i = 0; i < teamSize; i++) {
       const f = new Fighter(this, {
-        team: 'b', name: names[i % names.length], isBot: true,
+        team: 'b', name: rollName(), isBot: true,
         loadout: randomLoadout(), skin: randomSkin(),
       })
       this.fighters.push(f)
@@ -226,7 +251,7 @@ export class Game {
     const friendlyBots = Math.max(0, this.mode.teamA - 1)
     for (let i = 0; i < friendlyBots; i++) {
       const f = new Fighter(this, {
-        team: 'a', name: names[(i + 6) % names.length] + '²', isBot: true,
+        team: 'a', name: rollName(), isBot: true,
         loadout: randomLoadout(), skin: randomSkin(),
       })
       this.fighters.push(f)
@@ -239,6 +264,7 @@ export class Game {
     this.match.begin()
     this.rig.reset(0)
     this.resize()
+    this.pushHud()          // first HUD snapshot straight away, even before the first frame
     return this
   }
 
@@ -256,6 +282,12 @@ export class Game {
 
   dispose () {
     this.stop()
+    for (const p of this.plates.values()) {
+      this.world.scene.remove(p.sp)
+      p.sp.material.map?.dispose?.()
+      p.sp.material.dispose?.()
+    }
+    this.plates.clear()
     window.removeEventListener('resize', this._onResize)
     if (this.world) this.world.dispose()
     this.renderer.dispose()
@@ -271,7 +303,84 @@ export class Game {
     this.vmCamera.updateProjectionMatrix()
   }
 
-  setPaused (v) { this.paused = v }
+  setPaused (v) { this.paused = v; if (v) { this.hudAcc = 1; this.pushHud() } }
+
+  applyRenderScale () {
+    if (!this.renderer.setPixelRatio) return
+    this.renderer.setPixelRatio(this.basePR * this.renderScale)
+    this.resize()
+  }
+
+  // ── nameplates over team-mates and dummies ───────────────────────────────
+  plateFor (f) {
+    let p = this.plates.get(f)
+    if (p) return p
+    const c = document.createElement('canvas')
+    c.width = 256; c.height = 84
+    const tex = new THREE.CanvasTexture(c)
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false }))
+    sp.renderOrder = 990
+    this.world.scene.add(sp)
+    p = { f, canvas: c, ctx: c.getContext('2d'), tex, sp, hp: -1, shown: true }
+    this.plates.set(f, p)
+    this.drawPlate(p)
+    return p
+  }
+
+  drawPlate (p) {
+    const f = p.f
+    const x = p.ctx
+    const c = p.canvas
+    x.clearRect(0, 0, c.width, c.height)
+    const w = 190, h = 11, x0 = (c.width - w) / 2
+    x.fillStyle = 'rgba(6,9,13,.62)'
+    x.fillRect(x0 - 2, 50, w + 4, h + 4)
+    const pct = Math.max(0, Math.min(1, f.health / f.maxHealth))
+    x.fillStyle = pct > 0.5 ? '#39d98a' : pct > 0.25 ? '#ffd166' : '#ff4d6d'
+    x.fillRect(x0, 52, w * pct, h)
+    x.strokeStyle = 'rgba(255,255,255,.22)'
+    x.strokeRect(x0 - 0.5, 51.5, w + 1, h + 1)
+    x.font = '700 27px ui-monospace, SFMono-Regular, Menlo, monospace'
+    x.textAlign = 'center'
+    x.fillStyle = f.isDummy ? '#b388ff' : f.team === 'a' ? '#6ee7ff' : '#ff8a3d'
+    x.fillText(f.name, c.width / 2, 38)
+    p.tex.needsUpdate = true
+  }
+
+  updatePlates (dt) {
+    if (!this.platesEnabled) return
+    this._plateT -= dt
+    const check = this._plateT <= 0
+    if (check) this._plateT = 0.12
+    const eye = this.camera.position
+    for (const f of this.fighters) {
+      const show = f.alive && f !== this.player && (f.team === this.player.team || f.isDummy)
+      if (!show) { const p = this.plates.get(f); if (p) p.sp.visible = false; continue }
+      const d = f.mv.pos.distanceTo(eye)
+      const p = this.plates.get(f) || this.plateFor(f)
+      if (d > 85) { p.sp.visible = false; continue }
+      if (check) {
+        this._pv.set(f.mv.pos.x, f.mv.pos.y + 1.85, f.mv.pos.z).sub(eye)
+        const len = this._pv.length() || 1
+        this._pv.divideScalar(len)
+        p.shown = !this.world.physics.raycast(eye, this._pv, len - 0.5)
+      }
+      p.sp.visible = p.shown && !this.scoreboard
+      if (!p.sp.visible) continue
+      p.sp.position.set(f.mv.pos.x, f.mv.pos.y + 2.1 + Math.min(0.6, d * 0.012), f.mv.pos.z)
+      const s = 0.0075 * d
+      p.sp.scale.set(2.4 * s, 0.8 * s, 1)
+      if (Math.abs(p.hp - f.health) > 0.9) { p.hp = f.health; this.drawPlate(p) }
+    }
+  }
+
+  renderWorld () {
+    this.renderer.render(this.world.scene, this.camera)
+    this.renderer.autoClear = false
+    this.renderer.clearDepth()
+    this.renderer.render(this.vmScene, this.vmCamera)
+    this.renderer.autoClear = true
+  }
 
   start () {
     if (this.running) return
@@ -293,9 +402,25 @@ export class Game {
     const raw = (now - this.last) / 1000
     this.last = now
     const dt = Math.min(0.05, raw)
-    if (this.paused) { this.input.endFrame(); this.renderer.render(this.world.scene, this.camera); this.renderer.autoClear = false; this.renderer.clearDepth(); this.renderer.render(this.vmScene, this.vmCamera); this.renderer.autoClear = true; return }
+    if (this.paused) {
+      // paused still renders and still feeds the HUD — the pause menu lives in React
+      this.input.endFrame()
+      this.renderWorld()
+      this.hudAcc += dt
+      if (this.hudAcc > 1 / 20) { this.hudAcc = 0; this.pushHud() }
+      return
+    }
     this._fpsAcc += raw; this._fpsN++
     if (this._fpsAcc > 0.35) { this.fps = Math.round(this._fpsN / this._fpsAcc); this._fpsAcc = 0; this._fpsN = 0 }
+    // dynamic resolution: drop pixels before dropping frames
+    if (this.settings.adaptive !== false) {
+      this._qT -= raw
+      if (this._qT <= 0) {
+        this._qT = 2.5
+        if (this.fps < 45 && this.renderScale > 0.62) { this.renderScale = Math.max(0.6, this.renderScale - 0.15); this.applyRenderScale() }
+        else if (this.fps > 105 && this.renderScale < 1) { this.renderScale = Math.min(1, this.renderScale + 0.1); this.applyRenderScale() }
+      }
+    }
 
     this.acc += dt
     let steps = 0
@@ -308,6 +433,10 @@ export class Game {
   fixedStep (dt) {
     this.time += dt
     const live = this.match.phase === 'live'
+    if (this.killStreakT > 0) { this.killStreakT -= dt; if (this.killStreakT <= 0) this.killStreak = 0 }
+    for (const f of this.fighters) if (f.spawnGuard > 0) f.spawnGuard -= dt
+    for (let i = this.hitDirs.length - 1; i >= 0; i--) if ((this.hitDirs[i].t -= dt) <= 0) this.hitDirs.splice(i, 1)
+    if (this.killCam) { this.killCam.t -= dt; if (this.killCam.t <= 0) this.killCam = null }
     // bots
     for (const b of this.bots) if (live || this.mode.id === 'range') b.update(dt, this)
     // fighters
@@ -387,6 +516,7 @@ export class Game {
       }
     }
 
+    if (f.mv.horizontalSpeed > (f.stats.topSpeed || 0)) f.stats.topSpeed = f.mv.horizontalSpeed
     const before = f.mv.grounded
     f.mv.step(dt, f.input)
     if (f.mv.grounded && !before && f.mv.lastFallSpeed > 4) this.audio.land(clamp(f.mv.lastFallSpeed / 12, 0, 1))
@@ -455,15 +585,15 @@ export class Game {
     if (board !== this.scoreboard) { this.scoreboard = board; this.emit('scoreboard', board) }
   }
 
-  switchSlot (slot) {
-    const f = this.player
+  switchSlot (slot) { this.switchSlotFor(this.player, slot) }
+
+  switchSlotFor (f, slot) {
     if (!f.alive || f.slot === slot || f.switchTimer > 0) return
     f.prevSlot = f.slot
     f.slot = slot
     f.switchTimer = 0.32
     f.weapons[f.prevSlot].cancelReload()
-    this.buildViewModelFor(slot)
-    this.audio.beep()
+    if (f === this.player) { this.buildViewModelFor(slot); this.audio.beep() }
   }
 
   useUtility (f) {
@@ -511,6 +641,39 @@ export class Game {
       this.audio.ui(true)
     }
     u.consume()
+  }
+
+  // ── feedback helpers ─────────────────────────────────────────────────────
+  banner (text, kind = 'info', time = 1.7) {
+    this.banners.push({ id: 'b' + (this._bid = (this._bid || 0) + 1), text, kind, t: time })
+    if (this.banners.length > 3) this.banners.shift()
+  }
+
+  addHitDir (fromPos) {
+    const p = this.player
+    const dx = fromPos.x - p.mv.pos.x
+    const dz = fromPos.z - p.mv.pos.z
+    const fx = -Math.sin(p.mv.yaw), fz = -Math.cos(p.mv.yaw)
+    const ang = Math.atan2(dx * -fz + dz * fx, dx * fx + dz * fz)
+    this.hitDirs.push({ id: 'h' + (this._bid = (this._bid || 0) + 1), ang, t: 1.15 })
+    if (this.hitDirs.length > 6) this.hitDirs.shift()
+  }
+
+  // while you are dead the camera rides along — first with your killer, then a team-mate
+  spectateTarget () {
+    const p = this.player
+    if (p.alive) { this.spectate = null; return null }
+    if (this.killCam && this.killCam.t > 0 && this.killCam.target && this.killCam.target.alive && this.killCam.target !== p) {
+      this.spectate = this.killCam.target
+      return this.spectate
+    }
+    let t = this.spectate
+    if (!t || !t.alive || t === p) {
+      t = this.fighters.find((x) => x.alive && x.team === p.team && x !== p) ||
+        this.fighters.find((x) => x.alive && x !== p) || null
+    }
+    this.spectate = t
+    return t
   }
 
   // ── aiming & shooting ────────────────────────────────────────────────────
@@ -574,6 +737,8 @@ export class Game {
         body: s.pellets ? 110 : 200 - (s.dmg ?? 20),
       })
     }
+    f.spawnGuard = 0   // shooting drops the spawn shield
+    f.stats.shots = (f.stats.shots || 0) + (s.pellets ? 1 : 1)
     if (isPlayer) {
       this.rig.addRecoil((s.recoil?.v ?? 1) * (1 - f.weapon.ads * 0.35), (s.recoil?.h ?? 0.3))
       this.vmState.kickVel.z += (s.recoil?.kick ?? 0.04) * 60
@@ -635,6 +800,7 @@ export class Game {
 
   damageTarget (target, dmg, from, head, dir, isPlayer) {
     const applied = target.applyDamage(dmg, from, head, dir)
+    if (from && applied > 0) from.stats.hits = (from.stats.hits || 0) + 1
     if (isPlayer) {
       this.hitmarker = 0
     this.hitmarker = 0.22
@@ -646,11 +812,19 @@ export class Game {
       this.damageFlash = 1
       this.rig.addShake(0.5)
       this.audio.hurt()
+      if (from && from !== this.player) this.addHitDir(from.mv.pos)
     }
   }
 
   killFighter (victim, killer, head) {
     if (!victim.alive) return
+    // assists: everyone who chipped in during the last five seconds
+    const helpers = (victim.credit || []).filter((c) => c.f !== killer && c.f !== victim && this.time - c.t < 5)
+    for (const h of helpers) {
+      h.f.stats.assists = (h.f.stats.assists || 0) + 1
+      if (h.f === this.player) this.banner('ASSIST', 'good', 1.2)
+    }
+    victim.credit = []
     victim.alive = false
     victim.stats.deaths++
     victim.model.visible = false
@@ -664,6 +838,7 @@ export class Game {
       id: Math.random().toString(36).slice(2),
       killer: killer ? killer.name : 'THE VOID',
       victim: victim.name,
+      weapon: killer ? killer.weapon.def.name : null,
       head: !!head,
       teamKill: killer && killer.team === victim.team,
       mine: killer === this.player,
@@ -671,8 +846,22 @@ export class Game {
     }
     this.killfeed.push(entry)
     if (this.killfeed.length > 6) this.killfeed.shift()
-    if (killer === this.player) { this.audio.kill(); this.emit('kill', entry) }
-    else if (victim === this.player) this.emit('death', { killer: killer ? killer.name : 'THE VOID' })
+    if (killer === this.player) {
+      this.killStreak++
+      this.killStreakT = 3.4
+      if (!this.firstBlood) { this.firstBlood = true; this.banner('FIRST BLOOD', 'good', 1.9) }
+      const ks = this.killStreak
+      if (ks === 2) this.banner('DOUBLE KILL', 'good')
+      else if (ks === 3) this.banner('TRIPLE KILL', 'good')
+      else if (ks === 4) this.banner('QUAD KILL', 'good')
+      else if (ks >= 5) this.banner('RAMPAGE ×' + ks, 'good', 2.1)
+      else if (entry.head) this.banner('HEADSHOT', 'good', 1.2)
+      this.audio.kill(); this.emit('kill', entry)
+    } else if (victim === this.player) {
+      this.killStreak = 0
+      this.killCam = killer && killer !== victim ? { target: killer, t: 2.2 } : null
+      this.emit('death', { killer: killer ? killer.name : 'THE VOID' })
+    }
     this.emit('killfeed', this.killfeed.slice())
   }
 
@@ -1034,23 +1223,25 @@ export class Game {
   // ── render ───────────────────────────────────────────────────────────────
   renderFrame (dt) {
     const f = this.player
+    const spec = f.alive ? null : this.spectateTarget()
+    const cam = spec || f
     this.rig.update(dt, {
-      yaw: f.mv.yaw, pitch: f.mv.pitch, pos: f.mv.pos, vel: f.mv.vel,
-      horizontalSpeed: f.mv.horizontalSpeed, grounded: f.mv.grounded,
-      sliding: f.mv.sliding, crouching: f.mv.crouching, sprinting: f.mv.sprinting,
-      landImpact: f.mv.landImpact,
-    }, f.weapon.ads, f.weapon.def.stats.adsFov)
+      yaw: cam.mv.yaw, pitch: cam.mv.pitch, pos: cam.mv.pos, vel: cam.mv.vel,
+      horizontalSpeed: cam.mv.horizontalSpeed, grounded: cam.mv.grounded,
+      sliding: cam.mv.sliding, crouching: cam.mv.crouching, sprinting: cam.mv.sprinting,
+      landImpact: cam.mv.landImpact,
+    }, spec ? 0 : f.weapon.ads, spec ? 0 : f.weapon.def.stats.adsFov)
 
+    for (let i = this.banners.length - 1; i >= 0; i--) if ((this.banners[i].t -= dt) <= 0) this.banners.splice(i, 1)
+    this.updatePlates(dt)
+
+    if (this.vmRoot) this.vmRoot.visible = f.alive && !spec
     this.updateViewmodel(dt)
     this.hitmarker = Math.max(0, this.hitmarker - dt)
     this.damageFlash = Math.max(0, this.damageFlash - dt * 2.2)
 
     // flash bang overlay handled through hud state
-    this.renderer.render(this.world.scene, this.camera)
-    this.renderer.autoClear = false
-    this.renderer.clearDepth()
-    this.renderer.render(this.vmScene, this.vmCamera)
-    this.renderer.autoClear = true
+    this.renderWorld()
 
     // hud push (30hz is plenty and keeps React cheap)
     this.hudAcc += dt
@@ -1105,6 +1296,13 @@ export class Game {
       allies: this.fighters.filter((x) => x.alive && x.team === f.team).length - 1,
       killfeed: this.killfeed.slice(),
       respawnTimer: f.alive ? 0 : Math.max(0, f.respawnTimer),
+      hitDirs: this.hitDirs.map((h) => ({ id: h.id, ang: h.ang, t: h.t })),
+      banners: this.banners.map((b) => ({ id: b.id, text: b.text, kind: b.kind, t: b.t })),
+      spectating: this.mode.id === 'range' ? null : (f.alive ? null : (this.spectateTarget()?.name ?? null)),
+      spawnGuard: Math.max(0, f.spawnGuard),
+      streak: this.killStreak,
+      matchPoint: this.match.scoreA >= FIRST_TO - 1 || this.match.scoreB >= FIRST_TO - 1,
+      ping: 0,
       scoreboard: this.scoreboard,
       board: this.scoreboard ? this.fighters.map((x) => ({
         name: x.name, team: x.team, you: x === f, dummy: !!x.isDummy,

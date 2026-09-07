@@ -172,6 +172,29 @@ export function buildViewModel (def, skin) {
 }
 
 // Player / bot body: chunky low-poly, readable at distance.
+// A chunky held weapon so you can read what a fighter is carrying at a glance.
+export function buildHeldWeapon (kind = 'rifle', color = 0x2a2f38, accent = 0x6ee7ff) {
+  const g = new THREE.Group()
+  const body = mat(color)
+  const metal = mat(new THREE.Color(color).multiplyScalar(1.4).getHex())
+  const glow = mat(accent, accent, 0.5)
+  const long = kind === 'sniper' || kind === 'dmr'
+  const short = kind === 'pistol' || kind === 'revolver'
+  const big = kind === 'lmg' || kind === 'shotgun'
+  const L = long ? 0.9 : big ? 0.7 : short ? 0.26 : 0.62
+  part(g, boxGeo(0.07, 0.09, L), body, 0, 0, 0)
+  part(g, boxGeo(0.045, 0.045, L * 0.55), metal, 0, 0.005, -L * 0.72)
+  if (!short) part(g, boxGeo(0.06, 0.13, 0.08), body, 0, -0.09, L * 0.18, [0.3, 0, 0])
+  if (kind === 'energy' || kind === 'beam' || kind === 'sniper') part(g, boxGeo(0.035, 0.035, 0.1), glow, 0, 0.01, -L * 0.95)
+  if (kind === 'melee') {
+    g.clear()
+    part(g, boxGeo(0.05, 0.05, 0.2), body, 0, 0, 0.05)
+    part(g, boxGeo(0.02, 0.07, 0.55), metal, 0, 0.01, -0.3)
+  }
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true })
+  return g
+}
+
 export function buildCharacter (teamColor, isBot) {
   const g = new THREE.Group()
   const skin = mat(isBot ? 0x8d93a3 : 0xd7a373)
@@ -186,9 +209,9 @@ export function buildCharacter (teamColor, isBot) {
   part(g, boxGeo(0.28, 0.1, 0.28), accent, 0, 1.74, 0)
   // visor
   part(g, boxGeo(0.22, 0.07, 0.03), mat(0x6ee7ff, 0x6ee7ff, 0.6), 0, 1.63, -0.14)
-  // arms
-  part(g, boxGeo(0.14, 0.42, 0.14), suit, -0.33, 1.16, -0.06, [0.3, 0, 0])
-  part(g, boxGeo(0.14, 0.42, 0.14), suit, 0.33, 1.16, -0.06, [0.3, 0, 0])
+  // arms (reaching forward, hands together)
+  part(g, boxGeo(0.13, 0.13, 0.44), suit, -0.24, 1.2, -0.24, [0.12, 0, 0])
+  part(g, boxGeo(0.13, 0.13, 0.44), suit, 0.24, 1.2, -0.24, [0.12, 0, 0])
   // legs
   part(g, boxGeo(0.17, 0.5, 0.17), dark, -0.14, 0.28, 0)
   part(g, boxGeo(0.17, 0.5, 0.17), dark, 0.14, 0.28, 0)
@@ -197,5 +220,19 @@ export function buildCharacter (teamColor, isBot) {
   // team band
   part(g, boxGeo(0.53, 0.05, 0.31), accent, 0, 1.4, 0)
   g.traverse((o) => { if (o.isMesh) o.castShadow = true })
+  return g
+}
+
+// Body + the weapon it is holding, positioned in the hands.
+export function buildFighterModel (teamColor, isBot, weaponDef) {
+  const g = buildCharacter(teamColor, isBot)
+  const kind = weaponDef?.model?.kind ?? 'rifle'
+  const w = buildHeldWeapon(kind, weaponDef?.model?.body ?? 0x2a2f38, weaponDef?.model?.accent ?? 0x6ee7ff)
+  w.position.set(0.06, 1.16, -0.42)
+  g.add(w)
+  g.userData.weapon = w
+  g.userData.muzzle = new THREE.Object3D()
+  g.userData.muzzle.position.set(0.06, 1.17, -0.42 - (kind === 'melee' ? 0.6 : 0.55))
+  g.add(g.userData.muzzle)
   return g
 }
