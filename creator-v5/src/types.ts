@@ -1,0 +1,10 @@
+export type Mood='idle'|'watching'|'thinking'|'coding'|'building'|'testing'|'debugging'|'confused'|'excited'|'annoyed'|'proud'|'bored'|'curious';
+export type Mode='exploration'|'parkour'|'racing'|'mystery'|'survival'|'construction'|'experimental';
+export type Vec3=[number,number,number];
+export type Entity={id:string;kind:'box'|'tree'|'house'|'crystal'|'checkpoint'|'npc'|'vehicle';position:Vec3;scale:Vec3;rotation?:Vec3;label?:string};
+export type Region={id:string;name:string;biome:string;center:Vec3;radius:number;population:number;activity:number};
+export type Memory={id:string;time:number;kind:'episodic'|'semantic'|'creator'|'world';text:string;weight:number};
+export type Goal={id:string;text:string;status:'active'|'done'|'abandoned';priority:number};
+export type Project={name:string;mode:Mode;goal:string;mechanics:string[];scripts:Record<string,string>;tests:string[];status:'idea'|'building'|'testing'|'playable'|'failed'};
+export type PlayerModel={exploration:number;parkour:number;driving:number;social:number;curiosity:number;attempts:number;completed:number;visited:string[];lastAction:string};
+export type Activity={time:number;text:string;type:'observe'|'idea'|'build'|'test'|'fix'|'world'|'chat'};
