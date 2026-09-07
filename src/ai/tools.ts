@@ -10,6 +10,7 @@ export const GAME_SCENES: string[] = [
   'parkour',
   'obstacle course',
   'coin run',
+  'bounce tower',
   'floating islands',
   'racing track',
   'bowling alley',

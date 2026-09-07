@@ -85,6 +85,7 @@ export class RecipeEngine {
     if (l.includes('maze')) return this.maze(label)
     if (l.includes('parkour') || (l.includes('obstacle') && l.includes('course'))) return this.parkour(label)
     if (l.includes('coin') || l.includes('collect') || l.includes('gem')) return this.coinRun(label)
+    if (l.includes('bounce') || l.includes('trampoline') || l.includes('leap')) return this.bounceTower(label)
     if (l.includes('tower') || l.includes('climb') || l.includes('island')) return this.islands(label)
     if (l.includes('race') || l.includes('car') || l.includes('track')) return this.race(label)
     if (l.includes('bowl')) return this.bowling(label)
@@ -133,6 +134,23 @@ export class RecipeEngine {
     this.w.createObject({
       kind: 'cp', name, pos, scale: [0.4, 2.6, 0.4], color, emissive: color,
       emissiveIntensity: 0.7, category: 'prop', tags: ['checkpoint'], body: 'kinematic',
+    })
+  }
+
+  /** glowing heart pickup: +1 hp (engine heals on touch) */
+  private heart(name: string, pos: [number, number, number]) {
+    this.w.createObject({
+      kind: 'heart', name, shape: 'gem', pos, scale: 0.62, color: '#ff5a7a', emissive: '#ff5a7a',
+      emissiveIntensity: 1.6, category: 'prop', tags: ['heart'], body: 'kinematic', solid: false,
+    })
+  }
+
+  /** bounce pad: land on it and the engine launches you (~4.5m up) */
+  private pad(name: string, cx: number, topY: number, cz: number, w = 4.6, color = '#3ee6a8') {
+    this.obj('pad', name, [cx, topY - 0.25, cz], [w, 0.5, w], color, { emissive: color, emissiveIntensity: 0.9, tags: ['bounce'] })
+    this.w.createObject({
+      kind: 'pad_core', name: `${name}_core`, shape: 'cylinder', pos: [cx, topY - 0.18, cz], scale: [w * 0.55, 0.06, w * 0.55],
+      color: '#b9ffe4', emissive: '#7ef0c0', emissiveIntensity: 2.2, category: 'prop', body: 'kinematic', solid: false,
     })
   }
 
@@ -226,8 +244,9 @@ export class RecipeEngine {
     const dir = lane.dir
     const startX = this.lx(lane, 2)
     this.tile('is_start', [startX, 0.02, z], [6, 0.05, 8], BLUE, ['startZone'])
-    // lava below
-    for (let gx = this.lx(lane, 2); Math.abs(gx - this.lx(lane, 2)) < 40; gx += dir * 6) {
+    // lava below — starts AFTER the start tile (a hazard under the start pad
+    // would chew the player to bits before the first jump)
+    for (let gx = this.lx(lane, 8); Math.abs(gx - this.lx(lane, 8)) < 40; gx += dir * 6) {
       this.w.createObject({
         kind: 'lava', name: `is_lava${Math.abs(gx)}`, pos: [gx, 0.06, z], scale: [5.6, 0.12, 12],
         color: '#ff4b22', emissive: '#ff4b22', emissiveIntensity: 0.8, category: 'block',
@@ -244,6 +263,10 @@ export class RecipeEngine {
       this.obj('island', `is_${i}`, [x, gy, z + dz], s, i === 8 ? '#a06bff' : '#7ab25c')
       if (i % 2 === 1 && i < 8) this.gem(`is_g${i}`, [x, gy + 1.8, z + dz])
       if (i % 2 === 0 || i === 8) this.checkpoint(`is_cp${i}`, [x, gy + 0.5, z + dz], i === 8 ? '#a06bff' : GREEN)
+      if (i === 4) this.heart('is_heart', [x, gy + 1.7, z + dz])
+      if (i % 3 === 0 && i < 8) {
+        this.w.createNPC({ kind: 'firefly', name: `is_fly${i}`, pos: [x + dir * 2, 3 + (i % 2) * 0.8, z + dz + 3], color: '#ff9fd0' })
+      }
       lastPos = [x, gy, z + dz]
     }
     this.w.createObject({
@@ -252,6 +275,61 @@ export class RecipeEngine {
       tags: ['finish'], body: 'kinematic', solid: false, visible: false,
     })
     return this.done(label, 'floating islands', 'Islands float higher and higher over a glowing lava floor.', 'Hop every island to the giant purple gem. Fall = lava = back to the last checkpoint!', 'finish', [this.lx(lane, 25), 8, z])
+  }
+
+  // --------------------------------------------------------- bounce tower
+  private bounceTower(label: string): SceneInfo {
+    const lane = this.lane()
+    const z = lane.z0
+    const dir = lane.dir
+    const mint = '#3ee6a8'
+    const startX = this.lx(lane, 3)
+    this.tile('bt_start', [startX, 0.02, z], [5, 0.05, 6], mint, ['startZone'])
+    this.arrow(this.lx(lane, 6), z, dir, mint)
+    this.checkpoint('bt_cp0', [this.lx(lane, 6.4), 0, z], mint)
+    this.heart('bt_heart0', [this.lx(lane, 7.2), 1.5, z + 2.6])
+    // lava far below the bounce column (kept clear of the start tile)
+    for (let gx = this.lx(lane, 9); Math.abs(gx - this.lx(lane, 9)) < 34; gx += dir * 6) {
+      this.w.createObject({
+        kind: 'lava', name: `bt_lava${Math.abs(gx)}`, pos: [gx, 0.06, z], scale: [5.6, 0.12, 14],
+        color: '#ff4b22', emissive: '#ff4b22', emissiveIntensity: 0.8, category: 'block',
+        tags: ['hazard'], solid: false,
+      })
+    }
+    // fireflies escort the climb
+    for (let f = 0; f < 4; f++) {
+      this.w.createNPC({ kind: 'firefly', name: `bt_fly${f}`, pos: [this.lx(lane, 12 + f * 5), 3.2 + (f % 2), z - 4.4], color: f % 2 ? '#b9ffe4' : '#ffd98a' })
+    }
+    // pad tiers: landing launches ~4.5m up, each tier rises 2.8m
+    let top = 1.4
+    let lastPx = startX
+    let lastPz = z
+    for (let i = 1; i <= 8; i++) {
+      const px = this.lx(lane, 9.5 + i * 2.2)
+      const pz = z + (i % 2 ? 2.3 : -2.3)
+      const w = Math.max(3.6, 4.8 - i * 0.16)
+      this.pad(`bt_p${i}`, px, top, pz, w)
+      if (i === 3 || i === 6) {
+        // floating checkpoint pole sitting on the pad surface
+        this.w.createObject({
+          kind: 'cp', name: `bt_cp${i}`, shape: 'cylinder', pos: [px, top + 0.62, pz], scale: [0.32, 1.1, 0.32],
+          color: i === 6 ? '#c9a0ff' : mint, emissive: mint, emissiveIntensity: 0.8, category: 'prop',
+          tags: ['checkpoint'], body: 'kinematic', solid: false,
+        })
+      }
+      if (i === 2) this.heart(`bt_h${i}`, [px, top + 1.7, pz])
+      if (i % 3 === 0 && i < 8) this.gem(`bt_g${i}`, [px, top + 2.2, pz], '#c9a0ff')
+      lastPx = px
+      lastPz = pz
+      top += 2.8
+    }
+    // top crystal — brushing it while bouncing through finishes the course
+    this.w.createObject({
+      kind: 'goal', name: 'bt_goal', shape: 'gem', pos: [lastPx, top + 1.5, lastPz], scale: 1.15,
+      color: mint, emissive: '#7ef0c0', emissiveIntensity: 2.6, category: 'prop',
+      tags: ['finish'], body: 'kinematic', solid: false,
+    })
+    return this.done(label, 'bounce tower', 'A column of glowing bounce pads over a lava field. Land on a pad and it hurls you skyward.', 'Bounce up the tower and grab the top crystal. Checkpoints hold your spot at tiers 3 and 6.', 'finish', [this.lx(lane, 22), 10, z])
   }
 
   // ------------------------------------------------------------------ race
@@ -411,6 +489,8 @@ export class RecipeEngine {
         tags: ['fallball'], body: 'kinematic', solid: true,
       })
     }
+    this.heart('dg_heart1', [this.lx(lane, 6), 1.5, z + 3.4])
+    this.heart('dg_heart2', [this.lx(lane, 24), 1.5, z - 3.4])
     this.obj('sign', 'dg_sign', [this.lx(lane, 0), 1.8, z + 4.6], [4, 2.6, 0.3], '#3f4a5c', { category: 'block', emissive: ORANGE, emissiveIntensity: 0.4 })
     return this.done(label, 'dodge alley', 'A narrow alley between glowing walls. Something heavy is falling from above.', 'Run to the green gate. Do NOT get squashed by the big red balls!', 'finish', [this.lx(lane, 22), 0, z])
   }
@@ -444,6 +524,7 @@ export class RecipeEngine {
       const side = i % 2 === 0 ? -1 : 1
       this.obj('crate', `gr_b${i}`, [x, 1.5, z + side * 3.3], [2.2, 3, 2.6], '#b06a48')
       if (i % 2 === 0) this.gem(`gr_g${i}`, [x, 3.4, z - side * 2.6])
+      if (i === 2 || i === 7) this.heart(`gr_h${i}`, [x + 1.2, 1.5, z - side * 1.1])
     }
     this.w.createNPC({
       kind: 'guard', name: 'the patrol', pos: [this.lx(lane, 12), 1.4, z], color: '#ff6b4a',
@@ -550,6 +631,13 @@ export class RecipeEngine {
     }
     this.obj('tree', 'gy_tree', [cx + 8, 0, cz - 8], 1, '#2b4030', { category: 'decoration' })
     this.w.createNPC({ kind: 'ghost', name: 'Edgar', pos: [cx + 2, 2.6, cz + 1], color: '#bfe6ff', wander: true, speed: 1.4, chat: ['boo', 'I am Edgar. I haunt. it is a living.', 'the head forgot me here three projects ago and now I just stay. do not tell it I said anything.'] })
+    for (let f = 0; f < 4; f++) {
+      this.w.createNPC({
+        kind: 'firefly', name: `gy_fly${f}`, pos: [cx - 3 + (f % 2) * 6, 2.6 + (f % 3) * 0.7, cz - 3 + Math.floor(f / 2) * 6],
+        color: f % 2 ? '#9fd0ff' : '#c9ffdd', scale: 0.42,
+      })
+    }
+    this.heart('gy_heart', [cx - 4.4, 1.6, cz + 4.2])
     return this.done(label, 'the graveyard', 'A moonlit graveyard with a very polite ghost.', 'Find the three soul gems. Be nice to Edgar.', 'none', [cx, 0, cz])
   }
 
@@ -594,6 +682,13 @@ export class RecipeEngine {
     })
     this.obj('seat', 'nc_s1', [-2.6, 0.55, 1.4], [2.4, 0.5, 0.5], '#7d4f22', { rot: [0, -0.6, 0] })
     this.obj('seat', 'nc_s2', [2.8, 0.55, -1], [2.4, 0.5, 0.5], '#7d4f22', { rot: [0, -0.4, 0] })
+    for (let f = 0; f < 6; f++) {
+      const a = (f / 6) * Math.PI * 2
+      this.w.createNPC({
+        kind: 'firefly', name: `nc_fly${f}`, pos: [Math.cos(a) * (2.2 + (f % 3) * 1.6), 2.4 + (f % 2) * 1.2, Math.sin(a) * (2.2 + (f % 3) * 1.6)],
+        color: f % 3 === 0 ? '#ffd98a' : f % 3 === 1 ? '#ffb054' : '#ffe9a8', scale: 0.4,
+      })
+    }
     return this.done(label, 'campfire night', 'Night falls early. A campfire crackles at the center of the world.', 'Sit by the fire and watch the stars come out.', 'none', [0, 0, 0])
   }
 

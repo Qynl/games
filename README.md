@@ -137,6 +137,13 @@ World details that make it feel lived-in:
 - **Red light, green light** is a real game now: the lamps cycle green (run!) and
   red (freeze!) on their own schedule, the warden sends you back when you're caught,
   and a finish tile at the far line wins the round.
+- **Bounce tower** is a new scene (18 total): a column of glowing jump pads over a
+  lava field. Land on a pad and it hurls you ~4.5 m up — chain the bounces to the
+  top crystal. Any object tagged `bounce` becomes a jump pad in any custom scene.
+- **Hearts** (tagged `heart`) heal +1 hp and appear in the risky courses; the HUD
+  gained a live **course timer** chip and wins announce your run time.
+- **Fireflies** drift around the graveyard, the night camp and the bounce tower at
+  night — tiny glowing dots with wings, pure atmosphere (NPC kind `firefly`).
 - The first time you enter the world, control tips pop up one at a time; the chat
   panel has one-tap idea chips and a typing indicator while the model thinks.
 - A small **🛡 shield badge** in the HUD (top-left) and a line on the start screen
@@ -151,8 +158,8 @@ World details that make it feel lived-in:
 
 The AI plans against a documented tool list (persona + tools live in
 `src/ai/prompts.ts`): `say/chat`, `createGame` (built-in scene recipes such as maze,
-parkour, coin run, racing track, bowling alley, shooting gallery, red light green
-light, farm, graveyard, house, night camp…), plus object verbs (`createObject`,
+parkour, coin run, floating islands, bounce tower, racing track, bowling alley,
+shooting gallery, red light green light, farm, graveyard, house, night camp…), plus object verbs (`createObject`,
 `moveObject`, `rotateObject`, `scaleObject`, `deleteObject`, `paintObject`,
 `cloneObject`, `material`, `physicsBody`…), zones/checkpoints/collectibles helpers,
 NPCs & vehicles, terrain/weather/time/sky/light, objectives, scripts and

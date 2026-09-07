@@ -30,7 +30,7 @@ BUILDING
 export const ACTOR_TOOLS: string[] = [
   'say <bubble>line</bubble> — say it out loud (or use the say tool with text)',
   'chat {text} — say something in chat',
-  'createGame {label} — instant full scene: maze | parkour | obstacle course | coin run | floating islands | racing track | bowling alley | shooting gallery | red light green light | dodge alley | speedrun | plaza | farm | graveyard | house | night camp | rainy day',
+  'createGame {label} — instant full scene: maze | parkour | obstacle course | coin run | floating islands | bounce tower | racing track | bowling alley | shooting gallery | red light green light | dodge alley | speedrun | plaza | farm | graveyard | house | night camp | rainy day',
   'createObject {name, kind?, shape?: box|sphere|cylinder|cone|torus|gem, pos:[x,y,z], scale?: [x,y,z] or number, color?: "#rrggbb", category?: block|prop|decoration|zone, tags?: [..], solid?, opacity?, emissive?, emissiveIntensity?, rot? in degrees}',
   'moveObject {name, pos:[x,y,z]}',
   'rotateObject {name, rot:[rx,ry,rz] degrees}',
@@ -41,7 +41,7 @@ export const ACTOR_TOOLS: string[] = [
   'physicsBody {name, body: static|dynamic|kinematic}',
   'material {name?, color?, roughness?, metalness?, emissive?, emissiveIntensity?, opacity?}',
   'addZone {name, pos:[x,y,z], size:[x,y,z], mode: win|hazard|checkpoint|message|lava, message?}',
-  'createNPC {name, kind?: person|kid|guard|cow|ghost|follower, pos, color?, line?, wander?: bool, scale?}',
+  'createNPC {name, kind?: person|kid|guard|cow|ghost|follower|firefly, pos, color?, line?, wander?: bool, scale?}',
   'npcChat {name, text}',
   'removeNPC {name}',
   'createVehicle {name, kind?: car|hover|golf, pos, color?, speed?}',
@@ -82,6 +82,7 @@ export const WORLD_RULES = `WORLD RULES (important)
   a finish gate tagged via addZone mode win, pins (all knocked), or targets (all hit).
 - Hazards hurt. Always give the player a checkpoint BEFORE the hazard, and enough space to react.
 - Coins/checkpoints are placed slightly above the ground (y = ground+1.1).
+- Jump pads: any object tagged ["bounce"] launches the player ~4.5m up when landed on — great for towers over lava. Hearts: objects tagged ["heart"] heal +1 hp (max 3). Fireflies (NPC kind "firefly") just drift and glow.
 - Everything you build is subject to world caps: ~260 objects, 16 NPCs, 8 vehicles. Reuse or clear.`
 
 export const RESPONSE_FORMAT = `RESPONSE FORMAT — strict:

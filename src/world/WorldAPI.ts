@@ -347,7 +347,7 @@ export class WorldAPI {
 
   // ============================== NPCs ====================================
   createNPC(opts: {
-    kind?: 'walker' | 'guard' | 'kid' | 'follower' | 'cow' | 'ghost'
+    kind?: 'walker' | 'guard' | 'kid' | 'follower' | 'cow' | 'ghost' | 'firefly'
     name?: string
     pos?: [number, number, number]
     color?: string
@@ -364,6 +364,7 @@ export class WorldAPI {
       this.onLog('npc cap reached', 'warn')
       return null
     }
+    const isFly = opts.kind === 'firefly'
     const obj = this.createObject({
       kind: opts.kind ?? 'walker',
       shape: 'sphere',
@@ -371,18 +372,24 @@ export class WorldAPI {
       pos: opts.pos ?? [4, 1.2, 4],
       scale: 1,
       category: 'npc',
-      color: colorOf(opts.color, '#ffb1c8'),
+      color: colorOf(opts.color, isFly ? '#ffe9a8' : '#ffb1c8'),
+      solid: isFly ? false : undefined,
+      body: isFly ? 'kinematic' : undefined,
     })
+    if (isFly) {
+      obj.emissive = colorOf(opts.color, '#ffd98a')
+      obj.emissiveIntensity = 2.2
+    }
     obj.npc = {
       kind: opts.kind ?? 'walker',
-      color: colorOf(opts.color, '#ffb1c8'),
+      color: colorOf(opts.color, isFly ? '#ffe9a8' : '#ffb1c8'),
       waypoints: opts.waypoints ? opts.waypoints.map((w) => v3(w)) : [],
       wander: opts.wander ?? true,
       hostile: opts.hostile ?? false,
       follower: opts.follower ?? false,
       damage: opts.hostile ? opts.damage ?? 1 : opts.damage,
-      speed: sanitize(opts.speed ?? 2.4, 2.4, 0.2, 30),
-      scale: sanitize(opts.scale ?? 1, 1, 0.2, 4),
+      speed: sanitize(opts.speed ?? (isFly ? 0.9 : 2.4), isFly ? 0.9 : 2.4, 0.2, 30),
+      scale: sanitize(opts.scale ?? (isFly ? 0.5 : 1), 1, 0.15, 4),
       chat: opts.chat,
     }
     this.objects.splice(this.objects.indexOf(obj), 1)

@@ -214,6 +214,10 @@ body,
 .mini-chip.lives {
   color: #ff8a9c;
 }
+.mini-chip.time-chip {
+  color: #7ef0c0;
+  font-variant-numeric: tabular-nums;
+}
 .mini-chip .hp {
   color: var(--muted);
   margin-left: 6px;

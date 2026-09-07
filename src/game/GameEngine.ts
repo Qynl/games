@@ -32,6 +32,8 @@ export interface CameraState {
 
 export interface CourseState extends SceneInfo {
   finished: boolean
+  /** engine sim-time when the course was built (for run-time readouts) */
+  simStart: number
 }
 
 interface DynBody {
@@ -108,6 +110,10 @@ export class GameEngine {
   private npcTimer = new Map<string, number>()
   private npcWander = new Map<string, [number, number, number]>()
   private autoSpeakAt = new Map<string, number>()
+  /** last bounce-pad trigger per pad (real ms) */
+  private padCd = new Map<string, number>()
+  /** home point of each firefly so it drifts around its lamp/area */
+  private fireflyHome = new Map<string, { x: number; y: number; z: number }>()
   private camFov = 74
   private fallBall: WorldObjectState | null = null
   private fallBallTimer = 0
@@ -293,6 +299,7 @@ export class GameEngine {
       }
     }
 
+    if (!p.inVehicle) this.updatePads()
     this.updateNpcs(dt)
     this.updateVehicles(dt)
     this.updateDynamics(dt)
@@ -461,6 +468,34 @@ export class GameEngine {
     return ring
   }
 
+  // ----------------------------------------------------------- bounce pads
+  /** pads tagged "bounce" launch the player: land on one and you fly. */
+  private updatePads() {
+    const p = this.player
+    if (!p.alive) return
+    const now = performance.now()
+    for (const o of this.api.objects) {
+      if (!(o.tags ?? []).includes('bounce')) continue
+      if (o.visible === false) continue
+      const s = Array.isArray(o.scale) ? o.scale : [o.scale, o.scale, o.scale]
+      const hx = Math.max(0.1, s[0] / 2) + 0.42
+      const hz = Math.max(0.1, s[2] / 2) + 0.42
+      if (Math.abs(p.pos.x - o.pos[0]) > hx || Math.abs(p.pos.z - o.pos[2]) > hz) continue
+      const top = o.pos[1] + Math.max(0.05, s[1] / 2)
+      const feet = p.pos.y
+      // near the pad surface: resting on it or just falling onto it
+      if (feet < top - 0.9 || feet > top + 0.25) continue
+      // rising fast already? let them pass (no double-launch mid-flight)
+      if (p.vel.y > 2.5) continue
+      const last = this.padCd.get(o.id)
+      if (last !== undefined && now - last < 320) continue
+      this.padCd.set(o.id, now)
+      p.vel.y = 14.8
+      p.grounded = false
+      aifx.boing()
+    }
+  }
+
   // ------------------------------------------------------------------ npcs
   private updateNpcs(dt: number) {
     const p = this.player
@@ -472,10 +507,11 @@ export class GameEngine {
       since += dt
       this.npcTimer.set(o.id, since)
       const kind = npc.kind
-      const groundY = kind === 'ghost' ? o.pos[1] : this.groundHeightAt(o.pos[0], o.pos[2])
+      const flying = kind === 'ghost' || kind === 'firefly'
+      const groundY = flying ? o.pos[1] : this.groundHeightAt(o.pos[0], o.pos[2])
       const speed = (npc.speed ?? 2.2) * dt
       const scale = npc.scale ?? 1
-      const homeY = kind === 'ghost' ? 2.2 + Math.sin(this.simT * 1.4 + o.pos[0]) * 0.35 : 0.85 * scale
+      const homeY = kind === 'ghost' ? 2.2 + Math.sin(this.simT * 1.4 + o.pos[0]) * 0.35 : kind === 'firefly' ? 2.6 : 0.85 * scale
 
       const moveToward = (tx: number, tz: number) => {
         const d = dist2d(o.pos[0], o.pos[2], tx, tz)
@@ -519,6 +555,26 @@ export class GameEngine {
         if (!moving || dist2d(o.pos[0], o.pos[2], target[0], target[2]) < 1.2) {
           o.spawnIndex = (idx + 1) % npc.waypoints.length
         }
+      } else if (kind === 'firefly') {
+        // fireflies hover around their home point with a slow, aimless drift
+        let home = this.fireflyHome.get(o.id)
+        if (!home) {
+          home = { x: o.pos[0], y: Math.max(o.pos[1], 2.2), z: o.pos[2] }
+          this.fireflyHome.set(o.id, home)
+        }
+        if (since > 2.2) {
+          const a = Math.random() * Math.PI * 2
+          const r = 1 + Math.random() * 3.4
+          this.npcWander.set(o.id, [home.x + Math.cos(a) * r, 0, home.z + Math.sin(a) * r])
+          this.npcTimer.set(o.id, 0)
+        }
+        const w = this.npcWander.get(o.id)
+        if (w) {
+          if (!moveToward(w[0], w[2])) this.npcWander.delete(o.id)
+        } else {
+          moving = false
+        }
+        o.pos[1] = home.y + Math.sin(this.simT * 1.9 + o.pos[0] * 1.7) * 0.22
       } else if (npc.wander) {
         if (since > (kind === 'cow' ? 4 : 3)) {
           const want = this.npcWander.get(o.id)
@@ -535,10 +591,10 @@ export class GameEngine {
         }
       }
       // avoid walking into the player's face when idle friendly
-      if (!moving && !(kind === 'ghost') && pd < 1.1 && !npc.hostile && !npc.follower) {
+      if (!moving && !flying && pd < 1.1 && !npc.hostile && !npc.follower) {
         moveToward(o.pos[0] + (o.pos[0] - p.pos.x) * 2, o.pos[2] + (o.pos[2] - p.pos.z) * 2)
       }
-      o.pos[1] = kind === 'ghost' ? groundY : groundY + homeY
+      if (!(kind === 'firefly')) o.pos[1] = kind === 'ghost' ? groundY : groundY + homeY
 
       // occasionally speak unprompted when the player lingers nearby
       if (npc.chat?.length && !npc.hostile && pd < 4.6 && pd > 0.9) {
@@ -718,7 +774,12 @@ export class GameEngine {
       if (!tags.includes('checkpoint') && !tags.includes('startZone')) continue
       const d = dist2d(px, pz, o.pos[0], o.pos[2])
       if (d < 3.4) {
-        const cp: [number, number, number] = [o.pos[0], this.groundHeightAt(o.pos[0], o.pos[2]) + 1.2, o.pos[2]]
+        // floating checkpoint poles (pos.y high, e.g. on islands/towers) respawn
+        // the player back ON their platform; ground poles respawn at ground level
+        const elevated = o.pos[1] > 0.4 && o.shape !== 'torus'
+        const cp: [number, number, number] = elevated
+          ? [o.pos[0], o.pos[1] + 1.25, o.pos[2]]
+          : [o.pos[0], this.groundHeightAt(o.pos[0], o.pos[2]) + 1.2, o.pos[2]]
         if (!this.lastCp || this.lastCp[0] !== cp[0] || this.lastCp[2] !== cp[2]) {
           this.lastCp = cp
           this.emit('checkpoint', `checkpoint reached (${fmtNum(o.pos[0])}, ${fmtNum(o.pos[2])})`)
@@ -788,7 +849,8 @@ export class GameEngine {
     for (const g of this.api.goals) g.done = true
     aifx.fanfare()
     this.burstConfetti()
-    this.emit('win', `PLAYER COMPLETED: ${this.course.title}`)
+    const runSec = Math.max(0, Math.round(this.simT - this.course.simStart))
+    this.emit('win', `PLAYER COMPLETED: ${this.course.title} — ${runSec}s`)
     this.log(`course complete: ${this.course.title} (${mode})`, 'ok')
     // remove finish tags so we don't retrigger
     for (const o of this.api.objects) {
@@ -842,6 +904,22 @@ export class GameEngine {
         aifx.collect()
         const left = this.api.objects.filter((x) => (x.tags ?? []).includes('collectible')).length
         this.emit('collect', `the player grabbed a collectible${left ? ` (${left} left)` : ''}`)
+      }
+    }
+    // hearts heal the player (they never count toward a coin win)
+    for (const o of [...this.api.objects]) {
+      const tags = o.tags ?? []
+      if (!tags.includes('heart')) continue
+      const d = dist3(p.pos.x, p.pos.y + 0.8, p.pos.z, o.pos[0], o.pos[1], o.pos[2])
+      if (d < 2.2) {
+        this.api.deleteObject(o.id)
+        aifx.collect()
+        if (p.hp < 3) {
+          p.hp += 1
+          this.emit('collect', 'the player found a heart (+1 hp)')
+        } else {
+          this.emit('collect', 'the player found a heart (already full hp)')
+        }
       }
     }
   }
@@ -1000,13 +1078,18 @@ export class GameEngine {
     this.dyn.clear()
     this.shots.length = 0
     this.ringCache.clear()
+    this.padCd.clear()
+    this.fireflyHome.clear()
+    this.npcWander.clear()
+    this.npcTimer.clear()
     this.lastCp = null
+    this.lastWin = 0
     this.course = null
     this.objectivesDone = false
     if (gone > 1) this.log(`cleared ${gone - 1} old objects`, 'info')
     const info = this.recipes.create(label)
     if (!info.built) return null
-    this.course = { ...info, finished: false }
+    this.course = { ...info, finished: false, simStart: this.simT }
     this.api.goals = []
     this.gemsAtCourse = this.api.objects.filter((o) => (o.tags ?? []).includes('collectible')).length
     this.pinsTracked = this.api.objects.filter((o) => (o.tags ?? []).includes('pin')).length
@@ -1044,7 +1127,13 @@ export class GameEngine {
     this.api.goals = []
     this.dyn.clear()
     this.shots.length = 0
+    this.ringCache.clear()
+    this.padCd.clear()
+    this.fireflyHome.clear()
+    this.npcWander.clear()
+    this.npcTimer.clear()
     this.lastCp = null
+    this.lastWin = 0
     this.course = null
     this.objectivesDone = false
     this.player.queueTeleport(...this.spawn)
@@ -1131,6 +1220,11 @@ export class GameEngine {
   sensitivity = 1
   setSensitivity(s: number) {
     this.sensitivity = Math.max(0.2, Math.min(3, s))
+  }
+
+  /** seconds the current course has been running (sim time since build) */
+  courseRunSec(): number | null {
+    return this.course ? Math.max(0, this.simT - this.course.simStart) : null
   }
 
   /** nearest interactable the player could press E on (HUD hint) */

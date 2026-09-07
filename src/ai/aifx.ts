@@ -13,6 +13,7 @@ export interface SoundBank {
   ui: () => void
   fanfare: () => void
   whoosh: () => void
+  boing: () => void
   power: () => void
   rain: () => void
 }
@@ -150,6 +151,7 @@ class Aifx {
     setTimeout(() => this.pop(), 120)
   }
   whoosh() { this.noise(0.25, 0.07, 1400, 0.6, 'bandpass') }
+  boing() { this.sweep(240, 820, 0.22, 0.16, 'triangle'); this.tick(700, 0.05, 'sine', 0.08, 1500) }
   fanfare() {
     const notes = [523, 659, 784, 1047]
     notes.forEach((n, i) => setTimeout(() => this.tick(n, 0.24, 'triangle', 0.13), i * 120))

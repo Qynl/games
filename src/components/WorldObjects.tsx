@@ -262,6 +262,18 @@ function buildNpc(o: WorldObjectState): Entry | null {
     return e
   }
 
+  if (cfg.kind === 'firefly') {
+    // a tiny glowing dot with soft translucent wings
+    const body = M(col, { rough: 0.35, metal: 0.2, emissive: col, ei: 1.8 })
+    addMesh(root, new THREE.SphereGeometry(0.2 * sc, 10, 8), body, [0, 0, 0])
+    const core = M('#fff6d8', { emissive: '#fff6d8', ei: 2.4 })
+    addMesh(root, new THREE.SphereGeometry(0.09 * sc, 8, 6), core, [0, 0.02 * sc, 0])
+    const wing = M('#ffffff', { opacity: 0.28, rough: 0.9 })
+    addMesh(root, new THREE.SphereGeometry(0.16 * sc, 8, 6), wing, [0.2 * sc, 0.02 * sc, 0])
+    addMesh(root, new THREE.SphereGeometry(0.16 * sc, 8, 6), wing, [-0.2 * sc, 0.02 * sc, 0])
+    return e
+  }
+
   const isKid = cfg.kind === 'kid'
   const isGhost = cfg.kind === 'ghost'
   const isGuard = cfg.kind === 'guard'
@@ -484,10 +496,12 @@ export function WorldLayer({ session }: { session: GameSession }) {
     for (const [id, e] of npcs.current) {
       const n = api.npcs.find((x) => x.id === id)
       if (!n) continue
-      const bob = n.npc?.kind === 'ghost' ? Math.sin(t * 1.8 + n.pos[0]) * 0.2 : Math.sin(t * 2.6 + n.pos[0] * 2) * 0.05
+      const kind = n.npc?.kind
+      const bob = kind === 'ghost' ? Math.sin(t * 1.8 + n.pos[0]) * 0.2 : kind === 'firefly' ? Math.sin(t * 3.3 + n.pos[0] * 2.2) * 0.3 : Math.sin(t * 2.6 + n.pos[0] * 2) * 0.05
       e.root.position.set(n.pos[0], n.pos[1] + bob, n.pos[2])
       e.root.rotation.set(0, n.rot?.[1] ?? 0, 0)
-      e.root.scale.setScalar(n.npc?.scale ?? 1)
+      const pulse = kind === 'firefly' ? 1 + Math.sin(t * 5 + n.pos[2] * 3) * 0.12 : 1
+      e.root.scale.setScalar((n.npc?.scale ?? 1) * pulse)
     }
     for (const [id, e] of vehicles.current) {
       const v = api.vehicles.find((x) => x.id === id)

@@ -57,7 +57,7 @@ export interface WorldObjectState {
   spawnIndex?: number
 }
 
-export type NpcKind = 'walker' | 'guard' | 'kid' | 'follower' | 'cow' | 'ghost'
+export type NpcKind = 'walker' | 'guard' | 'kid' | 'follower' | 'cow' | 'ghost' | 'firefly'
 
 export interface NpcConfig {
   kind: NpcKind

@@ -87,6 +87,7 @@ export function Overlays({ session }: { session: GameSession }) {
   const crossRef = useRef<HTMLDivElement>(null)
   const hintRef = useRef<HTMLDivElement>(null)
   const statusRef = useRef<HTMLDivElement>(null)
+  const timeRef = useRef<HTMLDivElement>(null)
   const flashRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -152,15 +153,23 @@ export function Overlays({ session }: { session: GameSession }) {
           }
         }
       }
-      // interact hint
+      // interact hint (textContent — names come from the AI and must never
+      // be injected as HTML into the HUD)
       if (hintRef.current) {
         const h = session.engine.interactHint
         const on = session.ui.controlsOn && h
         hintRef.current.style.opacity = on ? '1' : '0'
         if (h) {
           const label = h.kind === 'npc' ? `talk to ${h.name}` : h.name
-          hintRef.current.innerHTML = `[E] ${label}`
+          hintRef.current.textContent = `[E] ${label}`
         }
+      }
+      // course run timer chip
+      if (timeRef.current) {
+        const course = session.engine.course
+        const show = course && !course.finished && course.winMode !== 'none'
+        timeRef.current.style.display = show ? 'flex' : 'none'
+        if (show) timeRef.current.textContent = `⏱ ${Math.floor(session.engine.courseRunSec() ?? 0)}s`
       }
       // damage / win screen flash
       if (flashRef.current) {
@@ -173,12 +182,12 @@ export function Overlays({ session }: { session: GameSession }) {
           flashRef.current.style.opacity = '0'
         }
       }
-      // status chip refresh (cheap)
+      // status chip refresh (cheap) — model names are escaped text
       if (statusRef.current) {
         const ui = session.ui
         const chip = statusRef.current
         const online = ui.connected
-        const modelShort = ui.model.split(':')[0] ?? ui.model
+        const modelShort = esc((ui.model.split(':')[0] ?? ui.model).slice(0, 18))
         chip.innerHTML = `<span class="dot" style="background:${PHASE_COLOR[online ? ui.phase : 'offline']}"></span><span class="st-t">${online ? (ui.phase === 'offline' ? 'offline' : PHASE_LABEL[ui.phase]) : 'offline'}</span><span class="st-e">${ui.expr ? EXPR_GLYPH[ui.expr] : ''}</span><span class="st-m">${online ? modelShort : 'no AI'}</span>`
       }
       requestAnimationFrame(onFrame)
@@ -234,6 +243,7 @@ export function Overlays({ session }: { session: GameSession }) {
 
       {/* top-right: stats */}
       <div className="top-right">
+        <div className="mini-chip time-chip" ref={timeRef} style={{ display: 'none' }} />
         <div className="mini-chip">⌁ {Math.floor(engine.api.timeOfDay)}:{(engine.api.timeOfDay % 1) * 60 < 10 ? '0' : ''}{Math.floor((engine.api.timeOfDay % 1) * 60)}</div>
         <div className="mini-chip">{engine.api.weather.rain ? '☂ rain' : '☀ clear'}</div>
         <div className="mini-chip">obj {engine.api.objects.length}</div>
@@ -297,6 +307,11 @@ export function Overlays({ session }: { session: GameSession }) {
 
 function cap(s: string, n: number): string {
   return s.length > n ? s.slice(0, n - 1) + '…' : s
+}
+
+/** escape text that ends up inside innerHTML-built HUD chips */
+function esc(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c)
 }
 
 export function useSessionTick(session: GameSession): number {
