@@ -1238,7 +1238,8 @@ export class Game {
     }
     victim.stats.deaths++
     victim.model.visible = false
-    victim.respawnTimer = 999
+    // the range brings you straight back; everywhere else the mode decides
+    victim.respawnTimer = (this.mode.id === 'range' || victim.isDummy) ? 1.2 : 999
     this.vfx.burst(new THREE.Vector3(victim.mv.pos.x, victim.mv.pos.y + 1, victim.mv.pos.z), 20, 0xff4d6d, 6, 0.13, 0.9, 14)
     if (killer && killer !== victim) {
       killer.stats.kills++
@@ -1531,7 +1532,6 @@ export class Game {
     for (let i = 0; i < 6; i++) {
       const clash = this.fighters.some((o) => o !== f && o.alive && o.mv.pos.distanceTo(p) < 1.6)
       if (!clash) break
-      p = new THREE.Vector3(list[Math.floor(Math.random() * list.length)].slice(0, 3).reduce((v, c, k) => (k === 1 ? v : v), new THREE.Vector3()))
       const sp2 = list[Math.floor(Math.random() * list.length)]
       p = new THREE.Vector3(sp2[0], sp2[1] + 0.2, sp2[2])
     }

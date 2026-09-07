@@ -45,7 +45,10 @@ export class Match {
   update (dt) {
     if (this.isRange) {
       this.phase = 'live'
-      if (this.game.player && !this.game.player.alive) this.game.respawnPlayer(1.2)
+      // re-arm the respawn, never restart it — restarting every frame is what
+      // used to leave a player dead in the range forever
+      const p = this.game.player
+      if (p && !p.alive && p.respawnTimer <= 0) this.game.respawnPlayer(1.2)
       return
     }
     if (this.phase === 'countdown') {

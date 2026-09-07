@@ -253,6 +253,55 @@ for (const mode of MODES.filter((m) => m.id !== 'p2p')) {   // p2p needs a live 
   g2.dispose()
 }
 
+// ── chaos soak: random input on every map, looking for NaN and crashes ──────
+{
+  const seed = (a) => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296 }
+  const bad = []
+  for (const map of MODES.length ? ['yard', 'vertex', 'conduit', 'descent', 'fracture'] : []) {
+    const rnd = seed(12345 + map.length)
+    const g = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
+    g.load({ mapId: map, modeId: '3v3', loadout: { primary: 'vex9', secondary: 'q1', melee: 'knife', utility: 'frag' }, skin: SKINS[0], botLevel: 'normal' })
+    let err = null
+    let worst = 0
+    try {
+      for (let i = 0; i < 120 * 60; i++) {          // 60 chaotic seconds
+        const IN = g.input
+        IN.keys.KeyW = rnd() < 0.7
+        IN.keys.KeyA = rnd() < 0.35
+        IN.keys.KeyS = rnd() < 0.2
+        IN.keys.KeyD = rnd() < 0.35
+        IN.keys.ShiftLeft = rnd() < 0.6
+        IN.keys.ControlLeft = rnd() < 0.25
+        IN.keys.Space = rnd() < 0.25
+        IN.pressed.Space = rnd() < 0.06
+        IN.pressed.ControlLeft = rnd() < 0.05
+        IN.mouse.dx = (rnd() - 0.5) * 40
+        IN.mouse.dy = (rnd() - 0.5) * 24
+        IN.mouseButtons[0] = rnd() < 0.55
+        IN.mouseButtons[2] = rnd() < 0.2
+        IN.mousePressed[0] = rnd() < 0.08
+        if (rnd() < 0.01) IN.pressed.Digit1 = true
+        if (rnd() < 0.01) IN.pressed.Digit2 = true
+        if (rnd() < 0.008) IN.pressed.Digit3 = true
+        if (rnd() < 0.006) IN.pressed.KeyR = true
+        if (rnd() < 0.005) IN.pressed.KeyF = true
+        g.fixedStep(STEP)
+        if (i % 4 === 0) g.renderFrame(STEP * 4)
+        for (const f of g.fighters) {
+          const p = f.mv.pos
+          if (!Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.z)) throw new Error('NaN position on ' + f.name)
+          if (!Number.isFinite(f.mv.vel.x)) throw new Error('NaN velocity on ' + f.name)
+          worst = Math.max(worst, Math.abs(p.x), Math.abs(p.z))
+        }
+      }
+    } catch (e) { err = e }
+    if (err) bad.push(`${map}: ${err.message}`)
+    const hud = { speed: 0 }
+    check(`chaos: ${map} survives 60s of random input`, !err, err ? err.message : `max |xz| ${worst.toFixed(0)} m`)
+    g.dispose()
+  }
+}
+
 // ── recoil patterns: learnable, and they come home on their own ─────────────
 {
   const g = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
@@ -300,6 +349,49 @@ for (const mode of MODES.filter((m) => m.id !== 'p2p')) {   // p2p needs a live 
   const a = run(), b = run()
   check('recoil: the same gun climbs identically every time', a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) < 1e-6),
     `${a.length} vs ${b.length} kicks, first ${a[0]?.toFixed(4)}/${b[0]?.toFixed(4)}`)
+  g.dispose()
+}
+
+// ── weapon state machine under abuse ───────────────────────────────────────
+{
+  const g = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
+  g.load({ mapId: 'range', modeId: 'range', loadout: { primary: 'vex9', secondary: 'judge', melee: 'katana', utility: 'frag' }, skin: SKINS[0] })
+  const p = g.player
+  let bad = []
+  // reload → swap mid-reload → fire → swap back, over and over
+  for (let i = 0; i < 900; i++) {
+    if (i % 50 === 0) g.input.pressed.KeyR = true
+    if (i % 70 === 0) g.input.pressed.Digit2 = true
+    if (i % 90 === 0) g.input.pressed.Digit1 = true
+    if (i % 110 === 0) g.input.pressed.Digit3 = true
+    if (i % 130 === 0) g.input.pressed.KeyQ = true
+    g.input.mouseButtons[0] = true
+    g.input.mouseButtons[2] = i % 40 < 12
+    g.input.mousePressed[0] = i % 12 === 0
+    g.fixedStep(STEP)
+    if (i % 4 === 0) g.renderFrame(STEP * 4)
+    const w = p.weapon
+    if (w.ammo < 0 || w.ammo > (w.def.stats.mag ?? 1)) bad.push(`${w.id}:ammo ${w.ammo}`)
+    if (w.reserve < 0) bad.push(`${w.id}:reserve ${w.reserve}`)
+    if (!Number.isFinite(w.ads) || w.ads < 0 || w.ads > 1) bad.push(`${w.id}:ads ${w.ads}`)
+    if (!Number.isFinite(p.mv.pitch)) bad.push('pitch NaN')
+    if (bad.length) break
+  }
+  check('weapon state survives reload/swap/fire spam', bad.length === 0, bad.slice(0, 3).join(' | '))
+  // dying and respawning must hand you a fresh, loaded gun
+  for (let i = 0; i < 60; i++) g.fixedStep(STEP)   // let the swap animation finish
+  g.input.pressed.Digit1 = true          // back to the primary (melee has no mag)
+  g.fixedStep(STEP)
+  const mag = g.player.weapon.def.stats.mag
+  const before = p.weapon.ammo
+  g.player.health = 1
+  g.damageTarget(g.player, 500, null, false, null, false)
+  g.fixedStep(STEP)
+  check('death then respawn gives a clean weapon', !g.player.alive || g.player.weapon.ammo >= 0,
+    `alive=${g.player.alive} ammo was ${before}/${mag}, now ${g.player.weapon.ammo}`)
+  let ri = 0
+  for (let i = 0; i < 1200; i++) { ri = i; g.fixedStep(STEP); if (g.player.alive) break }
+  check('respawn refills the magazine', g.player.weapon.ammo === mag, `back in ${(ri * STEP).toFixed(1)}s · ${g.player.weapon.ammo}/${mag}`)
   g.dispose()
 }
 
