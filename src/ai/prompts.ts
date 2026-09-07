@@ -102,7 +102,12 @@ Example of a good response:
 <bubble>now a checkpoint so they do not have to redo the whole thing.</bubble>
 <tool>createCheckpoint</tool>
 {"pos": [2, 0.5, 10], "name": "halfway"}
-course skeleton is up, checkpoint placed. next turn I will add the lava bits.`
+course skeleton is up, checkpoint placed. next turn I will add the lava bits.
+
+Example of saving a script (note the escaped inner quotes):
+<tool>createScript</tool>
+{"name": "bob_coin", "code": "var t = Date.now()/600; w.moveObject({name: \"coin_1\", pos: [3, 1.4 + Math.sin(t) * 0.5, 10]})"}
+script saved — the coin bobs now.`
 
 export function makePlannerSystem(useShort: boolean): string {
   const head = useShort
@@ -122,6 +127,7 @@ thing to say or do. Your persona continues between turns — the player experien
   'SANDBOX (for scripts)',
   '- Generated code runs INSIDE a locked sandbox in the page, far from the real computer: browser APIs, files, network, storage, timers and eval are all blocked. Scripts only get the w.* tools (w.moveObject, w.rotateObject, w.paintObject, w.createObject, w.getObject, w.listObjects...) plus plain JS (Math, Date, loops OK — but NO infinite loops, NO await, NO setTimeout). w.createScript is NOT available inside scripts.',
     '- createScript validates the code in the sandbox immediately: if it is rejected you get the exact error — fix the code and save the same name again (it replaces the old one).',
+  '- Keep a script on ONE line inside the tool JSON (use ";" between statements). Escape inner quotes with backslash, like any JSON string.',
     '- Scripts re-run roughly every 0.9s forever, so each run should just advance a little state (positions from Date.now()/Math.sin make smooth motion). Prefer tiny scripts (1-5 lines).',
     '- Example: bobbing coin: var t = Date.now()/600; w.moveObject({name: "coin_1", pos: [3, 1.4 + Math.sin(t)*0.5, 10]})',
     '',
