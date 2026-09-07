@@ -378,6 +378,14 @@ export class AIController {
       parts.push('[player actions last 6s] none')
     }
     parts.push(`[last turn] ${this.lastOutcome || 'first turn of the session'}`)
+    const scr = this.engine.api.scripts
+    if (scr.length) {
+      const summary = scr
+        .slice(-4)
+        .map((s) => `${s.name}=${this.editor.scriptRunning[s.name] ? 'running' : 'stopped'}${this.editor.lastResults[s.name] ? ` (${this.editor.lastResults[s.name].slice(0, 80)})` : ''}`)
+        .join(' | ')
+      parts.push(`[your scripts] ${summary}`)
+    }
     parts.push('[you] below:')
     parts.push(ctx)
     parts.push('\nNow decide what to do. Respond with a natural short line of dialogue and/or tool calls.')
@@ -624,6 +632,14 @@ export class AIController {
       }
       case 'addObjective':
         return tryApi(() => api.createObjective(String(args.text ?? '')))
+      case 'createScript': {
+        const name = String(args.name ?? args.title ?? 'script').trim()
+        const code = String(args.code ?? '')
+        if (!code) return 'error: createScript needs code'
+        const res = this.editor.saveScript(name, code)
+        if (!res.ok) return `error: script rejected by the sandbox — ${res.error ?? 'unknown'}`
+        return `ok: script "${res.name}" is sandbox-checked and now runs every ~0.9s (only w.* is available)`
+      }
       case 'listTools':
         return ACTOR_TOOLS.join('\n')
       // -------- convenience verbs that map onto object tags/recipes --------

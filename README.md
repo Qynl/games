@@ -38,7 +38,7 @@ To watch the AI think and build on its own, connect a model (below).
 
    ```bash
    ollama serve
-   ollama pull qwen2.5:7b     # or llama3.2, qwen2.5:3b, mistral, llama3.1 ...
+   ollama pull gpt-oss:20b   # sweet spot; llama3.2 / qwen2.5:7b also work
    ```
 
 2. In CREATOR open **AI settings** — reachable from the start screen ("configure AI")
@@ -49,13 +49,18 @@ To watch the AI think and build on its own, connect a model (below).
      with `OLLAMA_HOST=0.0.0.0`. The dev server also proxies `/ollama` → Ollama when a
      direct connection is blocked (CORS/network), so same-origin always works in dev.
    - **Model** — pick from the dropdown (fetched live) or type a name such as
-     `qwen2.5:7b`.
+     `gpt-oss:20b`. `auto-pick` prefers gpt-oss:20b when it is installed.
 
 3. Click **connect**. The dot turns green; the head announces itself and starts its
    first project within seconds. Watch the world change.
 
-> Bigger models plan better. `qwen2.5:3b` works but is noticeably dumber.
 > The model runs **locally**; the first reply can take a few seconds.
+>
+> Model tips: **gpt-oss:20b is the sweet spot** — big enough to plan and build well,
+> small enough to run comfortably on a laptop (that's the default this app is tuned
+> for, and auto-pick selects it first). 7B-class models (llama3.2, qwen2.5:7b) work
+> but need more turns; 3B models are noticeably dumber. The AI self-corrects — if a
+> build looks broken, give it a few cycles.
 
 ---
 
@@ -134,6 +139,13 @@ World details that make it feel lived-in:
   and a finish tile at the far line wins the round.
 - The first time you enter the world, control tips pop up one at a time; the chat
   panel has one-tap idea chips and a typing indicator while the model thinks.
+- A small **🛡 shield badge** in the HUD (top-left) and a line on the start screen
+  state it plainly: AI-generated code runs in a page-local sandbox and cannot touch
+  your PC.
+- **Scripts the AI saves are live**: `createScript` sandbox-checks the code
+  immediately (rejections come back as errors the AI can fix) and then runs it every
+  ~0.9 s — bobbing coins, spinning signs and roaming guards happen without a human
+  pressing play.
 
 ### The tool surface
 
@@ -150,18 +162,42 @@ queries (`listObjects`, `findObjectsNear`, `status`, `getObject`, `recall`,
 ### Sandbox safety
 
 AI-generated scripts (and any script you paste in the editor) run through
-`src/ai/sandbox.ts`:
+`src/ai/sandbox.ts` — defence in depth, four layers:
 
-- **Static scan** — refuses `window`, `document`, `fetch`, `localStorage`,
-  `XMLHttpRequest`, `WebSocket`, `Worker`, `eval`, `Function`, `process`, `require`,
-  `import(`, timers, encoders and more, with a clear "blocked API" error.
-- **Scoped execution** — the code runs in a `new Function` whose only scope is the
-  sandboxed world API (`w.*`), pure JS globals and a stub console.
-- **No host** — it is a browser app: there is no filesystem, shell, or network surface
-  behind it. The WorldAPI itself clamps positions/scales, caps object counts, and only
-  mutates in-memory world data.
-- **Feedback** — errors (syntax, runtime, blocked API) surface in the editor panel and
-  feed the AI's next observation so it can fix its own code.
+1. **Static scan of live code only** — comments are stripped and string/template
+   contents removed *before* scanning, so docs can say "no fetch here" without false
+   positives while real calls are still caught. Refuses host/browser APIs (`window`,
+   `document`, `self`, `fetch`, `sendBeacon`, `localStorage`, `XMLHttpRequest`,
+   `WebSocket`, `Worker`, `BroadcastChannel`, `navigator`, `location`, `process`,
+   `require`, `Buffer`, …), storage, timers (`setTimeout`/`setInterval`/rAF),
+   media/network beacons (`Image`, `Audio`, `Notification`, `RTCPeerConnection`),
+   DOM/escape tricks (`eval`, `Function`, `import(`, `import.meta`,
+   `constructor`/`__proto__`/`prototype` chains, `Proxy`, `Reflect`, `WeakRef`,
+   code-golfed `\x65val`-style spellings) — with a clear "blocked API" error.
+   Matching is token-aware, so `stop` doesn't trip on `top` and the keyword
+   `function` stays legal.
+2. **Scoped execution with shadowed hosts** — the code runs in a `new Function`
+   whose scope re-declares every host name (`var fetch = void 0`, …) *before* the
+   user code, so even a hypothetical scanner miss would hit `undefined`, not the
+   real browser/Node API. Only the sandboxed world API (`w.*`) is injected.
+3. **No host surface** — this is a browser app: there is no filesystem, shell or
+   Node runtime behind the sandbox at all. The WorldAPI clamps positions/scales,
+   caps object counts and only mutates in-memory world data, which the engine
+   re-syncs into the 3D scene.
+4. **Feedback** — errors (syntax, runtime, blocked API) surface in the editor panel
+   and in the AI's own tool results so it can fix its code.
+
+Run the guarantee as a test any time:
+
+```bash
+npm run test:safety   # 46 checks: dangerous APIs blocked, benign w.* code allowed
+```
+
+> Honest scope: the scanner is a static capability filter over practical escape
+> routes (word lists + boundaries + comment/string stripping + runtime shadowing).
+> It cannot prove arbitrary computed-string code-golf impossible — no regex can —
+> which is exactly why the app *also* exposes no host objects (see layer 3) and why
+> the WorldAPI is the only mutation surface.
 
 ### Memory
 
@@ -233,6 +269,7 @@ src/
 
 ```bash
 npm run typecheck   # tsc --noEmit
+npm run test:safety # sandbox guarantee self-test (needs no Ollama)
 npm run build       # typecheck + production build (dist/)
 npm run preview     # serve the production build on :4173
 ```
@@ -244,8 +281,8 @@ Vite config notes: dev/preview bind `0.0.0.0`, and `/ollama` proxies to
 
 - Local models are slow and occasionally sloppy — the AI usually notices and fixes;
   give it a few turns. Huge plans take several cycles by design.
-- Script sandbox forbids timers (`setTimeout`…), so scripts are simple per-tick
-  programs — intentional, keeps the world deterministic.
+- Script sandbox forbids timers (`setTimeout`…) and network — scripts are simple
+  per-tick programs by design; the AI gets told so in its system prompt.
 - The Editor panel shows the in-memory project: readable and editable, but it never
   touches your real filesystem (that is the point).
 - First connect may take a moment while the model list is fetched; the app runs fully

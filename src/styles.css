@@ -174,6 +174,25 @@ body,
   color: var(--muted);
 }
 
+.sandbox-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(18, 24, 40, 0.55);
+  border: 1px solid rgba(126, 240, 192, 0.22);
+  border-radius: 999px;
+  padding: 3px 10px 3px 7px;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  color: rgba(180, 226, 205, 0.85);
+  backdrop-filter: blur(4px);
+  cursor: help;
+  user-select: none;
+}
+.sandbox-note .sn-shield {
+  font-size: 10px;
+}
+
 .top-right {
   position: absolute;
   right: 14px;
@@ -278,6 +297,10 @@ body,
 .toast-scene {
   border-left-color: var(--amber);
 }
+.toast-warn {
+  border-left-color: var(--amber);
+  color: #ffcf6e;
+}
 .toast-death,
 .toast-loseLife,
 .toast-hazard {
@@ -330,6 +353,14 @@ body,
   padding: 2px 7px;
   border-radius: 6px;
   margin-right: 6px;
+}
+.start-safety {
+  color: rgba(156, 214, 190, 0.75);
+  font-size: 11.5px;
+  letter-spacing: 0.3px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+  margin-top: 6px;
 }
 
 .pause-wrap {

@@ -219,7 +219,7 @@ export function SettingsPanel({ session }: { session: GameSession }) {
                 value={modelText}
                 onChange={(e) => setModelText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') session.setModel(modelText) }}
-                placeholder="type a model name, e.g. qwen2.5:7b"
+                placeholder="type a model name, e.g. gpt-oss:20b"
               />
               <button className="btn-primary small" onClick={() => session.setModel(modelText)}>use</button>
             </div>
@@ -230,6 +230,21 @@ export function SettingsPanel({ session }: { session: GameSession }) {
               auto-pick a good model when connecting
             </label>
           )}
+        </div>
+        <div className="set-row col">
+          <label>model tip</label>
+          <span className="muted">
+            gpt-oss:20b is the sweet spot — big enough to build well, small enough to run on a laptop.
+            Tiny 3b/7b models can build too but talk less and make more syntax slips.
+          </span>
+        </div>
+        <div className="set-row col">
+          <label>sandbox</label>
+          <span className="muted">
+            the AI writes code that runs inside this page's own sandbox: no files, no network, no
+            browser or OS access — only the world (w.*) it is building here. Nothing it does can
+            ever touch your PC.
+          </span>
         </div>
         <div className="set-row">
           <label>autonomous AI loop</label>

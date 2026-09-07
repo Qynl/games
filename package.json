@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:safety": "node scripts/run-safety-check.mjs"
   },
   "dependencies": {
     "@react-three/fiber": "^8.17.10",

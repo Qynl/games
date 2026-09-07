@@ -33,13 +33,15 @@ export interface VirtualEditorOpts {
   onChanged?: () => void
 }
 
+// NOTE: meta-script tools (createScript/listScripts) are deliberately NOT part
+// of the facade: a running script must never be able to spawn more scripts.
 const FACADE_METHODS = [
   'createObject', 'deleteObject', 'moveObject', 'rotateObject', 'scaleObject', 'paintObject',
   'physicsBody', 'material', 'cloneObject', 'getObject', 'findObjectsNear', 'listObjects',
   'countObjects', 'clearObjects', 'addZone', 'createNPC', 'npcChat', 'removeNPC',
   'createVehicle', 'removeVehicle', 'createTerrain', 'clearTerrain', 'changeWeather',
   'changeTime', 'setDayNightCycle', 'modifyWorld', 'setLight', 'createObjective',
-  'createEvent', 'listEvents', 'createScript', 'listScripts', 'status',
+  'createEvent', 'listEvents', 'status',
 ] as const
 
 export function makeWorldFacade(api: WorldAPI): Record<string, unknown> {
@@ -83,6 +85,25 @@ export class VirtualEditor {
   setScriptRunning(name: string, on: boolean) {
     this.scriptRunning[name] = on
     this.changed()
+  }
+
+  /**
+   * Save (or replace) a script, enable it and immediately run it once through
+   * the sandbox so callers — the editor UI or the AI itself — get instant
+   * validation feedback (syntax errors, blocked APIs, runtime errors).
+   */
+  saveScript(name: string, code: string): { ok: boolean; name: string; error?: string } {
+    if (!name.trim() || !code.trim()) return { ok: false, name, error: 'script name and code are required' }
+    this.api.scripts = this.api.scripts.filter((s) => s.name !== name.trim())
+    const res = this.api.createScript({ name: name.trim(), code })
+    this.setScriptRunning(res.name, true)
+    const run = this.runOnce(res.name, code)
+    this.engine.log(
+      run.ok ? `script "${res.name}" saved, sandbox-checked and running` : `script rejected (${res.name}): ${run.error}`,
+      run.ok ? 'ok' : 'error',
+    )
+    this.changed()
+    return { ok: run.ok, name: res.name, error: run.ok ? undefined : run.error }
   }
 
   /** the virtual project tree (derived) */
@@ -145,7 +166,9 @@ export class VirtualEditor {
         continue
       }
       this.acc.set(s.id, 0)
-      this.runOnce(s.name, s.code)
+      const res = this.runOnce(s.name, s.code)
+      // a script failing while running should refresh the editor + AI context
+      if (!res.ok) this.changed()
     }
   }
 

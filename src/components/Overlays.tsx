@@ -227,6 +227,9 @@ export function Overlays({ session }: { session: GameSession }) {
             {activeGoal && <span className="course-goal">{activeGoal}</span>}
           </div>
         )}
+        <div className="sandbox-note" title="AI-generated code runs in the page-local sandbox — browser, file, network, storage and timer APIs are blocked. It can only change this world through w.* and can never touch your PC.">
+          <span className="sn-shield">🛡</span> AI code sandboxed — can't reach your PC
+        </div>
       </div>
 
       {/* top-right: stats */}
@@ -274,6 +277,7 @@ export function Overlays({ session }: { session: GameSession }) {
           >
             click to enter the world
           </button>
+          <div className="start-safety">🛡 the AI builds inside this page's sandbox — its code can never touch your PC</div>
           {!ui.connected && (
             <button
               className="btn-ghost"

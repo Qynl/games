@@ -225,7 +225,7 @@ export class GameSession {
       const { names, infos, error } = await this.ollama.listModels()
       this.ui.models = names.map((n) => ({ name: n, short: infos[n]?.short }))
       if (!names.length) {
-        this.ui.modelNote = error ? `server up, but listing failed (${error})` : 'server up — no models installed yet. run: ollama pull llama3.2'
+        this.ui.modelNote = error ? `server up, but listing failed (${error})` : 'server up — no models installed yet. run: ollama pull gpt-oss:20b'
         this.ui.connected = false
       } else {
         this.ui.connected = true
@@ -251,6 +251,8 @@ export class GameSession {
 
   private pickModel(names: string[]): string {
     const order = [
+      (n: string) => /gpt-oss:20b/i.test(n),
+      (n: string) => /gpt-oss/i.test(n),
       (n: string) => /llama3\.2/i.test(n) && !/:1b/i.test(n),
       (n: string) => /llama3\.1/i.test(n),
       (n: string) => /qwen2\.5/i.test(n) && !/:0\.5/i.test(n),
@@ -377,12 +379,11 @@ export class GameSession {
   }
 
   saveScript(name: string, code: string) {
-    if (!name.trim() || !code.trim()) return
-    this.engine.api.scripts = this.engine.api.scripts.filter((s) => s.name !== name.trim())
-    const res = this.engine.api.createScript({ name: name.trim(), code })
-    this.editor.setScriptRunning(res.name, true)
-    const run = this.editor.runOnce(res.name, code)
-    this.engine.log(res.ok ? `script "${res.name}" saved and ran` : `script error: ${run.error}`, res.ok ? 'ok' : 'error')
+    const res = this.editor.saveScript(name, code)
+    if (!res.ok && res.error) {
+      this.toasts.push({ id: ++this.toastId, text: `sandbox rejected script: ${res.error.slice(0, 90)}`, t0: performance.now(), dur: 5, kind: 'warn' })
+      if (this.toasts.length > 5) this.toasts.shift()
+    }
     this.bump('editor')
   }
 
