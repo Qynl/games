@@ -17,6 +17,7 @@ export default function Title ({ profile, onPlay, onArmory, onSkins, onSettings 
         <div className="keys">
           <span><b>WASD</b> MOVE</span><span><b>SHIFT</b> SPRINT</span><span><b>CTRL</b> SLIDE</span>
           <span><b>SPACE</b> JUMP</span><span><b>RMB</b> AIM</span><span><b>F</b> UTILITY</span>
+          <span><b>SPACE</b> AT A WALL = RUN IT</span><span><b>SPACE</b> AGAIN = KICK OFF</span>
         </div>
         {help && (
           <div className="panel" style={{ position: 'static', marginTop: 34, maxWidth: 800, textAlign: 'left', clipPath: 'none' }}>
@@ -32,6 +33,13 @@ export default function Title ({ profile, onPlay, onArmory, onSkins, onSettings 
                 curves your path and <i>gains</i> speed. Holding W does nothing up there.<br />
                 • Downhill sprints and slides accelerate. Uphill bleeds. Slopes are never walls.<br />
                 • Jump is buffered before landing and coyote-timed after leaving a ledge. Both are invisible.<br />
+                • <b style={{ color: 'var(--cy)' }}>WALL RUN:</b> hit a wall in the air while moving along it fast
+                and you stick to it — gravity nearly lets go for about a second, and your speed survives.
+                Jump again to kick off it, twice per jump.<br />
+                • <b style={{ color: 'var(--cy)' }}>LEDGE GRAB:</b> meet a lip your jump cannot quite clear and
+                the vault happens by itself — it is real velocity, never a warp.<br />
+                • <b style={{ color: 'var(--cy)' }}>Guns climb on a fixed pattern.</b> Shot six always goes to the
+                same place, so the pull-down can be learned. Stop firing and the aim comes home.<br />
                 • <b style={{ color: 'var(--or)' }}>Damage scales with speed.</b> A 15 m/s knife hit does double.
               </div>
             </div>

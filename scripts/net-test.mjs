@@ -123,8 +123,16 @@ try {
     for (const g of [A, B]) {
       const IN = g.input
       IN.mouse.dx = 0
-      IN.mouseButtons[0] = g.match.phase === 'live' && i > 120
-      IN.mousePressed[0] = g.match.phase === 'live' && i % 12 === 0 && i > 120
+      // re-acquire between bursts, like a player does — otherwise the recoil
+      // pattern walks the aim into the sky and nobody ever hits anything
+      if (i % 36 === 0 && g.netState.buf.length > 0) {
+        const foe = g.remote
+        const dd = new THREE.Vector3().subVectors(foe.mv.pos, g.player.mv.pos)
+        g.player.mv.yaw = Math.atan2(-dd.x, -dd.z)
+        g.player.mv.pitch = Math.atan2(dd.y + 1.0 - (g.player.mv.pos.y + g.player.mv.height * 0.92), Math.hypot(dd.x, dd.z))
+      }
+      IN.mouseButtons[0] = g.match.phase === 'live' && (i % 36) < 14 && i > 120
+      IN.mousePressed[0] = g.match.phase === 'live' && i % 36 === 0 && i > 120
       g.fixedStep(STEP)
       if (i % 4 === 0) g.renderFrame(STEP * 4)
     }
@@ -134,7 +142,7 @@ try {
       sawRemoteMove = Math.max(sawRemoteMove, A.remote.mv.pos.distanceTo(guestTrue))
     }
     minHpA = Math.min(minHpA, A.player.health); minHpB = Math.min(minHpB, B.player.health)
-    if (B.player.health < 150 && B.remote.health === B.player.health - 0) sawDamageOnVictim = true
+    if (B.player.health < 150 && A.remote.health === B.player.health) sawDamageOnVictim = true
   }
 } catch (e) { err = e }
 check('two simulated peers ran 12s without crashing', !err, err ? err.stack?.split('\n').slice(0, 3).join(' | ') : '')

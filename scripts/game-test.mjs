@@ -66,6 +66,7 @@ for (const mode of MODES.filter((m) => m.id !== 'p2p')) {   // p2p needs a live 
   check(`${mode.id}: fighters spawned`, g.fighters.length >= 2, `${g.fighters.length} fighters / ${g.bots.length} bots`)
 
   const player = g.player
+  let live = null
   let err = null
   let maxTop = 0
   let maxBotDist = 0
@@ -84,20 +85,22 @@ for (const mode of MODES.filter((m) => m.id !== 'p2p')) {   // p2p needs a live 
       K.KeyA = !K.KeyD
       K.Space = (i % 200) < 4
       K.ControlLeft = (i % 170) < 45
-      if (aimTarget && aimTarget.alive) {
-        const dd = new THREE.Vector3().subVectors(aimTarget.mv.pos, player.mv.pos)
+      // aim like a person: re-acquire between bursts, then ride the recoil
+      if (i % 36 === 0) live = g.fighters.find((f) => f.alive && f.team !== player.team) || null
+      const aimAt = (target) => {
+        const dd = new THREE.Vector3().subVectors(target.mv.pos, player.mv.pos)
         player.mv.yaw = Math.atan2(-dd.x, -dd.z)
         player.mv.pitch = Math.atan2(dd.y + 0.9 - (player.mv.pos.y + player.mv.height * 0.92), Math.hypot(dd.x, dd.z))
-        IN.mouse.dx = 0
-      } else {
-        IN.mouse.dx = Math.sin(t * 0.9) * 6
       }
-      IN.mouseButtons[0] = (i % 14) < 5
+      if (mode.id === 'range' && aimTarget && aimTarget.alive) aimAt(aimTarget)
+      else if (live) aimAt(live)
+      IN.mouse.dx = (mode.id === 'range' || live) ? 0 : Math.sin(t * 0.9) * 6
+      IN.mouseButtons[0] = (i % 36) < 14
       IN.mouseButtons[2] = (i % 320) < 90
       if (i % 200 === 0) IN.pressed.Space = true
       if (i % 170 === 0) IN.pressed.ControlLeft = true
       if (i % 14 === 0) IN.pressed.__f = true
-      IN.mousePressed[0] = (i % 14) === 0
+      IN.mousePressed[0] = (i % 36) === 0
       if (player.weapon.ammo === 0) IN.pressed.KeyR = true
       if (i === 1200) IN.pressed.Digit2 = true
       if (i === 2400) IN.pressed.Digit3 = true
@@ -215,6 +218,56 @@ for (const mode of MODES.filter((m) => m.id !== 'p2p')) {   // p2p needs a live 
   const spec = g.spectateTarget()
   check('dead player spectates someone', !!spec && spec !== p, spec ? spec.name : 'nobody')
   check('spectating does not watch a corpse', !!spec && spec.alive)
+  g.dispose()
+}
+
+// ── recoil patterns: learnable, and they come home on their own ─────────────
+{
+  const g = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
+  g.load({ mapId: 'range', modeId: 'range', loadout: { primary: 'vex9', secondary: 'q1', melee: 'knife', utility: 'frag' }, skin: SKINS[0] })
+  const p = g.player
+  p.mv.pitch = 0.2
+  const start = p.mv.pitch
+  const climbs = []
+  let shots = 0
+  for (let i = 0; i < 90; i++) {                 // ~1.5s of a held trigger
+    g.input.mouseButtons[0] = true
+    g.input.mousePressed[0] = i === 0
+    const before = p.mv.pitch
+    g.fixedStep(STEP)
+    if (p.mv.pitch > before + 1e-6) { shots++; climbs.push(p.mv.pitch - before) }
+  }
+  check('recoil: a spray climbs the aim', shots >= 8, `${shots} kicks over 1.5s of fire`)
+  const deg = climbs.map((c) => (c * 180 / Math.PI))
+  const rising = deg.filter((d, i) => i === 0 || d > 0).length
+  check('recoil: every kick is upward (learnable pull-down)', rising === deg.length, deg.map((d) => d.toFixed(2)).join(' '))
+  check('recoil: the climb ramps up, it is not flat', deg.length > 3 && deg[deg.length - 1] > deg[0] * 0.9 && deg[deg.length - 1] < deg[0] * 4,
+    `${deg[0].toFixed(2)}° → ${deg[deg.length - 1].toFixed(2)}°`)
+  const peak = p.mv.pitch
+  g.input.mouseButtons[0] = false
+  for (let i = 0; i < 90; i++) g.fixedStep(STEP)      // 0.75s of not shooting
+  check('recoil: the aim comes home when you stop', Math.abs(p.mv.pitch - start) < Math.abs(peak - start) * 0.25,
+    `peak ${((peak - start) * 57.3).toFixed(2)}° → ${((p.mv.pitch - start) * 57.3).toFixed(2)}°`)
+  // the pattern is deterministic: the same gun twice climbs identically
+  const run = () => {
+    const g2 = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
+    g2.load({ mapId: 'range', modeId: 'range', loadout: { primary: 'vex9', secondary: 'q1', melee: 'knife', utility: 'frag' }, skin: SKINS[0] })
+    const q = g2.player
+    q.mv.pitch = 0
+    const out = []
+    for (let i = 0; i < 60; i++) {
+      g2.input.mouseButtons[0] = true
+      g2.input.mousePressed[0] = i === 0
+      const b = q.mv.pitch
+      g2.fixedStep(STEP)
+      if (q.mv.pitch > b + 1e-9) out.push(+(q.mv.pitch - b).toFixed(7))
+    }
+    g2.dispose()
+    return out
+  }
+  const a = run(), b = run()
+  check('recoil: the same gun climbs identically every time', a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) < 1e-6),
+    `${a.length} vs ${b.length} kicks, first ${a[0]?.toFixed(4)}/${b[0]?.toFixed(4)}`)
   g.dispose()
 }
 

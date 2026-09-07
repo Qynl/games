@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 function Title({ profile, onPlay, onArmory, onSkins, onSettings }) {
   const [help, setHelp] = useState(false);
-  return /* @__PURE__ */ React.createElement("div", { className: "screen" }, /* @__PURE__ */ React.createElement("div", { className: "hero" }, /* @__PURE__ */ React.createElement("h1", null, "QYNGUN"), /* @__PURE__ */ React.createElement("p", null, "MOMENTUM IS DAMAGE"), /* @__PURE__ */ React.createElement("div", { className: "cta" }, /* @__PURE__ */ React.createElement("button", { className: "btn pri", style: { padding: "15px 34px", fontSize: 13 }, onClick: onPlay }, "\u25B6 ENTER LOBBY"), /* @__PURE__ */ React.createElement("button", { className: "btn", onClick: onArmory }, "ARMORY"), /* @__PURE__ */ React.createElement("button", { className: "btn", onClick: onSkins }, "SKINS"), /* @__PURE__ */ React.createElement("button", { className: "btn", onClick: onSettings }, "SETTINGS"), /* @__PURE__ */ React.createElement("button", { className: "btn ghost", onClick: () => setHelp(!help) }, help ? "CLOSE" : "MOVEMENT GUIDE")), /* @__PURE__ */ React.createElement("div", { className: "keys" }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "WASD"), " MOVE"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "SHIFT"), " SPRINT"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "CTRL"), " SLIDE"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "SPACE"), " JUMP"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "RMB"), " AIM"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "F"), " UTILITY")), help && /* @__PURE__ */ React.createElement("div", { className: "panel", style: { position: "static", marginTop: 34, maxWidth: 800, textAlign: "left", clipPath: "none" } }, /* @__PURE__ */ React.createElement("div", { className: "h" }, "THE CHAIN"), /* @__PURE__ */ React.createElement("div", { className: "hint", style: { fontSize: 12.5, lineHeight: 2 } }, /* @__PURE__ */ React.createElement("div", null, "SPRINT ", /* @__PURE__ */ React.createElement("span", { style: { color: "var(--cy)" } }, "\u2192"), " SLIDE ", /* @__PURE__ */ React.createElement("span", { style: { color: "var(--cy)" } }, "\u2192"), " JUMP", /* @__PURE__ */ React.createElement("span", { style: { color: "var(--cy)" } }, "\u2192"), " AIR STRAFE ", /* @__PURE__ */ React.createElement("span", { style: { color: "var(--cy)" } }, "\u2192"), " LAND", /* @__PURE__ */ React.createElement("span", { style: { color: "var(--cy)" } }, "\u2192"), " SLIDE"), /* @__PURE__ */ React.createElement("div", { style: { color: "var(--dim)" } }, "\u2022 Sliding while sprinting keeps every bit of your speed \u2014 the slide is momentum, not an animation.", /* @__PURE__ */ React.createElement("br", null), "\u2022 Jump out of a slide without losing horizontal velocity; hop early for a small bonus.", /* @__PURE__ */ React.createElement("br", null), "\u2022 In the air, ", /* @__PURE__ */ React.createElement("b", { style: { color: "var(--cy)" } }, "A"), "/", /* @__PURE__ */ React.createElement("b", { style: { color: "var(--cy)" } }, "D"), " plus a smooth mouse turn curves your path and ", /* @__PURE__ */ React.createElement("i", null, "gains"), " speed. Holding W does nothing up there.", /* @__PURE__ */ React.createElement("br", null), "\u2022 Downhill sprints and slides accelerate. Uphill bleeds. Slopes are never walls.", /* @__PURE__ */ React.createElement("br", null), "\u2022 Jump is buffered before landing and coyote-timed after leaving a ledge. Both are invisible.", /* @__PURE__ */ React.createElement("br", null), "\u2022 ", /* @__PURE__ */ React.createElement("b", { style: { color: "var(--or)" } }, "Damage scales with speed."), " A 15 m/s knife hit does double."))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 30, display: "flex", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { className: "chip" }, /* @__PURE__ */ React.createElement("b", null, profile.qyns), " \u25C8 QYNS"), /* @__PURE__ */ React.createElement("div", { className: "chip" }, "LEVEL ", /* @__PURE__ */ React.createElement("b", null, profile.level)), /* @__PURE__ */ React.createElement("div", { className: "chip" }, profile.stats.kills, " ", /* @__PURE__ */ React.createElement("b", null, "KILLS")), /* @__PURE__ */ React.createElement("div", { className: "chip" }, "TOP ", /* @__PURE__ */ React.createElement("b", null, profile.stats.topSpeed || 0), " M/S"))));
+  return /* @__PURE__ */ React.createElement("div", { className: "screen" }, /* @__PURE__ */ React.createElement("div", { className: "hero" }, /* @__PURE__ */ React.createElement("h1", null, "QYNGUN"), /* @__PURE__ */ React.createElement("p", null, "MOMENTUM IS DAMAGE"), /* @__PURE__ */ React.createElement("div", { className: "cta" }, /* @__PURE__ */ React.createElement("button", { className: "btn pri", style: { padding: "15px 34px", fontSize: 13 }, onClick: onPlay }, "\u25B6 ENTER LOBBY"), /* @__PURE__ */ React.createElement("button", { className: "btn", onClick: onArmory }, "ARMORY"), /* @__PURE__ */ React.createElement("button", { className: "btn", onClick: onSkins }, "SKINS"), /* @__PURE__ */ React.createElement("button", { className: "btn", onClick: onSettings }, "SETTINGS"), /* @__PURE__ */ React.createElement("button", { className: "btn ghost", onClick: () => setHelp(!help) }, help ? "CLOSE" : "MOVEMENT GUIDE")), /* @__PURE__ */ React.createElement("div", { className: "keys" }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "WASD"), " MOVE"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "SHIFT"), " SPRINT"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "CTRL"), " SLIDE"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "SPACE"), " JUMP"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "RMB"), " AIM"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "F"), " UTILITY"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "SPACE"), " AT A WALL = RUN IT"), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("b", null, "SPACE"), " AGAIN = KICK OFF")), help && /* @__PURE__ */ React.createElement("div", { className: "panel", style: { position: "static", marginTop: 34, maxWidth: 800, textAlign: "left", clipPath: "none" } }, /* @__PURE__ */ React.createElement("div", { className: "h" }, "THE CHAIN"), /* @__PURE__ */ React.createElement("div", { className: "hint", style: { fontSize: 12.5, lineHeight: 2 } }, /* @__PURE__ */ React.createElement("div", null, "SPRINT ", /* @__PURE__ */ React.createElement("span", { style: { color: "var(--cy)" } }, "\u2192"), " SLIDE ", /* @__PURE__ */ React.createElement("span", { style: { color: "var(--cy)" } }, "\u2192"), " JUMP", /* @__PURE__ */ React.createElement("span", { style: { color: "var(--cy)" } }, "\u2192"), " AIR STRAFE ", /* @__PURE__ */ React.createElement("span", { style: { color: "var(--cy)" } }, "\u2192"), " LAND", /* @__PURE__ */ React.createElement("span", { style: { color: "var(--cy)" } }, "\u2192"), " SLIDE"), /* @__PURE__ */ React.createElement("div", { style: { color: "var(--dim)" } }, "\u2022 Sliding while sprinting keeps every bit of your speed \u2014 the slide is momentum, not an animation.", /* @__PURE__ */ React.createElement("br", null), "\u2022 Jump out of a slide without losing horizontal velocity; hop early for a small bonus.", /* @__PURE__ */ React.createElement("br", null), "\u2022 In the air, ", /* @__PURE__ */ React.createElement("b", { style: { color: "var(--cy)" } }, "A"), "/", /* @__PURE__ */ React.createElement("b", { style: { color: "var(--cy)" } }, "D"), " plus a smooth mouse turn curves your path and ", /* @__PURE__ */ React.createElement("i", null, "gains"), " speed. Holding W does nothing up there.", /* @__PURE__ */ React.createElement("br", null), "\u2022 Downhill sprints and slides accelerate. Uphill bleeds. Slopes are never walls.", /* @__PURE__ */ React.createElement("br", null), "\u2022 Jump is buffered before landing and coyote-timed after leaving a ledge. Both are invisible.", /* @__PURE__ */ React.createElement("br", null), "\u2022 ", /* @__PURE__ */ React.createElement("b", { style: { color: "var(--cy)" } }, "WALL RUN:"), " hit a wall in the air while moving along it fast and you stick to it \u2014 gravity nearly lets go for about a second, and your speed survives. Jump again to kick off it, twice per jump.", /* @__PURE__ */ React.createElement("br", null), "\u2022 ", /* @__PURE__ */ React.createElement("b", { style: { color: "var(--cy)" } }, "LEDGE GRAB:"), " meet a lip your jump cannot quite clear and the vault happens by itself \u2014 it is real velocity, never a warp.", /* @__PURE__ */ React.createElement("br", null), "\u2022 ", /* @__PURE__ */ React.createElement("b", { style: { color: "var(--cy)" } }, "Guns climb on a fixed pattern."), " Shot six always goes to the same place, so the pull-down can be learned. Stop firing and the aim comes home.", /* @__PURE__ */ React.createElement("br", null), "\u2022 ", /* @__PURE__ */ React.createElement("b", { style: { color: "var(--or)" } }, "Damage scales with speed."), " A 15 m/s knife hit does double."))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 30, display: "flex", gap: 14 } }, /* @__PURE__ */ React.createElement("div", { className: "chip" }, /* @__PURE__ */ React.createElement("b", null, profile.qyns), " \u25C8 QYNS"), /* @__PURE__ */ React.createElement("div", { className: "chip" }, "LEVEL ", /* @__PURE__ */ React.createElement("b", null, profile.level)), /* @__PURE__ */ React.createElement("div", { className: "chip" }, profile.stats.kills, " ", /* @__PURE__ */ React.createElement("b", null, "KILLS")), /* @__PURE__ */ React.createElement("div", { className: "chip" }, "TOP ", /* @__PURE__ */ React.createElement("b", null, profile.stats.topSpeed || 0), " M/S"))));
 }
 
 // src/ui/Lobby.jsx
@@ -467,7 +467,7 @@ var WEAPONS = [
     1600,
     "rare",
     "Semi auto marksman rifle. Two to the chest, one to the head, no argument.",
-    { dmg: 58, head: 2.2, rpm: 300, auto: false, mag: 12, reserve: 48, reload: 2.3, spreadHip: 4.5, spreadAds: 0.05, adsTime: 0.3, adsFov: 38, range: 160, falloff: [110, 160, 0.85], recoil: { v: 1.9, h: 0.2, kick: 0.09, recover: 5 }, speed: 0.95, type: "hitscan" },
+    { dmg: 58, head: 2.2, rpm: 190, auto: false, mag: 12, reserve: 48, reload: 2.3, spreadHip: 4.5, spreadAds: 0.05, adsTime: 0.3, adsFov: 38, range: 160, falloff: [110, 160, 0.85], recoil: { v: 1.9, h: 0.2, kick: 0.09, recover: 5 }, speed: 0.95, type: "hitscan" },
     { kind: "dmr", len: 0.95, body: 2507082, accent: 7268351, barrel: 0.5, stock: true, sight: "scope" }
   ),
   P(
@@ -558,7 +558,7 @@ var WEAPONS = [
     1200,
     "rare",
     "Sawed off. Two barrels, one doorway, zero survivors.",
-    { dmg: 9, head: 1.3, rpm: 260, auto: false, pellets: 9, mag: 2, reserve: 16, reload: 1.9, spreadHip: 7.5, spreadAds: 5, adsTime: 0.2, adsFov: 74, range: 22, falloff: [6, 20, 0.22], recoil: { v: 2.4, h: 0.8, kick: 0.18, recover: 5 }, speed: 1.09, type: "hitscan" },
+    { dmg: 9, head: 1.3, rpm: 200, auto: false, pellets: 9, mag: 2, reserve: 16, reload: 1.9, spreadHip: 7.5, spreadAds: 5, adsTime: 0.2, adsFov: 74, range: 22, falloff: [6, 20, 0.22], recoil: { v: 2.4, h: 0.8, kick: 0.18, recover: 5 }, speed: 1.09, type: "hitscan" },
     { kind: "shotgun", len: 0.34, body: 4205086, accent: 16752970, barrel: 0.16, stock: false, sight: "iron" }
   ),
   S(
@@ -567,7 +567,7 @@ var WEAPONS = [
     1700,
     "epic",
     "Precision sidearm. Headshots are not lucky, they are earned.",
-    { dmg: 38, head: 3, rpm: 340, auto: false, mag: 10, reserve: 40, reload: 1.7, spreadHip: 1.6, spreadAds: 0.02, adsTime: 0.2, adsFov: 44, range: 90, falloff: [50, 90, 0.75], recoil: { v: 1.2, h: 0.15, kick: 0.06, recover: 7 }, speed: 1.06, type: "hitscan" },
+    { dmg: 38, head: 2.4, rpm: 340, auto: false, mag: 10, reserve: 40, reload: 1.7, spreadHip: 1.6, spreadAds: 0.02, adsTime: 0.2, adsFov: 44, range: 90, falloff: [50, 90, 0.75], recoil: { v: 1.2, h: 0.15, kick: 0.06, recover: 7 }, speed: 1.06, type: "hitscan" },
     { kind: "pistol", len: 0.36, body: 1976883, accent: 7268351, barrel: 0.18, stock: false, sight: "dot" }
   ),
   S(
@@ -1388,7 +1388,27 @@ var TUNE = {
   airDrag: 1.6,
   slideEye: 0.72,
   crouchEye: 1.05,
-  standEye: 1.62
+  standEye: 1.62,
+  // ── wall run ────────────────────────────────────────────────────────────
+  wallRunMinSpeed: 5.4,
+  wallRunTime: 1.15,
+  // hang time before gravity takes you back
+  wallRunGravity: 0.2,
+  // fraction of gravity while attached
+  wallRunMaxFall: 1.7,
+  // you drift down a wall, you never drop off it
+  wallRunBoost: 1.03,
+  // a wall run preserves speed; a sliver is earned
+  wallJumpOut: 6.6,
+  wallJumpUp: 8,
+  wallRunCooldown: 0.22,
+  wallRunMax: 2,
+  // per airtime — you cannot circle one room forever
+  // ── ledge grab / mantle ─────────────────────────────────────────────────
+  mantleMin: 0.25,
+  mantleMax: 1.6,
+  mantlePush: 2.4,
+  mantleCooldown: 0.32
 };
 var _v = new THREE2.Vector3();
 var _v2 = new THREE2.Vector3();
@@ -1419,6 +1439,13 @@ var MovementController = class {
     this.slideHopTimer = 0;
     this.wallHit = false;
     this.headHit = false;
+    this.wallRunning = false;
+    this.wallNormal = new THREE2.Vector3(0, 0, 1);
+    this.wallRunT = 0;
+    this.wallRuns = 0;
+    this.wallRunCd = 0;
+    this.mantleCd = 0;
+    this.mantleT = 0;
     this.landImpact = 0;
     this.lastFallSpeed = 0;
     this.lastLandSpeed = 0;
@@ -1453,6 +1480,12 @@ var MovementController = class {
     this.jumpBuffer = 0;
     this.slideCooldown = 0;
     this.slideHopTimer = 0;
+    this.wallRunning = false;
+    this.wallRunT = 0;
+    this.wallRuns = 0;
+    this.wallRunCd = 0;
+    this.mantleCd = 0;
+    this.mantleT = 0;
     this.time = 0;
     this.distance = 0;
     this.topSpeed = 0;
@@ -1478,6 +1511,10 @@ var MovementController = class {
     this.jumpBuffer -= dt;
     this.slideHopTimer -= dt;
     this.coyote -= dt;
+    this.wallRunCd -= dt;
+    this.mantleCd -= dt;
+    this.mantleT = Math.max(0, this.mantleT - dt);
+    if (this.grounded) this.wallRuns = 0;
     if (input.jumpPressed) {
       this.jumpBuffer = TUNE.jumpBuffer;
       if (!this.grounded && this.coyote <= 0) this.emit("jumpBuffered");
@@ -1489,6 +1526,7 @@ var MovementController = class {
     _wish.set(-sy * f + cy * r, 0, -cy * f - sy * r);
     const wl = _wish.length();
     if (wl > 1) _wish.multiplyScalar(1 / wl);
+    if (this.wallRunning) this.holdWall(dt);
     const speed = this.horizontalSpeed;
     const wantCrouch = input.crouch;
     const canSprint = input.sprint && f > 0.1 && !this.sliding && !wantCrouch;
@@ -1542,7 +1580,12 @@ var MovementController = class {
       this.airTime += dt;
       if (this.wasGrounded) this.emit("leftGround");
       this.accelerate(_wish, TUNE.airWishCap, TUNE.airAccel, dt);
-      this.vel.y -= TUNE.gravity * dt;
+      if (this.wallRunning) {
+        this.vel.y -= TUNE.gravity * TUNE.wallRunGravity * dt;
+        if (this.vel.y < -TUNE.wallRunMaxFall) this.vel.y = -TUNE.wallRunMaxFall;
+      } else {
+        this.vel.y -= TUNE.gravity * dt;
+      }
       const hs = this.horizontalSpeed;
       if (hs > TUNE.maxAirDragSpeed) {
         const k = Math.max(0, 1 - TUNE.airDrag * (hs - TUNE.maxAirDragSpeed) * dt);
@@ -1554,7 +1597,7 @@ var MovementController = class {
       }
     }
     if (this.grounded && Math.abs(r) > 0.1 && !this.sliding) this.emitEvery("strafe", 0.3);
-    if (this.jumpBuffer > 0 && (this.grounded || this.coyote > 0) && !this.headHit) {
+    if (this.jumpBuffer > 0 && (this.grounded || this.coyote > 0 || this.wallRunning) && !this.headHit) {
       const viaCoyote = !this.grounded;
       this.jump();
       if (viaCoyote) this.emit("coyoteJump");
@@ -1562,6 +1605,7 @@ var MovementController = class {
     this.wasGrounded = this.grounded;
     this.moveAndCollide(dt);
     if (this.grounded && !this.wasGrounded) this.onLand();
+    this.afterCollision(dt);
     const s = this.horizontalSpeed;
     if (s > this.topSpeed) this.topSpeed = s;
     this.distance += s * dt;
@@ -1632,8 +1676,144 @@ var MovementController = class {
     if (!this.inputCache.crouch) this.tryStand();
     this.targetHeight = this.crouching ? TUNE.crouchHeight : TUNE.standHeight;
   }
+  // ── wall run ─────────────────────────────────────────────────────────────
+  holdWall(dt) {
+    this.wallRunT += dt;
+    const n = this.wallNormal;
+    _v.copy(this.pos).addScaledVector(n, -0.34);
+    const pen = this.world.deepestContact(_v, this.radius, this.height * 0.85, _n);
+    const still = pen > 1e-4 && Math.abs(_n.y) < 0.5 && _n.dot(n) > 0.35;
+    if (!still || this.grounded || this.horizontalSpeed < TUNE.wallRunMinSpeed * 0.5 || this.wallRunT > TUNE.wallRunTime) {
+      this.endWallRun();
+      return;
+    }
+    this.wallNormal.copy(_n);
+    const into = this.vel.x * n.x + this.vel.z * n.z;
+    if (into < 0) {
+      this.vel.x -= n.x * into;
+      this.vel.z -= n.z * into;
+    }
+  }
+  startWallRun(n) {
+    const hs = this.horizontalSpeed;
+    if (hs < 0.01) return;
+    this.wallRunning = true;
+    this.wallRunT = 0;
+    this.wallRuns++;
+    this.wallNormal.copy(n);
+    const into = this.vel.x * n.x + this.vel.z * n.z;
+    if (into < 0) {
+      this.vel.x -= n.x * into;
+      this.vel.z -= n.z * into;
+    }
+    if (this.vel.y < 0) this.vel.y *= 0.22;
+    else if (this.vel.y > 3.2) this.vel.y = 3.2;
+    const k = (TUNE.wallRunBoost - 1) * 0.5;
+    this.vel.x += this.vel.x * k;
+    this.vel.z += this.vel.z * k;
+    this.emit("wallrun", { speed: hs });
+  }
+  endWallRun() {
+    if (!this.wallRunning) return;
+    this.wallRunning = false;
+    this.wallRunCd = TUNE.wallRunCooldown;
+  }
+  // Sense a wall within reach even when we are not pressed into it — a
+  // collision frame only fires on the exact frame you penetrate, which is far
+  // too flaky to hang a wall run on.
+  probeWall(out) {
+    const r = this.radius;
+    let bestPen = 0;
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      _v.set(this.pos.x + Math.cos(a) * r, this.pos.y + this.height * 0.3, this.pos.z + Math.sin(a) * r);
+      const pen = this.world.deepestContact(_v, r * 0.85, 0.6, _n);
+      if (pen > bestPen && Math.abs(_n.y) < 0.55) {
+        bestPen = pen;
+        out.copy(_n);
+      }
+    }
+    return bestPen > 1e-4;
+  }
+  // Called right after the collision pass: this is where a wall becomes a
+  // wall run, and a lip becomes a mantle. Both only ever change velocity.
+  afterCollision(dt) {
+    if (this.grounded || this.wallRunning || this.airTime < 0.05) return;
+    const hs = this.horizontalSpeed;
+    if (hs < 0.2) return;
+    if (this.mantleCd > 0 && this.wallRunCd > 0) return;
+    if (!this.probeWall(this.wallNormal)) return;
+    const n = this.wallNormal;
+    const dx = this.vel.x / hs, dz = this.vel.z / hs;
+    const into = dx * n.x + dz * n.z;
+    if (this.mantleCd <= 0 && this.mantleT <= 0 && hs > 2.4 && into < -0.2) {
+      if (this.tryMantle(n, dx, dz)) return;
+    }
+    if (this.wallRunCd <= 0 && this.wallRuns < TUNE.wallRunMax && hs > TUNE.wallRunMinSpeed && Math.abs(into) < 0.75) {
+      this.startWallRun(n);
+    }
+  }
+  tryMantle(n, dx, dz) {
+    const r = this.radius;
+    const reach = r + 0.42;
+    let top = null;
+    for (let h = TUNE.mantleMin; h <= TUNE.mantleMax + 0.01; h += 0.1) {
+      _v.set(this.pos.x + dx * reach, this.pos.y + h, this.pos.z + dz * reach);
+      if (!this.world.overlaps(_v, r * 0.9, TUNE.crouchHeight)) {
+        top = h;
+        break;
+      }
+    }
+    if (top === null) return false;
+    const lx = this.pos.x + dx * (reach + 0.45);
+    const lz = this.pos.z + dz * (reach + 0.45);
+    let floorY = null;
+    for (let d = 0.35; d <= top + 0.9; d += 0.05) {
+      _v.set(lx, this.pos.y + top + 0.35 - d, lz);
+      const pen = this.world.deepestContact(_v, r, TUNE.standHeight, _n);
+      if (pen > 1e-4 && _n.y > 0.5) {
+        floorY = _v.y + pen;
+        break;
+      }
+    }
+    if (floorY === null) return false;
+    const rise = floorY - this.pos.y;
+    if (rise < 0.18 || rise > TUNE.mantleMax) return false;
+    const need = Math.sqrt(2 * TUNE.gravity * (rise + 0.12));
+    if (this.vel.y >= need - 0.15) return false;
+    _v.set(lx, floorY + 0.06, lz);
+    if (this.world.overlaps(_v, r, TUNE.standHeight)) return false;
+    this.vel.y = need + 0.5;
+    this.vel.x += dx * TUNE.mantlePush;
+    this.vel.z += dz * TUNE.mantlePush;
+    this.mantleCd = TUNE.mantleCooldown;
+    this.mantleT = 0.24;
+    this.emit("mantle", { rise });
+    return true;
+  }
   jump() {
     const hs = this.horizontalSpeed;
+    if (this.wallRunning) {
+      const n = this.wallNormal;
+      this.vel.x += n.x * TUNE.wallJumpOut;
+      this.vel.z += n.z * TUNE.wallJumpOut;
+      this.vel.y = TUNE.wallJumpUp;
+      const nh = Math.hypot(this.vel.x, this.vel.z);
+      const cap = Math.max(hs * 1.14, TUNE.wallRunMinSpeed + 3.4);
+      if (nh > cap) {
+        const k = cap / nh;
+        this.vel.x *= k;
+        this.vel.z *= k;
+      }
+      this.endWallRun();
+      this.grounded = false;
+      this.coyote = 0;
+      this.jumpBuffer = 0;
+      this.wasGrounded = false;
+      this.airTime = 1e-3;
+      this.emit("walljump", { speed: nh });
+      return;
+    }
     if (this.sliding) {
       this.sliding = false;
       this.slideCooldown = TUNE.slideCooldown * 0.5;
@@ -1709,6 +1889,7 @@ var MovementController = class {
         }
       }
     }
+    if (this.wallHit) this.wallNormal.copy(_n);
     const endSpeed = Math.hypot(this.vel.x, this.vel.z);
     const momentumEaten = hs0 > 1 && endSpeed < hs0 * 0.75;
     if (this.wasGrounded && (this.wallHit || momentumEaten)) {
@@ -1784,6 +1965,7 @@ var MovementController = class {
       vert: this.vel.y,
       vel: this.vel.clone(),
       grounded: this.grounded,
+      wallRunning: this.wallRunning,
       sliding: this.sliding,
       sprinting: this.sprinting,
       crouching: this.crouching,
@@ -1804,7 +1986,11 @@ var CHAINS = [
   { id: 6, name: "HIGH-SPEED SLIDE \u2192 JUMP", seq: ["slideStart", "fastSlideJump"] },
   { id: 7, name: "STRAFE \u2192 JUMP \u2192 AIR STRAFE \u2192 LAND", seq: ["strafe", "jump", "airstrafe", "land"] },
   { id: 8, name: "JUMP BUFFER \u2192 LAND \u2192 JUMP", seq: ["jumpBuffered", "land", "jump"] },
-  { id: 9, name: "COYOTE TIME \u2192 JUMP", seq: ["leftGround", "coyoteJump"] }
+  { id: 9, name: "COYOTE TIME \u2192 JUMP", seq: ["leftGround", "coyoteJump"] },
+  { id: 10, name: "SPRINT \u2192 JUMP \u2192 WALL RUN \u2192 WALL JUMP", seq: ["sprintOn", "jump", "wallrun", "walljump"] },
+  { id: 11, name: "SLIDE \u2192 JUMP \u2192 WALL RUN \u2192 WALL JUMP \u2192 LAND \u2192 SLIDE", seq: ["slideStart", "slideJump", "wallrun", "walljump", "land", "slideStart"] },
+  { id: 12, name: "SPRINT \u2192 JUMP \u2192 LEDGE GRAB", seq: ["sprintOn", "jump", "mantle"] },
+  { id: 13, name: "WALL RUN \u2192 WALL JUMP \u2192 AIR STRAFE \u2192 LAND", seq: ["wallrun", "walljump", "airstrafe", "land"] }
 ];
 var ChainTracker = class {
   constructor() {
@@ -1858,7 +2044,7 @@ function HUD({ hud, paused, needsLock, onResume, onQuit, showMv, mapName, mode }
   const pct = Math.min(100, spd / 18 * 100);
   const low = hud.hp / hud.maxHp < 0.34;
   const chains = hud.chains?.done || {};
-  return /* @__PURE__ */ React7.createElement("div", { className: "hud" }, /* @__PURE__ */ React7.createElement("div", { className: "vig" }), /* @__PURE__ */ React7.createElement("div", { className: "dmg", style: { opacity: hud.damageFlash * 0.9 } }), low && hud.alive && /* @__PURE__ */ React7.createElement("div", { className: "lowhp", style: { opacity: 0.5 + Math.sin(Date.now() / 260) * 0.25 } }), /* @__PURE__ */ React7.createElement("div", { className: "flash", style: { opacity: Math.min(0.92, (hud.flashTime || 0) * 0.6) } }), /* @__PURE__ */ React7.createElement("div", { className: "center cross", style: { opacity: hud.ads > 0.9 ? 0 : 1 } }, /* @__PURE__ */ React7.createElement("i", { className: "d", style: { width: 2 + (hud.reloading ? 0 : 1) } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21, top: 21 - gap - 4, width: 2, height: 5 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21, top: 21 + gap, width: 2, height: 5 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21 - gap - 4, top: 21, width: 5, height: 2 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21 + gap, top: 21, width: 5, height: 2 } }), /* @__PURE__ */ React7.createElement("div", { className: `hm ${hud.hitmarker > 0 ? "on" : ""} ${hud.hitmarker > 0 && hud.headshot ? "hs" : ""}` }, /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null))), /* @__PURE__ */ React7.createElement("div", { className: "center dmgring" }, (hud.hitDirs || []).map((h) => /* @__PURE__ */ React7.createElement("div", { key: h.id, className: "dmga", style: { transform: `rotate(${h.ang * 57.2958}deg)`, opacity: Math.min(1, h.t / 0.9) } }, /* @__PURE__ */ React7.createElement("i", null)))), /* @__PURE__ */ React7.createElement("div", { className: "banners" }, (hud.banners || []).map((b) => /* @__PURE__ */ React7.createElement("div", { key: b.id, className: `bann ${b.kind || "info"}`, style: { opacity: Math.min(1, b.t / 0.45) } }, b.text))), showMv && /* @__PURE__ */ React7.createElement("div", { className: "panel mv" }, /* @__PURE__ */ React7.createElement("div", { className: "t" }, "MOVEMENT TELEMETRY"), /* @__PURE__ */ React7.createElement("div", { className: "big" }, f1(spd), /* @__PURE__ */ React7.createElement("small", null, "M/S"), /* @__PURE__ */ React7.createElement("span", { style: { float: "right", fontSize: 12, color: "var(--dim)" } }, "TOP ", f1(hud.topSpeed || 0))), /* @__PURE__ */ React7.createElement("div", { className: "spdbar" }, /* @__PURE__ */ React7.createElement("i", { style: { width: pct + "%" } }), /* @__PURE__ */ React7.createElement("u", { style: { left: "56%" } })), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "VELOCITY XZ"), /* @__PURE__ */ React7.createElement("b", null, f1(Math.hypot(hud.vel?.x || 0, hud.vel?.z || 0)))), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "VELOCITY Y"), /* @__PURE__ */ React7.createElement("b", null, f1(hud.vert || 0))), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "STATE"), /* @__PURE__ */ React7.createElement("b", { className: "on" }, hud.grounded ? hud.sliding ? "SLIDING" : "GROUND" : "AIR")), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "SLOPE"), /* @__PURE__ */ React7.createElement("b", null, (Math.acos(Math.min(1, hud.slope || 1)) * 57.3).toFixed(0), "\xB0")), /* @__PURE__ */ React7.createElement("div", { className: "pills" }, /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.sprinting ? "on" : ""}` }, "SPRINT"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.sliding ? "on" : ""}` }, "SLIDE"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.crouching ? "on" : ""}` }, "CROUCH"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${!hud.grounded ? "on" : ""}` }, "AIR"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.haste ? "on" : ""}` }, "HASTE")), /* @__PURE__ */ React7.createElement("div", { className: "t", style: { marginTop: 10 } }, "CHAINS ", hud.chains?.count || 0, "/", CHAINS.length), /* @__PURE__ */ React7.createElement("div", { className: "chainrow" }, CHAINS.map((c) => /* @__PURE__ */ React7.createElement("i", { key: c.id, className: chains[c.id] ? "on" : "", title: c.name }))), /* @__PURE__ */ React7.createElement("div", { style: { marginTop: 6, fontSize: 9.5, color: "var(--dim2)", lineHeight: 1.5, minHeight: 26 } }, CHAINS.filter((c) => !chains[c.id])[0]?.name || "ALL CHAINS CLEAN")), /* @__PURE__ */ React7.createElement("div", { className: "panel hp" }, hud.spawnGuard > 0 && /* @__PURE__ */ React7.createElement("div", { className: "shield" }, "SPAWN SHIELD ", hud.spawnGuard.toFixed(1), "s"), /* @__PURE__ */ React7.createElement("div", { className: "n", style: { color: low ? "var(--rd)" : "#fff" } }, hud.hp, /* @__PURE__ */ React7.createElement("small", null, " / ", hud.maxHp, " HP")), /* @__PURE__ */ React7.createElement("div", { className: `hpbar ${low ? "low" : ""}` }, /* @__PURE__ */ React7.createElement("i", { style: { width: hud.hp / hud.maxHp * 100 + "%" } })), /* @__PURE__ */ React7.createElement("div", { style: { marginTop: 6, fontSize: 10, color: "var(--dim)", letterSpacing: ".1em" } }, mapName, " \xB7 ", String(mode).replace("_", " "))), /* @__PURE__ */ React7.createElement("div", { className: "panel ammo" }, /* @__PURE__ */ React7.createElement("div", { className: "w" }, hud.weapon), /* @__PURE__ */ React7.createElement("div", { className: "n" }, hud.ammo, /* @__PURE__ */ React7.createElement("span", null, " / ", hud.reserve)), hud.reloading && /* @__PURE__ */ React7.createElement("div", { className: "reload", style: { position: "static", marginTop: 6, width: "100%" } }, /* @__PURE__ */ React7.createElement("i", { style: { width: hud.reloadProgress * 100 + "%" } })), hud.ammo !== "\u221E" && hud.ammo === 0 && !hud.reloading && /* @__PURE__ */ React7.createElement("div", { style: { color: "var(--rd)", fontSize: 11, letterSpacing: ".2em" } }, "PRESS R")), /* @__PURE__ */ React7.createElement("div", { className: "panel util" }, "[F] ", hud.utility?.name, " ", /* @__PURE__ */ React7.createElement("b", null, "\xD7", hud.utility?.uses)), spd > 5 && /* @__PURE__ */ React7.createElement("div", { className: "momentum" }, "MOMENTUM DAMAGE \xD7", hud.momentum.toFixed(2)), hud.net && /* @__PURE__ */ React7.createElement("div", { className: "netind" }, /* @__PURE__ */ React7.createElement("b", { style: { color: hud.net.state === "open" ? "var(--gr)" : "var(--rd)" } }, "\u25CF"), hud.net.role === "host" ? "HOST" : "GUEST", " \xB7 ", hud.net.ping, "ms", hud.net.peer && /* @__PURE__ */ React7.createElement("span", null, " \xB7 VS ", hud.net.peer)), /* @__PURE__ */ React7.createElement("div", { className: "score" }, /* @__PURE__ */ React7.createElement("span", { className: "r" }, "ROUND ", hud.round?.round), /* @__PURE__ */ React7.createElement("span", { className: "a" }, hud.round?.scoreA), /* @__PURE__ */ React7.createElement("span", { style: { color: "var(--dim)" } }, ":"), /* @__PURE__ */ React7.createElement("span", { className: "b" }, hud.round?.scoreB), /* @__PURE__ */ React7.createElement("span", { className: "r", style: hud.matchPoint ? { color: "var(--gd)", fontWeight: 700 } : void 0 }, hud.matchPoint ? "MATCH POINT" : "FIRST TO 5")), /* @__PURE__ */ React7.createElement("div", { className: "kf" }, (hud.killfeed || []).slice(-5).map((k) => /* @__PURE__ */ React7.createElement("div", { key: k.id, className: `kfi ${k.mine ? "mine" : ""}` }, /* @__PURE__ */ React7.createElement("b", { style: { color: k.mine ? "var(--cy)" : "var(--txt)" } }, k.killer), /* @__PURE__ */ React7.createElement("span", { style: { color: "var(--dim)" } }, " ", k.head ? "\u2316" : "\u203A", " "), /* @__PURE__ */ React7.createElement("b", null, k.victim), k.weapon && /* @__PURE__ */ React7.createElement("i", { style: { color: "var(--dim2)", fontStyle: "normal", marginLeft: 6 } }, k.weapon)))), hud.round?.phase === "countdown" && /* @__PURE__ */ React7.createElement("div", { className: "banner", style: { color: "var(--cy)" } }, "ROUND ", hud.round.round, /* @__PURE__ */ React7.createElement("small", null, Math.ceil(hud.round.timer))), !hud.alive && hud.round?.phase === "live" && /* @__PURE__ */ React7.createElement("div", { className: "banner lose", style: { fontSize: 22 } }, "ELIMINATED", /* @__PURE__ */ React7.createElement("small", null, hud.spectating ? `SPECTATING \u2014 ${hud.spectating} \xB7 ${Math.ceil(hud.respawnTimer || 0)}s` : `${Math.ceil(hud.respawnTimer || 0)}s`)), hud.round?.phase === "roundend" && /* @__PURE__ */ React7.createElement("div", { className: `banner ${hud.round.scoreA > hud.round.scoreB ? "win" : "lose"}` }, hud.lastWin ? "ROUND WON" : hud.lastWin === false ? "ROUND LOST" : "ROUND OVER", /* @__PURE__ */ React7.createElement("small", null, hud.round.scoreA, " \u2014 ", hud.round.scoreB)), hud.scoreboard && hud.board && /* @__PURE__ */ React7.createElement("div", { className: "board" }, /* @__PURE__ */ React7.createElement("div", { className: "bh" }, /* @__PURE__ */ React7.createElement("span", null, mapName, " \xB7 ", String(mode).replace("_", " "), " \xB7 ", hud.ping, "ms"), /* @__PURE__ */ React7.createElement("span", { className: "cy" }, hud.round?.scoreA, " \u2014 ", hud.round?.scoreB), /* @__PURE__ */ React7.createElement("span", null, "FIRST TO 5 \xB7 ROUND ", hud.round?.round)), ["a", "b"].map((t) => /* @__PURE__ */ React7.createElement("div", { key: t, className: `bteam ${t}` }, /* @__PURE__ */ React7.createElement("div", { className: "bt" }, t === "a" ? "YOUR TEAM" : "ENEMY"), hud.board.filter((r) => r.team === t).sort((x, y) => y.kills - x.kills).map((r) => /* @__PURE__ */ React7.createElement("div", { key: r.name, className: `br ${r.you ? "you" : ""} ${r.alive ? "" : "dead"}` }, /* @__PURE__ */ React7.createElement("span", { className: "bn" }, r.name, /* @__PURE__ */ React7.createElement("i", { className: "bw" }, r.weapon)), /* @__PURE__ */ React7.createElement("span", { className: "bk" }, r.kills), /* @__PURE__ */ React7.createElement("span", { className: "bd" }, r.deaths), /* @__PURE__ */ React7.createElement("span", { className: "ba" }, r.assists), /* @__PURE__ */ React7.createElement("span", { className: "bm" }, r.damage))))), /* @__PURE__ */ React7.createElement("div", { className: "bf" }, /* @__PURE__ */ React7.createElement("span", null, "NAME"), /* @__PURE__ */ React7.createElement("span", null, "K"), /* @__PURE__ */ React7.createElement("span", null, "D"), /* @__PURE__ */ React7.createElement("span", null, "A"), /* @__PURE__ */ React7.createElement("span", null, "DMG"))), paused && /* @__PURE__ */ React7.createElement("div", { className: "pause" }, /* @__PURE__ */ React7.createElement("h2", null, needsLock ? "CLICK TO PLAY" : "PAUSED"), needsLock && /* @__PURE__ */ React7.createElement("div", { className: "hint", style: { textAlign: "center", maxWidth: 460, marginBottom: 10 } }, "Click the arena to capture your mouse. Mouse look, shooting and movement all live behind the pointer lock \u2014 press ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "ESC"), " to release it."), /* @__PURE__ */ React7.createElement("div", { className: "hint", style: { textAlign: "center", maxWidth: 460, marginBottom: 10 } }, /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "W"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "A"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "S"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "D"), " move \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "SHIFT"), " sprint \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "CTRL"), " slide/crouch \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "SPACE"), " jump \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "RMB"), " aim \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "F"), " utility \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "1"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "2"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "3"), " weapons \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "R"), " reload"), /* @__PURE__ */ React7.createElement("div", { className: "row" }, /* @__PURE__ */ React7.createElement("button", { className: "btn pri", onClick: onResume }, needsLock ? "CLICK TO PLAY" : "RESUME"), /* @__PURE__ */ React7.createElement("button", { className: "btn", onClick: onQuit }, "LEAVE MATCH"))));
+  return /* @__PURE__ */ React7.createElement("div", { className: "hud" }, /* @__PURE__ */ React7.createElement("div", { className: "vig" }), /* @__PURE__ */ React7.createElement("div", { className: "dmg", style: { opacity: hud.damageFlash * 0.9 } }), low && hud.alive && /* @__PURE__ */ React7.createElement("div", { className: "lowhp", style: { opacity: 0.5 + Math.sin(Date.now() / 260) * 0.25 } }), /* @__PURE__ */ React7.createElement("div", { className: "flash", style: { opacity: Math.min(0.92, (hud.flashTime || 0) * 0.6) } }), /* @__PURE__ */ React7.createElement("div", { className: "center cross", style: { opacity: hud.ads > 0.9 ? 0 : 1 } }, /* @__PURE__ */ React7.createElement("i", { className: "d", style: { width: 2 + (hud.reloading ? 0 : 1) } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21, top: 21 - gap - 4, width: 2, height: 5 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21, top: 21 + gap, width: 2, height: 5 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21 - gap - 4, top: 21, width: 5, height: 2 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21 + gap, top: 21, width: 5, height: 2 } }), /* @__PURE__ */ React7.createElement("div", { className: `hm ${hud.hitmarker > 0 ? "on" : ""} ${hud.hitmarker > 0 && hud.headshot ? "hs" : ""} ${hud.killHit > 0 ? "kill" : ""}` }, /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null))), /* @__PURE__ */ React7.createElement("div", { className: "center dmgring" }, (hud.hitDirs || []).map((h) => /* @__PURE__ */ React7.createElement("div", { key: h.id, className: "dmga", style: { transform: `rotate(${h.ang * 57.2958}deg)`, opacity: Math.min(1, h.t / 0.9) } }, /* @__PURE__ */ React7.createElement("i", null)))), /* @__PURE__ */ React7.createElement("div", { className: "banners" }, (hud.banners || []).map((b) => /* @__PURE__ */ React7.createElement("div", { key: b.id, className: `bann ${b.kind || "info"}`, style: { opacity: Math.min(1, b.t / 0.45) } }, b.text))), showMv && /* @__PURE__ */ React7.createElement("div", { className: "panel mv" }, /* @__PURE__ */ React7.createElement("div", { className: "t" }, "MOVEMENT TELEMETRY"), /* @__PURE__ */ React7.createElement("div", { className: "big" }, f1(spd), /* @__PURE__ */ React7.createElement("small", null, "M/S"), /* @__PURE__ */ React7.createElement("span", { style: { float: "right", fontSize: 12, color: "var(--dim)" } }, "TOP ", f1(hud.topSpeed || 0))), /* @__PURE__ */ React7.createElement("div", { className: "spdbar" }, /* @__PURE__ */ React7.createElement("i", { style: { width: pct + "%" } }), /* @__PURE__ */ React7.createElement("u", { style: { left: "56%" } })), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "VELOCITY XZ"), /* @__PURE__ */ React7.createElement("b", null, f1(Math.hypot(hud.vel?.x || 0, hud.vel?.z || 0)))), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "VELOCITY Y"), /* @__PURE__ */ React7.createElement("b", null, f1(hud.vert || 0))), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "STATE"), /* @__PURE__ */ React7.createElement("b", { className: "on" }, hud.wallRunning ? "WALL" : hud.grounded ? hud.sliding ? "SLIDING" : "GROUND" : "AIR")), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "SLOPE"), /* @__PURE__ */ React7.createElement("b", null, (Math.acos(Math.min(1, hud.slope || 1)) * 57.3).toFixed(0), "\xB0")), /* @__PURE__ */ React7.createElement("div", { className: "pills" }, /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.sprinting ? "on" : ""}` }, "SPRINT"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.sliding ? "on" : ""}` }, "SLIDE"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.crouching ? "on" : ""}` }, "CROUCH"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${!hud.grounded ? "on" : ""}` }, "AIR"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.wallRunning ? "on" : ""}` }, "WALL"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.haste ? "on" : ""}` }, "HASTE")), /* @__PURE__ */ React7.createElement("div", { className: "t", style: { marginTop: 10 } }, "CHAINS ", hud.chains?.count || 0, "/", CHAINS.length), /* @__PURE__ */ React7.createElement("div", { className: "chainrow" }, CHAINS.map((c) => /* @__PURE__ */ React7.createElement("i", { key: c.id, className: chains[c.id] ? "on" : "", title: c.name }))), /* @__PURE__ */ React7.createElement("div", { style: { marginTop: 6, fontSize: 9.5, color: "var(--dim2)", lineHeight: 1.5, minHeight: 26 } }, CHAINS.filter((c) => !chains[c.id])[0]?.name || "ALL CHAINS CLEAN")), /* @__PURE__ */ React7.createElement("div", { className: "panel hp" }, hud.spawnGuard > 0 && /* @__PURE__ */ React7.createElement("div", { className: "shield" }, "SPAWN SHIELD ", hud.spawnGuard.toFixed(1), "s"), /* @__PURE__ */ React7.createElement("div", { className: "n", style: { color: low ? "var(--rd)" : "#fff" } }, hud.hp, /* @__PURE__ */ React7.createElement("small", null, " / ", hud.maxHp, " HP")), /* @__PURE__ */ React7.createElement("div", { className: `hpbar ${low ? "low" : ""}` }, /* @__PURE__ */ React7.createElement("i", { style: { width: hud.hp / hud.maxHp * 100 + "%" } })), /* @__PURE__ */ React7.createElement("div", { style: { marginTop: 6, fontSize: 10, color: "var(--dim)", letterSpacing: ".1em" } }, mapName, " \xB7 ", String(mode).replace("_", " "))), /* @__PURE__ */ React7.createElement("div", { className: "panel ammo" }, /* @__PURE__ */ React7.createElement("div", { className: "w" }, hud.weapon), /* @__PURE__ */ React7.createElement("div", { className: "n" }, hud.ammo, /* @__PURE__ */ React7.createElement("span", null, " / ", hud.reserve)), hud.reloading && /* @__PURE__ */ React7.createElement("div", { className: "reload", style: { position: "static", marginTop: 6, width: "100%" } }, /* @__PURE__ */ React7.createElement("i", { style: { width: hud.reloadProgress * 100 + "%" } })), hud.ammo !== "\u221E" && hud.ammo === 0 && !hud.reloading && /* @__PURE__ */ React7.createElement("div", { style: { color: "var(--rd)", fontSize: 11, letterSpacing: ".2em" } }, "PRESS R")), /* @__PURE__ */ React7.createElement("div", { className: "panel util" }, "[F] ", hud.utility?.name, " ", /* @__PURE__ */ React7.createElement("b", null, "\xD7", hud.utility?.uses)), spd > 5 && /* @__PURE__ */ React7.createElement("div", { className: "momentum" }, "MOMENTUM DAMAGE \xD7", hud.momentum.toFixed(2)), hud.net && /* @__PURE__ */ React7.createElement("div", { className: "netind" }, /* @__PURE__ */ React7.createElement("b", { style: { color: hud.net.state === "open" ? "var(--gr)" : "var(--rd)" } }, "\u25CF"), hud.net.role === "host" ? "HOST" : "GUEST", " \xB7 ", hud.net.ping, "ms", hud.net.peer && /* @__PURE__ */ React7.createElement("span", null, " \xB7 VS ", hud.net.peer)), /* @__PURE__ */ React7.createElement("div", { className: "score" }, /* @__PURE__ */ React7.createElement("span", { className: "r" }, "ROUND ", hud.round?.round), /* @__PURE__ */ React7.createElement("span", { className: "a" }, hud.round?.scoreA), /* @__PURE__ */ React7.createElement("span", { style: { color: "var(--dim)" } }, ":"), /* @__PURE__ */ React7.createElement("span", { className: "b" }, hud.round?.scoreB), /* @__PURE__ */ React7.createElement("span", { className: "r", style: hud.matchPoint ? { color: "var(--gd)", fontWeight: 700 } : void 0 }, hud.matchPoint ? "MATCH POINT" : "FIRST TO 5")), /* @__PURE__ */ React7.createElement("div", { className: "kf" }, (hud.killfeed || []).slice(-5).map((k) => /* @__PURE__ */ React7.createElement("div", { key: k.id, className: `kfi ${k.mine ? "mine" : ""}` }, /* @__PURE__ */ React7.createElement("b", { style: { color: k.mine ? "var(--cy)" : "var(--txt)" } }, k.killer), /* @__PURE__ */ React7.createElement("span", { style: { color: "var(--dim)" } }, " ", k.head ? "\u2316" : "\u203A", " "), /* @__PURE__ */ React7.createElement("b", null, k.victim), k.weapon && /* @__PURE__ */ React7.createElement("i", { style: { color: "var(--dim2)", fontStyle: "normal", marginLeft: 6 } }, k.weapon)))), hud.round?.phase === "countdown" && /* @__PURE__ */ React7.createElement("div", { className: "banner", style: { color: "var(--cy)" } }, "ROUND ", hud.round.round, /* @__PURE__ */ React7.createElement("small", null, Math.ceil(hud.round.timer))), !hud.alive && hud.round?.phase === "live" && /* @__PURE__ */ React7.createElement("div", { className: "banner lose", style: { fontSize: 22 } }, "ELIMINATED", /* @__PURE__ */ React7.createElement("small", null, hud.spectating ? `SPECTATING \u2014 ${hud.spectating} \xB7 ${Math.ceil(hud.respawnTimer || 0)}s` : `${Math.ceil(hud.respawnTimer || 0)}s`)), hud.round?.phase === "roundend" && /* @__PURE__ */ React7.createElement("div", { className: `banner ${hud.round.scoreA > hud.round.scoreB ? "win" : "lose"}` }, hud.lastWin ? "ROUND WON" : hud.lastWin === false ? "ROUND LOST" : "ROUND OVER", /* @__PURE__ */ React7.createElement("small", null, hud.round.scoreA, " \u2014 ", hud.round.scoreB)), hud.scoreboard && hud.board && /* @__PURE__ */ React7.createElement("div", { className: "board" }, /* @__PURE__ */ React7.createElement("div", { className: "bh" }, /* @__PURE__ */ React7.createElement("span", null, mapName, " \xB7 ", String(mode).replace("_", " "), " \xB7 ", hud.ping, "ms"), /* @__PURE__ */ React7.createElement("span", { className: "cy" }, hud.round?.scoreA, " \u2014 ", hud.round?.scoreB), /* @__PURE__ */ React7.createElement("span", null, "FIRST TO 5 \xB7 ROUND ", hud.round?.round)), ["a", "b"].map((t) => /* @__PURE__ */ React7.createElement("div", { key: t, className: `bteam ${t}` }, /* @__PURE__ */ React7.createElement("div", { className: "bt" }, t === "a" ? "YOUR TEAM" : "ENEMY"), hud.board.filter((r) => r.team === t).sort((x, y) => y.kills - x.kills).map((r) => /* @__PURE__ */ React7.createElement("div", { key: r.name, className: `br ${r.you ? "you" : ""} ${r.alive ? "" : "dead"}` }, /* @__PURE__ */ React7.createElement("span", { className: "bn" }, r.name, /* @__PURE__ */ React7.createElement("i", { className: "bw" }, r.weapon)), /* @__PURE__ */ React7.createElement("span", { className: "bk" }, r.kills), /* @__PURE__ */ React7.createElement("span", { className: "bd" }, r.deaths), /* @__PURE__ */ React7.createElement("span", { className: "ba" }, r.assists), /* @__PURE__ */ React7.createElement("span", { className: "bm" }, r.damage))))), /* @__PURE__ */ React7.createElement("div", { className: "bf" }, /* @__PURE__ */ React7.createElement("span", null, "NAME"), /* @__PURE__ */ React7.createElement("span", null, "K"), /* @__PURE__ */ React7.createElement("span", null, "D"), /* @__PURE__ */ React7.createElement("span", null, "A"), /* @__PURE__ */ React7.createElement("span", null, "DMG"))), paused && /* @__PURE__ */ React7.createElement("div", { className: "pause" }, /* @__PURE__ */ React7.createElement("h2", null, needsLock ? "CLICK TO PLAY" : "PAUSED"), needsLock && /* @__PURE__ */ React7.createElement("div", { className: "hint", style: { textAlign: "center", maxWidth: 460, marginBottom: 10 } }, "Click the arena to capture your mouse. Mouse look, shooting and movement all live behind the pointer lock \u2014 press ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "ESC"), " to release it."), /* @__PURE__ */ React7.createElement("div", { className: "hint", style: { textAlign: "center", maxWidth: 460, marginBottom: 10 } }, /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "W"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "A"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "S"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "D"), " move \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "SHIFT"), " sprint \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "CTRL"), " slide/crouch \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "SPACE"), " jump \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "RMB"), " aim \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "F"), " utility \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "1"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "2"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "3"), " weapons \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "R"), " reload"), /* @__PURE__ */ React7.createElement("div", { className: "row" }, /* @__PURE__ */ React7.createElement("button", { className: "btn pri", onClick: onResume }, needsLock ? "CLICK TO PLAY" : "RESUME"), /* @__PURE__ */ React7.createElement("button", { className: "btn", onClick: onQuit }, "LEAVE MATCH"))));
 }
 
 // src/ui/Loadout.jsx
@@ -2860,8 +3046,9 @@ var AudioKit = class {
   melee() {
     this.enabled && this._noiseBurst(0.16, 900, 1.2, 0.28, "bandpass");
   }
-  hit() {
-    this.enabled && this._tone(1250, 0.07, 0.22, "square", 250);
+  hit(gain = 0.22) {
+    if (!this.enabled) return;
+    this._tone(1250 - gain * 900, 0.07 + gain * 0.06, gain, "square", 250);
   }
   headshot() {
     this.enabled && (this._tone(1500, 0.07, 0.25, "square", 500), this._tone(2200, 0.06, 0.16, "sine"));
@@ -2926,6 +3113,7 @@ var CameraRig = class {
     this.dip = 0;
     this.dipVel = 0;
     this.roll = 0;
+    this.wallBlend = 0;
     this.bob = 0;
     this.bobPhase = 0;
     this.slideTilt = 0;
@@ -2935,6 +3123,7 @@ var CameraRig = class {
     this.pos = new THREE5.Vector3();
     this.sprintBlend = 0;
     this.slideBlend = 0;
+    this.wallBlend = 0;
     this.landPunch = 0;
   }
   reset(yaw = 0) {
@@ -2971,17 +3160,20 @@ var CameraRig = class {
     const sprinting = mv.sprinting && mv.horizontalSpeed > 7.5 && mv.grounded;
     this.sprintBlend = lerp(this.sprintBlend, sprinting ? 1 : 0, 1 - Math.exp(-9 * dt));
     this.slideBlend = lerp(this.slideBlend, mv.sliding ? 1 : 0, 1 - Math.exp(-14 * dt));
+    this.wallBlend = lerp(this.wallBlend, mv.wallRunning ? 1 : 0, 1 - Math.exp(-(mv.wallRunning ? 15 : 9) * dt));
     const right = Math.sin(this.yaw), cosY = Math.cos(this.yaw);
     const lateral = -mv.vel.x * cosY + mv.vel.z * right;
-    const targetRoll = clamp2(-lateral / 13, -1, 1) * 0.055 + this.slideBlend * lateral * 4e-3;
-    this.roll = lerp(this.roll, targetRoll, 1 - Math.exp(-8 * dt));
+    const rx = Math.cos(this.yaw), rz = -Math.sin(this.yaw);
+    const wallSide = mv.wallRunning ? clamp2(mv.wallNormal.x * rx + mv.wallNormal.z * rz, -1, 1) : 0;
+    const targetRoll = clamp2(-lateral / 13, -1, 1) * 0.055 + this.slideBlend * lateral * 4e-3 - wallSide * 0.17 * this.wallBlend;
+    this.roll = lerp(this.roll, targetRoll, 1 - Math.exp(-(8 + this.wallBlend * 10) * dt));
     const sp = mv.horizontalSpeed;
     const bobAmp = mv.grounded && !mv.sliding ? clamp2(sp / 11, 0, 1.2) * 0.022 : 0;
     this.bobPhase += dt * (6.5 + sp * 0.55);
     this.bob = Math.sin(this.bobPhase) * bobAmp;
     const bobX = Math.cos(this.bobPhase * 0.5) * bobAmp * 0.9;
     const speedFov = clamp2((sp - 6) / 9, 0, 1);
-    let fovTarget = this.baseFov + this.sprintBlend * 7 + speedFov * 5 + this.slideBlend * 3;
+    let fovTarget = this.baseFov + this.sprintBlend * 7 + speedFov * 5 + this.slideBlend * 3 + this.wallBlend * 5;
     if (ads > 0.01 && adsFov) fovTarget = lerp(fovTarget, adsFov, ads);
     fovTarget += clamp2(-this.dip, 0, 0.4) * 8;
     this.fov = lerp(this.fov, fovTarget, 1 - Math.exp(-(ads > 0.5 ? 18 : 11) * dt));
@@ -3156,6 +3348,83 @@ var Input = class {
 
 // src/game/core/Weapons.js
 var clamp3 = (v, a, b) => v < a ? a : v > b ? b : v;
+var RECOIL_PATTERNS = {
+  none: [[0, 0]],
+  // steady climb with a lazy S — the classic rifle spray
+  rifle: [
+    [0.8, 0.05],
+    [0.88, -0.14],
+    [0.95, 0.2],
+    [1.02, -0.16],
+    [1.08, 0.3],
+    [1.14, -0.24],
+    [1.2, 0.36],
+    [1.26, -0.28],
+    [1.32, 0.4],
+    [1.36, -0.18],
+    [1.4, 0.44],
+    [1.44, -0.3]
+  ],
+  // light climb, wide sway — controllable, but it wanders
+  smg: [
+    [0.62, 0.1],
+    [0.7, -0.22],
+    [0.78, 0.3],
+    [0.84, -0.34],
+    [0.9, 0.4],
+    [0.94, -0.42],
+    [0.98, 0.46],
+    [1.02, -0.38],
+    [1.05, 0.48],
+    [1.08, -0.3],
+    [1.1, 0.5],
+    [1.12, -0.34]
+  ],
+  // heavy, slow, drifts hard to one side — you have to steer it
+  lmg: [
+    [0.55, 0.12],
+    [0.62, 0.26],
+    [0.7, 0.44],
+    [0.78, 0.3],
+    [0.86, 0.52],
+    [0.92, 0.22],
+    [0.98, 0.58],
+    [1.02, 0.14],
+    [1.06, 0.6],
+    [1.08, 0.1],
+    [1.1, 0.62],
+    [1.12, 0.06]
+  ],
+  // three round bursts: tight, then it resets
+  burst: [[0.85, 0.04], [0.95, -0.16], [1.1, 0.26]],
+  // semi autos: one honest kick per trigger pull
+  marksman: [[1, 0.1], [1.15, -0.14], [1.3, 0.18]],
+  pistol: [[0.95, 0.06], [1.05, -0.18], [1.15, 0.22]],
+  shotgun: [[1, 0.14], [1.1, -0.2], [1.2, 0.26]],
+  beam: [[0.9, 0.03], [0.95, -0.05], [1, 0.08]],
+  // a big single hit — the gun is slow enough that the pattern always resets
+  heavy: [[1, 0.12]]
+};
+var PATTERN_BY_KIND = {
+  rifle: "rifle",
+  carbine: "rifle",
+  smg: "smg",
+  lmg: "lmg",
+  dmr: "marksman",
+  sniper: "heavy",
+  shotgun: "shotgun",
+  pistol: "pistol",
+  revolver: "heavy",
+  energy: "beam",
+  beam: "beam",
+  melee: "none",
+  launcher: "heavy"
+};
+function patternFor(def) {
+  const key = def.stats.pattern || PATTERN_BY_KIND[def.model?.kind] || "rifle";
+  return RECOIL_PATTERNS[key] || RECOIL_PATTERNS.rifle;
+}
+var DEG = Math.PI / 180;
 function momentumScale(speed, kind = "gun") {
   const t = clamp3((speed - 5) / 12, 0, 1.5);
   return 1 + t * (kind === "melee" ? 1 : 0.55);
@@ -3187,6 +3456,31 @@ var Weapon = class {
     this.ads = 0;
     this.shots = 0;
     this.lastFire = -99;
+    this.recoilIndex = 0;
+    this.recoilIdle = 9;
+    this.recoilDebt = { p: 0, y: 0 };
+    this._kick = null;
+    this._rec = null;
+  }
+  // The aim displacement waiting to be applied to whoever holds this gun.
+  // Split in two: recovery is spent BEFORE a shot (so a tap after a pause is
+  // honest), the kick is spent AFTER it (so this bullet flies where you aimed).
+  takeKick() {
+    const k = this._kick;
+    this._kick = null;
+    return k;
+  }
+  takeRecovery() {
+    const r = this._rec;
+    this._rec = null;
+    return r;
+  }
+  addAim(p, y) {
+    this._kick = this._kick || { p: 0, y: 0 };
+    this._kick.p += p;
+    this._kick.y += y;
+    this.recoilDebt.p += p;
+    this.recoilDebt.y += y;
   }
   get isMelee() {
     return this.def.stats.type === "melee";
@@ -3221,6 +3515,7 @@ var Weapon = class {
   // ctx: { dt, speed, grounded, sliding, crouching, wantAds, wantFire, wantFirePressed, t }
   update(dt, ctx) {
     const s = this.def.stats;
+    this.recoilIdle += dt;
     this.fireTimer = Math.max(0, this.fireTimer - dt);
     this.burstTimer = Math.max(0, this.burstTimer - dt);
     this.boltTimer = Math.max(0, this.boltTimer - dt);
@@ -3233,6 +3528,11 @@ var Weapon = class {
     this.ads = clamp3(this.ads + (wantAds ? dt * adsRate : -dt * adsRate * 1.35), 0, 1);
     this.bloom = Math.max(0, this.bloom - dt * (this.isMelee ? 6 : 3.2));
     this.spin = Math.max(0, this.spin - dt * 1.6);
+    if (this.recoilIdle > 0.45) this.recoilIndex = 0;
+    if (this.recoilIdle > 0.16 && (Math.abs(this.recoilDebt.p) > 1e-5 || Math.abs(this.recoilDebt.y) > 1e-5)) {
+      const k = Math.min(1, dt * (this.def.stats.recoil?.recover ?? 7) * 0.55);
+      this.addAim(-this.recoilDebt.p * k, -this.recoilDebt.y * k);
+    }
     if (s.charge) {
       if (ctx.wantFire && !this.reloading && this.ammo > 0 && this.fireTimer <= 0) {
         this.charging = true;
@@ -3276,6 +3576,15 @@ var Weapon = class {
     if (s.burst && this.burstLeft > 0) this.burstTimer = s.burstDelay / s.burst;
     if (s.bolt) this.boltTimer = this.fireTimer * 1.5;
     this.spin = Math.min(1, this.spin + 0.34);
+    if (!this.isMelee) {
+      const pat = patternFor(this.def);
+      const step = pat[Math.min(this.recoilIndex, pat.length - 1)];
+      const v = s.recoil?.v ?? 1;
+      const mul = (1 - this.ads * 0.28) * (s.pellets ? 1.2 : 1);
+      this.addAim(v * step[0] * DEG * mul, v * step[1] * DEG * mul);
+      this.recoilIndex++;
+      this.recoilIdle = 0;
+    }
     const chargeMul = s.charge ? 1 + (s.chargeMul - 1) * this.charge : 1;
     this.charge = 0;
     this.charging = false;
@@ -3953,6 +4262,7 @@ var Fighter = class {
     const dmg = Math.round(amount);
     this.health -= dmg;
     this.hitFlash = 1;
+    this.flinch = 0;
     this.lastAttacker = from;
     if (from && from !== this) {
       this.credit = this.credit || [];
@@ -3963,7 +4273,10 @@ var Fighter = class {
       this.health = 0;
       this.game.killFighter(this, from, head);
     }
-    if (dir) this.game.vfx.bloodPuff(new THREE8.Vector3(this.mv.pos.x, this.mv.pos.y + 1.2, this.mv.pos.z), dir);
+    this.flinch = Math.min(1, 0.5 + dmg / 110);
+    const bp = this._hitPoint || new THREE8.Vector3(this.mv.pos.x, this.mv.pos.y + 1.2, this.mv.pos.z);
+    if (dir) this.game.vfx.bloodPuff(bp, dir);
+    this._hitPoint = null;
     return dmg;
   }
   respawn(pos, yaw) {
@@ -4043,6 +4356,7 @@ var Game = class {
     this.spectate = null;
     this.killCam = null;
     this.hitmarker = 0;
+    this.killHit = 0;
     this.plates = /* @__PURE__ */ new Map();
     this.platesEnabled = typeof document !== "undefined" && typeof document.createElement === "function";
     this.renderScale = 1;
@@ -4089,6 +4403,7 @@ var Game = class {
         f.homeYaw = Math.PI;
         this.fighters.push(f);
         const b = new Bot(f, "easy");
+        f.bot = b;
         b.dummy = true;
         this.bots.push(b);
       });
@@ -4118,7 +4433,9 @@ var Game = class {
         skin: randomSkin()
       });
       this.fighters.push(f);
-      this.bots.push(new Bot(f, botLevel || "normal"));
+      const b = new Bot(f, botLevel || "normal");
+      f.bot = b;
+      this.bots.push(b);
     }
     const friendlyBots = this.net ? 0 : Math.max(0, this.mode.teamA - 1);
     for (let i = 0; i < friendlyBots; i++) {
@@ -4130,7 +4447,9 @@ var Game = class {
         skin: randomSkin()
       });
       this.fighters.push(f);
-      this.bots.push(new Bot(f, botLevel || "normal"));
+      const b = new Bot(f, botLevel || "normal");
+      f.bot = b;
+      this.bots.push(b);
     }
     this.match = new Match(this, this.mode);
     this.buildViewModelFor("primary");
@@ -4330,6 +4649,7 @@ var Game = class {
     this.time += dt;
     const live = this.match.phase === "live";
     if (this.net) this.stepNet(dt);
+    if (this.killHit > 0) this.killHit = Math.max(0, this.killHit - dt);
     if (this.killStreakT > 0) {
       this.killStreakT -= dt;
       if (this.killStreakT <= 0) this.killStreak = 0;
@@ -4382,6 +4702,8 @@ var Game = class {
       t: this.time
     });
     f.utility.update(dt);
+    const rec = w.takeRecovery();
+    if (rec) this.applyAimKick(f, rec);
     if (canAct) {
       if (f.requestReload) {
         if (w.startReload()) this.audio.reload();
@@ -4398,6 +4720,8 @@ var Game = class {
         wantFireReleased: f.wantFireReleased
       });
       if (shot) this.fireWeapon(f, shot);
+      const kick = w.takeKick();
+      if (kick) this.applyAimKick(f, kick);
       if (!w.isMelee && w.ammo === 0 && !w.reloading && w.reserve > 0 && f !== this.player) f.requestReload = true;
     }
     if (f.hook && f.hook.active) {
@@ -4428,9 +4752,12 @@ var Game = class {
       }
     }
     if (f.mv.sliding && f === this.player && Math.random() < dt * 6) this.audio.slide();
+    f.flinch = Math.max(0, (f.flinch || 0) - dt * 4.5);
     f.model.position.set(f.mv.pos.x, f.mv.pos.y, f.mv.pos.z);
     const visYaw = f === this.player ? this.rig.yaw : f.mv.yaw;
+    f.model.rotation.order = "YXZ";
     f.model.rotation.y = visYaw + Math.PI;
+    f.model.rotation.x = -(f.flinch || 0) * 0.26;
     const squash = f.mv.sliding ? 0.55 : f.mv.crouching ? 0.72 : 1;
     f.model.scale.set(1, squash, 1);
     f.model.visible = f.alive && f !== this.player;
@@ -4787,6 +5114,18 @@ var Game = class {
       }
     }
   }
+  // Deterministic climb: shot N always kicks the same way, so the spray can be
+  // learned. Bots get the same kick on their own internal aim, which is why a
+  // higher difficulty (faster turn rate) controls a spray better.
+  applyAimKick(f, r) {
+    if (!r || !r.p && !r.y) return;
+    f.mv.pitch = clamp4(f.mv.pitch + r.p, -Math.PI / 2 + 0.02, Math.PI / 2 - 0.02);
+    f.mv.yaw += r.y;
+    if (f.bot) {
+      f.bot.aimPitch = f.mv.pitch;
+      f.bot.aimYaw = f.mv.yaw;
+    }
+  }
   // ── aiming & shooting ────────────────────────────────────────────────────
   aimOrigin(f) {
     const o = new THREE8.Vector3(f.mv.pos.x, f.eyeY, f.mv.pos.z);
@@ -4824,7 +5163,7 @@ var Game = class {
         const facing = new THREE8.Vector3(-Math.sin(e.mv.yaw), 0, -Math.cos(e.mv.yaw));
         const behind = facing.dot(to) < -0.1;
         let dmg = s.dmg * mom * (behind ? s.back ?? 1.3 : 1);
-        this.damageTarget(e, dmg, f, false, baseDir, isPlayer);
+        this.damageTarget(e, dmg, f, false, baseDir, isPlayer, e.mv.pos.clone().setY(e.mv.pos.y + 1.1));
         if (s.knock) {
           e.mv.vel.addScaledVector(to, s.knock);
           e.mv.vel.y += 2.2;
@@ -4879,7 +5218,7 @@ var Game = class {
         if (hit2.fighter) {
           const dist2 = origin.distanceTo(hit2.point);
           const dmg = shot.dmg * mom * f.weapon.falloffMul(dist2) * (hit2.head ? s.head ?? 1.5 : 1);
-          this.damageTarget(hit2.fighter, dmg, f, hit2.head, dir, isPlayer);
+          this.damageTarget(hit2.fighter, dmg, f, hit2.head, dir, isPlayer, hit2.point);
         }
         continue;
       }
@@ -4889,7 +5228,7 @@ var Game = class {
       if (!s.silent) this.vfx.tracer(muzzleWorld, hit.point, f.team === "a" ? 12578815 : 16766624, 0.02, s.pellets ? 0.05 : 0.075);
       if (hit.fighter) {
         const dmg = shot.dmg * mom * f.weapon.falloffMul(dist) * (hit.head ? s.head ?? 1.5 : 1);
-        this.damageTarget(hit.fighter, dmg, f, hit.head, dir, isPlayer);
+        this.damageTarget(hit.fighter, dmg, f, hit.head, dir, isPlayer, hit.point);
       } else {
         this.vfx.impact(hit.point, hit.normal, 13621475, s.pellets ? 3 : 6);
       }
@@ -4911,7 +5250,7 @@ var Game = class {
     }
     return best;
   }
-  damageTarget(target, dmg, from, head, dir, isPlayer) {
+  damageTarget(target, dmg, from, head, dir, isPlayer, point) {
     if (this.net && target.isRemote && from === this.player) {
       dmg = Math.round(dmg);
       this.netSay(MSG.damage(dmg, head, Math.max(0, target.health - dmg)));
@@ -4922,14 +5261,16 @@ var Game = class {
       this.emit("damage", { amount: dmg, head, speed: from.mv.horizontalSpeed });
       return;
     }
+    if (point) target._hitPoint = point.clone();
     const applied = target.applyDamage(dmg, from, head, dir);
     if (from && applied > 0) from.stats.hits = (from.stats.hits || 0) + 1;
-    if (isPlayer) {
-      this.hitmarker = 0;
-      this.hitmarker = 0.22;
+    if (isPlayer && applied > 0) {
+      const killing = !target.alive;
+      this.hitmarker = killing ? 0.4 : 0.22;
+      this.killHit = killing ? 0.4 : Math.max(0, this.killHit);
       this.lastHitWasHead = head;
       if (head) this.audio.headshot();
-      else this.audio.hit();
+      else this.audio.hit(0.16 + Math.min(0.22, applied / 260));
       this.emit("damage", { amount: applied, head, speed: from.mv.horizontalSpeed });
     }
     if (target === this.player) {
@@ -5411,6 +5752,7 @@ var Game = class {
       sliding: f.mv.sliding,
       sprinting: f.mv.sprinting,
       crouching: f.mv.crouching,
+      wallRunning: f.mv.wallRunning,
       slope: f.mv.groundNormal.y,
       momentum: momentumScale(spd, f.slot === "melee" ? "melee" : "gun"),
       topSpeed: f.mv.topSpeed,
@@ -5418,6 +5760,7 @@ var Game = class {
       utility: { name: f.utility.def.name, uses: f.utility.uses, id: f.utility.id },
       spread: w.currentSpread ? w.currentSpread({ speed: spd, grounded: f.mv.grounded, sliding: f.mv.sliding, crouching: f.mv.crouching }) : 0,
       hitmarker: this.hitmarker,
+      killHit: this.killHit,
       headshot: this.lastHitWasHead,
       damageFlash: this.damageFlash,
       flashTime: f.flashTime,

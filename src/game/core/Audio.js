@@ -68,7 +68,11 @@ export class AudioKit {
     this._tone(body * pitch, len * 0.8, gain * 0.5, 'square', -body * 0.6 * pitch)
   }
   melee () { this.enabled && this._noiseBurst(0.16, 900, 1.2, 0.28, 'bandpass') }
-  hit () { this.enabled && this._tone(1250, 0.07, 0.22, 'square', 250) }
+  hit (gain = 0.22) {
+    if (!this.enabled) return
+    // heavier hits ring lower and louder — you can hear how much you landed
+    this._tone(1250 - gain * 900, 0.07 + gain * 0.06, gain, 'square', 250)
+  }
   headshot () { this.enabled && (this._tone(1500, 0.07, 0.25, 'square', 500), this._tone(2200, 0.06, 0.16, 'sine')) }
   kill () {
     if (!this.enabled) return

@@ -314,3 +314,10 @@ input[type=range]{width:190px;accent-color:var(--cy)}
   font-family: var(--mono); font-size: 10px; letter-spacing: .14em; color: var(--dim);
   background: rgba(8, 12, 17, .55); border: 1px solid var(--line);
 }
+
+/* kill confirmation: the hitmarker crosses into an X */
+.hm.kill i{width:17px;height:3px;background:var(--rd);left:4px;top:19px;box-shadow:0 0 6px #000}
+.hm.kill i:nth-child(1){transform:rotate(45deg)}
+.hm.kill i:nth-child(2){transform:rotate(-45deg)}
+.hm.kill i:nth-child(3){transform:rotate(-45deg)}
+.hm.kill i:nth-child(4){transform:rotate(45deg)}

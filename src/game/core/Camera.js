@@ -20,6 +20,7 @@ export class CameraRig {
     this.dip = 0
     this.dipVel = 0
     this.roll = 0
+    this.wallBlend = 0
     this.bob = 0
     this.bobPhase = 0
     this.slideTilt = 0
@@ -29,6 +30,7 @@ export class CameraRig {
     this.pos = new THREE.Vector3()
     this.sprintBlend = 0
     this.slideBlend = 0
+    this.wallBlend = 0
     this.landPunch = 0
   }
 
@@ -74,12 +76,18 @@ export class CameraRig {
     const sprinting = mv.sprinting && mv.horizontalSpeed > 7.5 && mv.grounded
     this.sprintBlend = lerp(this.sprintBlend, sprinting ? 1 : 0, 1 - Math.exp(-9 * dt))
     this.slideBlend = lerp(this.slideBlend, mv.sliding ? 1 : 0, 1 - Math.exp(-14 * dt))
+    this.wallBlend = lerp(this.wallBlend, mv.wallRunning ? 1 : 0, 1 - Math.exp(-(mv.wallRunning ? 15 : 9) * dt))
 
     // ── roll: strafe lean + slide lean ──────────────────────────────────────
     const right = Math.sin(this.yaw), cosY = Math.cos(this.yaw)
     const lateral = (-mv.vel.x * cosY + mv.vel.z * right) // +right/-left
+    // a wall run leans you into the wall — the one big tilt in the game, and
+    // it is still only ~10°, so the horizon stays readable
+    const rx = Math.cos(this.yaw), rz = -Math.sin(this.yaw)
+    const wallSide = mv.wallRunning ? clamp(mv.wallNormal.x * rx + mv.wallNormal.z * rz, -1, 1) : 0
     const targetRoll = clamp(-lateral / 13, -1, 1) * 0.055 + this.slideBlend * lateral * 0.004
-    this.roll = lerp(this.roll, targetRoll, 1 - Math.exp(-8 * dt))
+      - wallSide * 0.17 * this.wallBlend
+    this.roll = lerp(this.roll, targetRoll, 1 - Math.exp(-(8 + this.wallBlend * 10) * dt))
 
     // ── walk bob (subtle, speed scaled, only on the ground) ─────────────────
     const sp = mv.horizontalSpeed
@@ -90,7 +98,7 @@ export class CameraRig {
 
     // ── fov: sprint + slide push, ads pull ──────────────────────────────────
     const speedFov = clamp((sp - 6) / 9, 0, 1)
-    let fovTarget = this.baseFov + this.sprintBlend * 7 + speedFov * 5 + this.slideBlend * 3
+    let fovTarget = this.baseFov + this.sprintBlend * 7 + speedFov * 5 + this.slideBlend * 3 + this.wallBlend * 5
     if (ads > 0.01 && adsFov) fovTarget = lerp(fovTarget, adsFov, ads)
     // a tiny kick of fov on landing sells the impact without shaking anything
     fovTarget += clamp(-this.dip, 0, 0.4) * 8

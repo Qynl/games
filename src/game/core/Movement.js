@@ -46,6 +46,23 @@ export const TUNE = {
   slideEye: 0.72,
   crouchEye: 1.05,
   standEye: 1.62,
+
+  // ── wall run ────────────────────────────────────────────────────────────
+  wallRunMinSpeed: 5.4,
+  wallRunTime: 1.15,        // hang time before gravity takes you back
+  wallRunGravity: 0.20,     // fraction of gravity while attached
+  wallRunMaxFall: 1.7,      // you drift down a wall, you never drop off it
+  wallRunBoost: 1.03,       // a wall run preserves speed; a sliver is earned
+  wallJumpOut: 6.6,
+  wallJumpUp: 8.0,
+  wallRunCooldown: 0.22,
+  wallRunMax: 2,            // per airtime — you cannot circle one room forever
+
+  // ── ledge grab / mantle ─────────────────────────────────────────────────
+  mantleMin: 0.25,
+  mantleMax: 1.6,
+  mantlePush: 2.4,
+  mantleCooldown: 0.32,
 }
 
 const _v = new THREE.Vector3()
@@ -79,6 +96,13 @@ export class MovementController {
     this.slideHopTimer = 0
     this.wallHit = false
     this.headHit = false
+    this.wallRunning = false
+    this.wallNormal = new THREE.Vector3(0, 0, 1)
+    this.wallRunT = 0
+    this.wallRuns = 0
+    this.wallRunCd = 0
+    this.mantleCd = 0
+    this.mantleT = 0
     this.landImpact = 0
     this.lastFallSpeed = 0
     this.lastLandSpeed = 0
@@ -111,6 +135,12 @@ export class MovementController {
     this.jumpBuffer = 0
     this.slideCooldown = 0
     this.slideHopTimer = 0
+    this.wallRunning = false
+    this.wallRunT = 0
+    this.wallRuns = 0
+    this.wallRunCd = 0
+    this.mantleCd = 0
+    this.mantleT = 0
     this.time = 0
     this.distance = 0
     this.topSpeed = 0
@@ -139,6 +169,10 @@ export class MovementController {
     this.jumpBuffer -= dt
     this.slideHopTimer -= dt
     this.coyote -= dt
+    this.wallRunCd -= dt
+    this.mantleCd -= dt
+    this.mantleT = Math.max(0, this.mantleT - dt)
+    if (this.grounded) this.wallRuns = 0
 
     if (input.jumpPressed) {
       this.jumpBuffer = TUNE.jumpBuffer
@@ -153,6 +187,8 @@ export class MovementController {
     _wish.set(-sy * f + cy * r, 0, -cy * f - sy * r)
     const wl = _wish.length()
     if (wl > 1) _wish.multiplyScalar(1 / wl)
+
+    if (this.wallRunning) this.holdWall(dt)
 
     const speed = this.horizontalSpeed
     const wantCrouch = input.crouch
@@ -219,7 +255,14 @@ export class MovementController {
       this.airTime += dt
       if (this.wasGrounded) this.emit('leftGround')
       this.accelerate(_wish, TUNE.airWishCap, TUNE.airAccel, dt)
-      this.vel.y -= TUNE.gravity * dt
+      if (this.wallRunning) {
+        // hang on the wall: gravity barely touches you, so a wall run is a
+        // genuine way to cross a gap while keeping every m/s you arrived with
+        this.vel.y -= TUNE.gravity * TUNE.wallRunGravity * dt
+        if (this.vel.y < -TUNE.wallRunMaxFall) this.vel.y = -TUNE.wallRunMaxFall
+      } else {
+        this.vel.y -= TUNE.gravity * dt
+      }
       const hs = this.horizontalSpeed
       if (hs > TUNE.maxAirDragSpeed) {
         const k = Math.max(0, 1 - TUNE.airDrag * (hs - TUNE.maxAirDragSpeed) * dt)
@@ -234,7 +277,7 @@ export class MovementController {
     if (this.grounded && Math.abs(r) > 0.1 && !this.sliding) this.emitEvery('strafe', 0.3)
 
     // ── jump (buffer + coyote, both invisible) ──────────────────────────────
-    if (this.jumpBuffer > 0 && (this.grounded || this.coyote > 0) && !this.headHit) {
+    if (this.jumpBuffer > 0 && (this.grounded || this.coyote > 0 || this.wallRunning) && !this.headHit) {
       const viaCoyote = !this.grounded
       this.jump()
       if (viaCoyote) this.emit('coyoteJump')
@@ -244,6 +287,7 @@ export class MovementController {
     this.wasGrounded = this.grounded
     this.moveAndCollide(dt)
     if (this.grounded && !this.wasGrounded) this.onLand()
+    this.afterCollision(dt)
 
     const s = this.horizontalSpeed
     if (s > this.topSpeed) this.topSpeed = s
@@ -320,8 +364,142 @@ export class MovementController {
     this.targetHeight = this.crouching ? TUNE.crouchHeight : TUNE.standHeight
   }
 
+  // ── wall run ─────────────────────────────────────────────────────────────
+  holdWall (dt) {
+    this.wallRunT += dt
+    const n = this.wallNormal
+    // probe back into the wall: if it is still there we keep running
+    _v.copy(this.pos).addScaledVector(n, -0.34)
+    const pen = this.world.deepestContact(_v, this.radius, this.height * 0.85, _n)
+    const still = pen > 1e-4 && Math.abs(_n.y) < 0.5 && _n.dot(n) > 0.35
+    if (!still || this.grounded || this.horizontalSpeed < TUNE.wallRunMinSpeed * 0.5 ||
+        this.wallRunT > TUNE.wallRunTime) { this.endWallRun(); return }
+    this.wallNormal.copy(_n)
+    // stay glued: kill any drift into the wall, never the speed along it
+    const into = this.vel.x * n.x + this.vel.z * n.z
+    if (into < 0) { this.vel.x -= n.x * into; this.vel.z -= n.z * into }
+  }
+
+  startWallRun (n) {
+    const hs = this.horizontalSpeed
+    if (hs < 0.01) return
+    this.wallRunning = true
+    this.wallRunT = 0
+    this.wallRuns++
+    this.wallNormal.copy(n)
+    const into = this.vel.x * n.x + this.vel.z * n.z
+    if (into < 0) { this.vel.x -= n.x * into; this.vel.z -= n.z * into }
+    // catch yourself on the wall — and never let a jump turn into a rocket
+    if (this.vel.y < 0) this.vel.y *= 0.22
+    else if (this.vel.y > 3.2) this.vel.y = 3.2
+    const k = (TUNE.wallRunBoost - 1) * 0.5
+    this.vel.x += this.vel.x * k
+    this.vel.z += this.vel.z * k
+    this.emit('wallrun', { speed: hs })
+  }
+
+  endWallRun () {
+    if (!this.wallRunning) return
+    this.wallRunning = false
+    this.wallRunCd = TUNE.wallRunCooldown
+  }
+
+  // Sense a wall within reach even when we are not pressed into it — a
+  // collision frame only fires on the exact frame you penetrate, which is far
+  // too flaky to hang a wall run on.
+  probeWall (out) {
+    const r = this.radius
+    let bestPen = 0
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4
+      _v.set(this.pos.x + Math.cos(a) * r, this.pos.y + this.height * 0.3, this.pos.z + Math.sin(a) * r)
+      const pen = this.world.deepestContact(_v, r * 0.85, 0.6, _n)
+      if (pen > bestPen && Math.abs(_n.y) < 0.55) { bestPen = pen; out.copy(_n) }
+    }
+    return bestPen > 1e-4
+  }
+
+  // Called right after the collision pass: this is where a wall becomes a
+  // wall run, and a lip becomes a mantle. Both only ever change velocity.
+  afterCollision (dt) {
+    if (this.grounded || this.wallRunning || this.airTime < 0.05) return
+    const hs = this.horizontalSpeed
+    if (hs < 0.2) return
+    if (this.mantleCd > 0 && this.wallRunCd > 0) return
+    if (!this.probeWall(this.wallNormal)) return
+    const n = this.wallNormal
+    const dx = this.vel.x / hs, dz = this.vel.z / hs
+    const into = dx * n.x + dz * n.z
+    // a lip you can actually stand on → mantle (velocity driven, never a warp)
+    if (this.mantleCd <= 0 && this.mantleT <= 0 && hs > 2.4 && into < -0.2) {
+      if (this.tryMantle(n, dx, dz)) return
+    }
+    // running along the wall (not into it) at speed → wall run
+    if (this.wallRunCd <= 0 && this.wallRuns < TUNE.wallRunMax && hs > TUNE.wallRunMinSpeed && Math.abs(into) < 0.75) {
+      this.startWallRun(n)
+    }
+  }
+
+  tryMantle (n, dx, dz) {
+    const r = this.radius
+    const reach = r + 0.42
+    // 1 — find the lip: the lowest point in front of us with head room
+    let top = null
+    for (let h = TUNE.mantleMin; h <= TUNE.mantleMax + 0.01; h += 0.1) {
+      _v.set(this.pos.x + dx * reach, this.pos.y + h, this.pos.z + dz * reach)
+      if (!this.world.overlaps(_v, r * 0.9, TUNE.crouchHeight)) { top = h; break }
+    }
+    if (top === null) return false
+    // 2 — is there something to stand on once we are over there?
+    const lx = this.pos.x + dx * (reach + 0.45)
+    const lz = this.pos.z + dz * (reach + 0.45)
+    let floorY = null
+    for (let d = 0.35; d <= top + 0.9; d += 0.05) {
+      _v.set(lx, this.pos.y + top + 0.35 - d, lz)
+      const pen = this.world.deepestContact(_v, r, TUNE.standHeight, _n)
+      if (pen > 1e-4 && _n.y > 0.5) { floorY = _v.y + pen; break }
+    }
+    if (floorY === null) return false
+    const rise = floorY - this.pos.y
+    if (rise < 0.18 || rise > TUNE.mantleMax) return false
+    // only grab the ledge when the jump you are already on would fall short —
+    // if your own arc clears it, the mantle must stay out of the way
+    const need = Math.sqrt(2 * TUNE.gravity * (rise + 0.12))
+    if (this.vel.y >= need - 0.15) return false
+    // 3 — and room to stand there
+    _v.set(lx, floorY + 0.06, lz)
+    if (this.world.overlaps(_v, r, TUNE.standHeight)) return false
+    // physics-driven vault: exactly the vertical speed needed to clear the lip,
+    // plus a shove forward. Nothing teleports — the arc is real.
+    this.vel.y = need + 0.5
+    this.vel.x += dx * TUNE.mantlePush
+    this.vel.z += dz * TUNE.mantlePush
+    this.mantleCd = TUNE.mantleCooldown
+    this.mantleT = 0.24
+    this.emit('mantle', { rise })
+    return true
+  }
+
   jump () {
     const hs = this.horizontalSpeed
+    if (this.wallRunning) {
+      // WALL JUMP — push off the wall, keep everything you were carrying
+      const n = this.wallNormal
+      this.vel.x += n.x * TUNE.wallJumpOut
+      this.vel.z += n.z * TUNE.wallJumpOut
+      this.vel.y = TUNE.wallJumpUp
+      const nh = Math.hypot(this.vel.x, this.vel.z)
+      const cap = Math.max(hs * 1.14, TUNE.wallRunMinSpeed + 3.4)
+      if (nh > cap) { const k = cap / nh; this.vel.x *= k; this.vel.z *= k }
+      this.endWallRun()
+      this.grounded = false
+      this.coyote = 0
+      this.jumpBuffer = 0
+      this.wasGrounded = false
+      this.airTime = 0.001
+      this.emit('walljump', { speed: nh })
+      return
+    }
     if (this.sliding) {
       this.sliding = false
       this.slideCooldown = TUNE.slideCooldown * 0.5
@@ -402,6 +580,10 @@ export class MovementController {
         else { this.wallHit = true; _n.copy(n) }
       }
     }
+
+    // remember which wall we touched this frame (before the probes below
+    // reuse the same scratch normal) — the wall run / mantle logic needs it
+    if (this.wallHit) this.wallNormal.copy(_n)
 
     // ── step up ────────────────────────────────────────────────────────────
     // Small edges must never eat momentum, so we re-run the whole frame from
@@ -494,6 +676,7 @@ export class MovementController {
       vert: this.vel.y,
       vel: this.vel.clone(),
       grounded: this.grounded,
+      wallRunning: this.wallRunning,
       sliding: this.sliding,
       sprinting: this.sprinting,
       crouching: this.crouching,
@@ -507,7 +690,7 @@ export class MovementController {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-//  Chain tracker: proves the nine required chains actually work, in game.
+//  Chain tracker: proves every required chain actually works, in game.
 // ────────────────────────────────────────────────────────────────────────────
 export const CHAINS = [
   { id: 1, name: 'SPRINT → SLIDE', seq: ['sprintOn', 'slideStart'] },
@@ -519,6 +702,10 @@ export const CHAINS = [
   { id: 7, name: 'STRAFE → JUMP → AIR STRAFE → LAND', seq: ['strafe', 'jump', 'airstrafe', 'land'] },
   { id: 8, name: 'JUMP BUFFER → LAND → JUMP', seq: ['jumpBuffered', 'land', 'jump'] },
   { id: 9, name: 'COYOTE TIME → JUMP', seq: ['leftGround', 'coyoteJump'] },
+  { id: 10, name: 'SPRINT → JUMP → WALL RUN → WALL JUMP', seq: ['sprintOn', 'jump', 'wallrun', 'walljump'] },
+  { id: 11, name: 'SLIDE → JUMP → WALL RUN → WALL JUMP → LAND → SLIDE', seq: ['slideStart', 'slideJump', 'wallrun', 'walljump', 'land', 'slideStart'] },
+  { id: 12, name: 'SPRINT → JUMP → LEDGE GRAB', seq: ['sprintOn', 'jump', 'mantle'] },
+  { id: 13, name: 'WALL RUN → WALL JUMP → AIR STRAFE → LAND', seq: ['wallrun', 'walljump', 'airstrafe', 'land'] },
 ]
 
 export class ChainTracker {

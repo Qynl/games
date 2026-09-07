@@ -89,6 +89,7 @@ class Fighter {
     const dmg = Math.round(amount)
     this.health -= dmg
     this.hitFlash = 1
+    this.flinch = 0
     this.lastAttacker = from
     if (from && from !== this) {
       this.credit = this.credit || []
@@ -99,7 +100,10 @@ class Fighter {
       this.health = 0
       this.game.killFighter(this, from, head)
     }
-    if (dir) this.game.vfx.bloodPuff(new THREE.Vector3(this.mv.pos.x, this.mv.pos.y + 1.2, this.mv.pos.z), dir)
+    this.flinch = Math.min(1, 0.5 + dmg / 110)
+    const bp = this._hitPoint || new THREE.Vector3(this.mv.pos.x, this.mv.pos.y + 1.2, this.mv.pos.z)
+    if (dir) this.game.vfx.bloodPuff(bp, dir)
+    this._hitPoint = null
     return dmg
   }
 
@@ -187,6 +191,7 @@ export class Game {
     this.spectate = null
     this.killCam = null
     this.hitmarker = 0
+    this.killHit = 0
     this.plates = new Map()
     this.platesEnabled = typeof document !== 'undefined' && typeof document.createElement === 'function'
     this.renderScale = 1
@@ -239,6 +244,7 @@ export class Game {
         f.homeYaw = Math.PI
         this.fighters.push(f)
         const b = new Bot(f, 'easy')
+        f.bot = b
         b.dummy = true
         this.bots.push(b)
       })
@@ -265,7 +271,9 @@ export class Game {
         loadout: randomLoadout(), skin: randomSkin(),
       })
       this.fighters.push(f)
-      this.bots.push(new Bot(f, botLevel || 'normal'))
+      const b = new Bot(f, botLevel || 'normal')
+      f.bot = b
+      this.bots.push(b)
     }
     // friendly bots (1 + bot / 1 + 2 bots modes)
     const friendlyBots = this.net ? 0 : Math.max(0, this.mode.teamA - 1)
@@ -275,7 +283,9 @@ export class Game {
         loadout: randomLoadout(), skin: randomSkin(),
       })
       this.fighters.push(f)
-      this.bots.push(new Bot(f, botLevel || 'normal'))
+      const b = new Bot(f, botLevel || 'normal')
+      f.bot = b
+      this.bots.push(b)
     }
 
     this.match = new Match(this, this.mode)
@@ -454,6 +464,7 @@ export class Game {
     this.time += dt
     const live = this.match.phase === 'live'
     if (this.net) this.stepNet(dt)
+    if (this.killHit > 0) this.killHit = Math.max(0, this.killHit - dt)
     if (this.killStreakT > 0) { this.killStreakT -= dt; if (this.killStreakT <= 0) this.killStreak = 0 }
     for (const f of this.fighters) if (f.spawnGuard > 0) f.spawnGuard -= dt
     for (let i = this.hitDirs.length - 1; i >= 0; i--) if ((this.hitDirs[i].t -= dt) <= 0) this.hitDirs.splice(i, 1)
@@ -507,6 +518,10 @@ export class Game {
     })
     f.utility.update(dt)
 
+    // recoil recovery is spent before the shot, so a tap after a pause is honest
+    const rec = w.takeRecovery()
+    if (rec) this.applyAimKick(f, rec)
+
     if (canAct) {
       if (f.requestReload) { if (w.startReload()) this.audio.reload(); f.requestReload = false }
       const shot = w.tryFire({
@@ -520,6 +535,8 @@ export class Game {
         wantFireReleased: f.wantFireReleased,
       })
       if (shot) this.fireWeapon(f, shot)
+      const kick = w.takeKick()          // the climb lands AFTER the bullet leaves
+      if (kick) this.applyAimKick(f, kick)
       // auto reload when dry
       if (!w.isMelee && w.ammo === 0 && !w.reloading && w.reserve > 0 && f !== this.player) f.requestReload = true
     }
@@ -556,9 +573,12 @@ export class Game {
     if (f.mv.sliding && f === this.player && Math.random() < dt * 6) this.audio.slide()
 
     // model
+    f.flinch = Math.max(0, (f.flinch || 0) - dt * 4.5)
     f.model.position.set(f.mv.pos.x, f.mv.pos.y, f.mv.pos.z)
     const visYaw = f === this.player ? this.rig.yaw : f.mv.yaw
+    f.model.rotation.order = 'YXZ'
     f.model.rotation.y = visYaw + Math.PI
+    f.model.rotation.x = -(f.flinch || 0) * 0.26      // you can see a hit land
     const squash = f.mv.sliding ? 0.55 : f.mv.crouching ? 0.72 : 1
     f.model.scale.set(1, squash, 1)
     f.model.visible = f.alive && f !== this.player
@@ -892,6 +912,16 @@ export class Game {
     }
   }
 
+  // Deterministic climb: shot N always kicks the same way, so the spray can be
+  // learned. Bots get the same kick on their own internal aim, which is why a
+  // higher difficulty (faster turn rate) controls a spray better.
+  applyAimKick (f, r) {
+    if (!r || (!r.p && !r.y)) return
+    f.mv.pitch = clamp(f.mv.pitch + r.p, -Math.PI / 2 + 0.02, Math.PI / 2 - 0.02)
+    f.mv.yaw += r.y
+    if (f.bot) { f.bot.aimPitch = f.mv.pitch; f.bot.aimYaw = f.mv.yaw }
+  }
+
   // ── aiming & shooting ────────────────────────────────────────────────────
   aimOrigin (f) {
     const o = new THREE.Vector3(f.mv.pos.x, f.eyeY, f.mv.pos.z)
@@ -932,7 +962,7 @@ export class Game {
         const facing = new THREE.Vector3(-Math.sin(e.mv.yaw), 0, -Math.cos(e.mv.yaw))
         const behind = facing.dot(to) < -0.1
         let dmg = s.dmg * mom * (behind ? (s.back ?? 1.3) : 1)
-        this.damageTarget(e, dmg, f, false, baseDir, isPlayer)
+        this.damageTarget(e, dmg, f, false, baseDir, isPlayer, e.mv.pos.clone().setY(e.mv.pos.y + 1.1))
         if (s.knock) { e.mv.vel.addScaledVector(to, s.knock) ; e.mv.vel.y += 2.2 }
         hitAny = true
       }
@@ -981,7 +1011,7 @@ export class Game {
         if (hit.fighter) {
           const dist = origin.distanceTo(hit.point)
           const dmg = shot.dmg * mom * f.weapon.falloffMul(dist) * (hit.head ? s.head ?? 1.5 : 1)
-          this.damageTarget(hit.fighter, dmg, f, hit.head, dir, isPlayer)
+          this.damageTarget(hit.fighter, dmg, f, hit.head, dir, isPlayer, hit.point)
         }
         continue
       }
@@ -991,7 +1021,7 @@ export class Game {
       if (!s.silent) this.vfx.tracer(muzzleWorld, hit.point, f.team === 'a' ? 0xbfefff : 0xffd6a0, 0.02, s.pellets ? 0.05 : 0.075)
       if (hit.fighter) {
         const dmg = shot.dmg * mom * f.weapon.falloffMul(dist) * (hit.head ? s.head ?? 1.5 : 1)
-        this.damageTarget(hit.fighter, dmg, f, hit.head, dir, isPlayer)
+        this.damageTarget(hit.fighter, dmg, f, hit.head, dir, isPlayer, hit.point)
       } else {
         this.vfx.impact(hit.point, hit.normal, 0xcfd8e3, s.pellets ? 3 : 6)
       }
@@ -1015,7 +1045,7 @@ export class Game {
     return best
   }
 
-  damageTarget (target, dmg, from, head, dir, isPlayer) {
+  damageTarget (target, dmg, from, head, dir, isPlayer, point) {
     // over the wire the shooter decides: you hit what you see, the owner applies it
     if (this.net && target.isRemote && from === this.player) {
       dmg = Math.round(dmg)
@@ -1026,13 +1056,17 @@ export class Game {
       this.emit('damage', { amount: dmg, head, speed: from.mv.horizontalSpeed })
       return
     }
+    if (point) target._hitPoint = point.clone()
     const applied = target.applyDamage(dmg, from, head, dir)
     if (from && applied > 0) from.stats.hits = (from.stats.hits || 0) + 1
-    if (isPlayer) {
-      this.hitmarker = 0
-    this.hitmarker = 0.22
+    if (isPlayer && applied > 0) {
+      const killing = !target.alive
+      this.hitmarker = killing ? 0.4 : 0.22
+      this.killHit = killing ? 0.4 : Math.max(0, this.killHit)
       this.lastHitWasHead = head
-      if (head) this.audio.headshot(); else this.audio.hit()
+      // a heavier hit sounds heavier — you can hear a good trade
+      if (head) this.audio.headshot()
+      else this.audio.hit(0.16 + Math.min(0.22, applied / 260))
       this.emit('damage', { amount: applied, head, speed: from.mv.horizontalSpeed })
     }
     if (target === this.player) {
@@ -1510,6 +1544,7 @@ export class Game {
       sliding: f.mv.sliding,
       sprinting: f.mv.sprinting,
       crouching: f.mv.crouching,
+      wallRunning: f.mv.wallRunning,
       slope: f.mv.groundNormal.y,
       momentum: momentumScale(spd, f.slot === 'melee' ? 'melee' : 'gun'),
       topSpeed: f.mv.topSpeed,
@@ -1517,6 +1552,7 @@ export class Game {
       utility: { name: f.utility.def.name, uses: f.utility.uses, id: f.utility.id },
       spread: w.currentSpread ? w.currentSpread({ speed: spd, grounded: f.mv.grounded, sliding: f.mv.sliding, crouching: f.mv.crouching }) : 0,
       hitmarker: this.hitmarker,
+      killHit: this.killHit,
       headshot: this.lastHitWasHead,
       damageFlash: this.damageFlash,
       flashTime: f.flashTime,

@@ -273,6 +273,74 @@ function timeToLand (s) {
   check('speed stays bounded under spam', peak < 26, 'peak ' + peak.toFixed(2))
 }
 
+// ── 10. WALL RUN ───────────────────────────────────────────────────────────
+{
+  // sprint along a wall, jump into it, run it, kick off it
+  const s = new Sim([5.3, 0.05, 14], 0)      // yaw 0 → forward is -Z, right is +X
+  s.w.add(new Brush({ center: [6.4, 3, 0], half: [0.4, 3, 30], tag: 'wall' }))
+  s.w.build()
+  s.hold('forward', 1).hold('right', 0.45).hold('sprint', true)
+  s.run(1.6)                                  // build sprint speed along the wall
+  const before = s.hs()
+  s.release('sprint'); s.step(2); s.hold('sprint', true); s.step(2)   // re-sprint: the chain window is 1.5s
+  s.press('jump')
+  let seen = false, onWall = 0, peak = 0
+  for (let i = 0; i < 96; i++) {
+    s.step(1)
+    if (s.m.wallRunning) { seen = true; onWall++; peak = Math.max(peak, s.hs()) }
+  }
+  check('10 WALL RUN: attaches to a wall at speed', seen, `ran ${onWall} steps, peak ${peak.toFixed(2)} m/s`)
+  check('10 WALL RUN: keeps the momentum it arrived with', peak >= before - 0.8, `${before.toFixed(2)} → ${peak.toFixed(2)}`)
+  check('10 WALL RUN: hangs instead of dropping', s.m.vel.y > -TUNE.wallRunMaxFall - 0.6, `vy ${s.m.vel.y.toFixed(2)}`)
+  const vyBefore = s.m.vel.y
+  s.press('jump')
+  check('10 WALL JUMP: kicks up and off the wall', s.m.vel.y > 6.5 && s.m.vel.x < -2.5,
+    `vy ${s.m.vel.y.toFixed(2)} vx ${s.m.vel.x.toFixed(2)}`)
+  check('10 chain tracker fired', s.m.tracker.done[10], JSON.stringify(s.m.tracker.order))
+  // the run is time limited — you cannot circle a room forever
+  const s2 = new Sim([5.3, 0.05, 14], 0)
+  s2.w.add(new Brush({ center: [6.4, 3, 0], half: [0.4, 3, 30], tag: 'wall' }))
+  s2.w.build()
+  s2.hold('forward', 1).hold('right', 0.45).hold('sprint', true)
+  s2.run(1.6); s2.press('jump')
+  let steps = 0
+  for (let i = 0; i < 400; i++) { s2.step(1); if (s2.m.wallRunning) steps++; if (s2.m.grounded) break }
+  check('10 WALL RUN: ends on its own (no infinite wall cling)', !s2.m.wallRunning && steps > 20 && steps < 220, `${steps} steps on the wall`)
+}
+
+// ── 12. LEDGE GRAB / MANTLE ────────────────────────────────────────────────
+{
+  // a 2.6 m crate: far above your own jump apex (1.37 m). You meet the wall on
+  // the way down with the lip ~1.3 m over your feet — that is the ledge grab.
+  const s = new Sim([0, 0.05, 0], 0)          // forward is -Z
+  s.w.add(new Brush({ center: [0, 1.3, -8.5], half: [6, 1.3, 2], tag: 'ledge' }))   // top at y = 2.6
+  s.w.build()
+  s.hold('forward', 1).hold('sprint', true)
+  s.run(0.35)
+  let mantled = false, after = 0
+  for (let i = 0; i < 300; i++) {
+    if (!mantled && s.m.grounded && s.m.pos.z < -2.9 && s.m.pos.z > -3.4) s.press('jump')
+    s.step(1)
+    if (s.m.events.some((e) => e.type === 'mantle')) mantled = true
+    if (mantled && ++after > 90) break
+  }
+  check('12 MANTLE: a lip the jump cannot clear is grabbed', mantled,
+    `ended at y=${s.m.pos.y.toFixed(2)} z=${s.m.pos.z.toFixed(2)}`)
+  check('12 MANTLE: you end up standing on it', s.m.grounded && s.m.pos.y > 2.4, `y=${s.m.pos.y.toFixed(2)} grounded=${s.m.grounded}`)
+  check('12 MANTLE: keeps forward speed', s.hs() > 4, `${s.hs().toFixed(2)} m/s`)
+  // a 3 m wall is NOT climbable by mantling — you have to earn that height
+  const s2 = new Sim([0, 0.05, 0], 0)
+  s2.w.add(new Brush({ center: [0, 1.5, -8.5], half: [6, 1.5, 2], tag: 'wall' }))
+  s2.w.build()
+  s2.hold('forward', 1).hold('sprint', true)
+  let mantled2 = false
+  s2.run(4, () => {
+    if (s2.m.grounded && s2.m.pos.z < -4.5 && s2.m.pos.z > -5.2) s2.press('jump')
+    if (s2.m.events.some((e) => e.type === 'mantle')) mantled2 = true
+  })
+  check('12 MANTLE: does not scale tall walls', !mantled2 && s2.m.pos.y < 1.0, `y=${s2.m.pos.y.toFixed(2)}`)
+}
+
 let pass = 0
 for (const r of results) {
   console.log(`${r.ok ? ' PASS' : '*FAIL'}  ${r.name}   ${r.info === undefined ? '' : '[' + r.info + ']'}`)

@@ -25,7 +25,7 @@ export default function HUD ({ hud, paused, needsLock, onResume, onQuit, showMv,
         <i style={{ left: 21, top: 21 + gap, width: 2, height: 5 }} />
         <i style={{ left: 21 - gap - 4, top: 21, width: 5, height: 2 }} />
         <i style={{ left: 21 + gap, top: 21, width: 5, height: 2 }} />
-        <div className={`hm ${hud.hitmarker > 0 ? 'on' : ''} ${hud.hitmarker > 0 && hud.headshot ? 'hs' : ''}`}>
+        <div className={`hm ${hud.hitmarker > 0 ? 'on' : ''} ${hud.hitmarker > 0 && hud.headshot ? 'hs' : ''} ${hud.killHit > 0 ? 'kill' : ''}`}>
           <i /><i /><i /><i />
         </div>
       </div>
@@ -60,13 +60,14 @@ export default function HUD ({ hud, paused, needsLock, onResume, onQuit, showMv,
           <div className="l"><span>VELOCITY XZ</span><b>{f1(Math.hypot(hud.vel?.x || 0, hud.vel?.z || 0))}</b></div>
           <div className="l"><span>VELOCITY Y</span><b>{f1(hud.vert || 0)}</b></div>
           <div className="l"><span>STATE</span>
-            <b className="on">{hud.grounded ? (hud.sliding ? 'SLIDING' : 'GROUND') : 'AIR'}</b></div>
+            <b className="on">{hud.wallRunning ? 'WALL' : hud.grounded ? (hud.sliding ? 'SLIDING' : 'GROUND') : 'AIR'}</b></div>
           <div className="l"><span>SLOPE</span><b>{(Math.acos(Math.min(1, hud.slope || 1)) * 57.3).toFixed(0)}°</b></div>
           <div className="pills">
             <span className={`pill ${hud.sprinting ? 'on' : ''}`}>SPRINT</span>
             <span className={`pill ${hud.sliding ? 'on' : ''}`}>SLIDE</span>
             <span className={`pill ${hud.crouching ? 'on' : ''}`}>CROUCH</span>
             <span className={`pill ${!hud.grounded ? 'on' : ''}`}>AIR</span>
+            <span className={`pill ${hud.wallRunning ? 'on' : ''}`}>WALL</span>
             <span className={`pill ${hud.haste ? 'on' : ''}`}>HASTE</span>
           </div>
           <div className="t" style={{ marginTop: 10 }}>CHAINS {hud.chains?.count || 0}/{CHAINS.length}</div>

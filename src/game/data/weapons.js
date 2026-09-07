@@ -35,7 +35,7 @@ export const WEAPONS = [
     { kind: 'lmg', len: 0.92, body: 0x2b2f38, accent: 0x9d7bff, barrel: 0.44, stock: true, sight: 'holo', drum: true }),
 
   P('longspur', 'LONGSPUR', 1600, 'rare', 'Semi auto marksman rifle. Two to the chest, one to the head, no argument.',
-    { dmg: 58, head: 2.2, rpm: 300, auto: false, mag: 12, reserve: 48, reload: 2.3, spreadHip: 4.5, spreadAds: 0.05, adsTime: 0.3, adsFov: 38, range: 160, falloff: [110, 160, 0.85], recoil: { v: 1.9, h: 0.2, kick: 0.09, recover: 5 }, speed: 0.95, type: 'hitscan' },
+    { dmg: 58, head: 2.2, rpm: 190, auto: false, mag: 12, reserve: 48, reload: 2.3, spreadHip: 4.5, spreadAds: 0.05, adsTime: 0.3, adsFov: 38, range: 160, falloff: [110, 160, 0.85], recoil: { v: 1.9, h: 0.2, kick: 0.09, recover: 5 }, speed: 0.95, type: 'hitscan' },
     { kind: 'dmr', len: 0.95, body: 0x26414a, accent: 0x6ee7ff, barrel: 0.5, stock: true, sight: 'scope' }),
 
   P('blackwing', 'BLACKWING', 2600, 'epic', 'Bolt action. Two bodyshots, or one at full sprint. Headshots at any speed.',
@@ -76,11 +76,11 @@ export const WEAPONS = [
     { kind: 'pistol', len: 0.3, body: 0x39331f, accent: 0xffd166, barrel: 0.13, stock: false, sight: 'dot' }),
 
   S('cutlass', 'CUTLASS', 1200, 'rare', 'Sawed off. Two barrels, one doorway, zero survivors.',
-    { dmg: 9, head: 1.3, rpm: 260, auto: false, pellets: 9, mag: 2, reserve: 16, reload: 1.9, spreadHip: 7.5, spreadAds: 5.0, adsTime: 0.2, adsFov: 74, range: 22, falloff: [6, 20, 0.22], recoil: { v: 2.4, h: 0.8, kick: 0.18, recover: 5 }, speed: 1.09, type: 'hitscan' },
+    { dmg: 9, head: 1.3, rpm: 200, auto: false, pellets: 9, mag: 2, reserve: 16, reload: 1.9, spreadHip: 7.5, spreadAds: 5.0, adsTime: 0.2, adsFov: 74, range: 22, falloff: [6, 20, 0.22], recoil: { v: 2.4, h: 0.8, kick: 0.18, recover: 5 }, speed: 1.09, type: 'hitscan' },
     { kind: 'shotgun', len: 0.34, body: 0x402a1e, accent: 0xffa14a, barrel: 0.16, stock: false, sight: 'iron' }),
 
   S('needle', 'NEEDLE', 1700, 'epic', 'Precision sidearm. Headshots are not lucky, they are earned.',
-    { dmg: 38, head: 3.0, rpm: 340, auto: false, mag: 10, reserve: 40, reload: 1.7, spreadHip: 1.6, spreadAds: 0.02, adsTime: 0.2, adsFov: 44, range: 90, falloff: [50, 90, 0.75], recoil: { v: 1.2, h: 0.15, kick: 0.06, recover: 7 }, speed: 1.06, type: 'hitscan' },
+    { dmg: 38, head: 2.4, rpm: 340, auto: false, mag: 10, reserve: 40, reload: 1.7, spreadHip: 1.6, spreadAds: 0.02, adsTime: 0.2, adsFov: 44, range: 90, falloff: [50, 90, 0.75], recoil: { v: 1.2, h: 0.15, kick: 0.06, recover: 7 }, speed: 1.06, type: 'hitscan' },
     { kind: 'pistol', len: 0.36, body: 0x1e2a33, accent: 0x6ee7ff, barrel: 0.18, stock: false, sight: 'dot' }),
 
   S('judge', 'JUDGE', 2300, 'epic', 'Hand cannon. Slow, loud, final.',

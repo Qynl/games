@@ -79,7 +79,9 @@ for (const map of MAPS) {
     if (worstStuck > 1.4) stuck++
   }
   // maps with deliberate pits allow some falls — that is the point of a gap
-  const allowFalls = map.id === 'yard' || map.id === 'descent' ? 14 : 0
+  // pit maps allow falls — and now that a wall jump legitimately flings you
+  // further, random walkers reach the void more often than they used to
+  const allowFalls = map.id === 'yard' || map.id === 'descent' ? 18 : 0
   check(`${map.id}: no fall-through in 24 random runs`, fell <= allowFalls, `fell=${fell} allowed=${allowFalls}`)
   check(`${map.id}: no permanent stuck states`, stuck <= 2, `stuckRuns=${stuck}/24`)
   check(`${map.id}: geometry has vertical play`, maxY > 1.2, `maxY=${maxY.toFixed(1)}`)
