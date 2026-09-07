@@ -1,0 +1,93 @@
+// ────────────────────────────────────────────────────────────────────────────
+//  QUEUE → MATCH → SHORT ROUND (150 hp) → WIN/LOSE → INSTANT RESET → FIRST TO 5
+// ────────────────────────────────────────────────────────────────────────────
+export const ROUND_HP = 150
+export const FIRST_TO = 5
+
+export class Match {
+  constructor (game, mode) {
+    this.game = game
+    this.mode = mode
+    this.scoreA = 0
+    this.scoreB = 0
+    this.round = 0
+    this.phase = 'countdown'   // countdown | live | roundend | matchend
+    this.timer = 3.0
+    this.roundTime = 0
+    this.roundLimit = 90
+    this.lastWinner = null
+    this.log = []
+  }
+
+  get isRange () { return this.mode.id === 'range' }
+
+  begin () {
+    this.scoreA = 0
+    this.scoreB = 0
+    this.round = 0
+    this.startRound(true)
+  }
+
+  startRound (first = false) {
+    this.round++
+    this.phase = 'countdown'
+    this.timer = first ? 2.6 : 2.0
+    this.roundTime = 0
+    this.game.resetRound()
+    this.game.emit('round', { round: this.round, phase: 'countdown', scoreA: this.scoreA, scoreB: this.scoreB })
+  }
+
+  goLive () {
+    this.phase = 'live'
+    this.game.emit('round', { round: this.round, phase: 'live', scoreA: this.scoreA, scoreB: this.scoreB })
+  }
+
+  update (dt) {
+    if (this.isRange) {
+      this.phase = 'live'
+      if (this.game.player && !this.game.player.alive) this.game.respawnPlayer(1.2)
+      return
+    }
+    if (this.phase === 'countdown') {
+      this.timer -= dt
+      if (this.timer <= 0) this.goLive()
+      return
+    }
+    if (this.phase === 'live') {
+      this.roundTime += dt
+      const alive = this.game.aliveByTeam()
+      if (alive.a === 0 || alive.b === 0 || this.roundTime > this.roundLimit) {
+        const winner = alive.a === 0 && alive.b === 0 ? null : alive.a === 0 ? 'b' : alive.b === 0 ? 'a' : null
+        this.endRound(winner)
+      }
+      return
+    }
+    if (this.phase === 'roundend') {
+      this.timer -= dt
+      if (this.timer <= 0) {
+        if (this.scoreA >= FIRST_TO || this.scoreB >= FIRST_TO) {
+          this.phase = 'matchend'
+          this.game.emit('matchend', {
+            winner: this.scoreA >= FIRST_TO ? 'a' : 'b',
+            scoreA: this.scoreA, scoreB: this.scoreB,
+            stats: this.game.player.stats,
+          })
+        } else this.startRound()
+      }
+      return
+    }
+  }
+
+  endRound (winner) {
+    this.phase = 'roundend'
+    this.timer = 2.6
+    this.lastWinner = winner
+    if (winner === 'a') this.scoreA++
+    else if (winner === 'b') this.scoreB++
+    this.log.push({ round: this.round, winner })
+    this.game.emit('roundend', {
+      winner, scoreA: this.scoreA, scoreB: this.scoreB, round: this.round,
+      firstTo: FIRST_TO,
+    })
+  }
+}
