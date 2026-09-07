@@ -75,18 +75,25 @@ export class Net {
   constructor () {
     this.role = null          // 'host' | 'guest'
     this.pc = null
-    this.chan = null
+    this.chan = null          // 'qyn-f'  unreliable: 30Hz state, redundant
+    this.rchan = null         // 'qyn-r'  reliable:   damage, kills, match, chat
+    this.fastReady = false
+    this.ready = false
     this.state = 'idle'       // idle | offering | answering | connecting | open | closed | error
     this.inbox = []
     this.onState = () => {}
     this.ping = 0
+    this.rtt = 80             // best guess until the first ping lands
     this._pingT = 0
     this._lastRecv = 0
     this._deadline = 0
+    this._pingSent = 0
     this.error = null
   }
 
-  get open () { return this.state === 'open' && this.chan && this.chan.readyState === 'open' }
+  // A snapshot is worthless if it arrives late, but a hit is worthless if it
+  // never arrives at all — so the two kinds of traffic get their own channel.
+  get open () { return this.state === 'open' && this.ready && this.rchan && this.rchan.readyState === 'open' }
 
   setState (s, err) {
     this.state = s
@@ -106,9 +113,10 @@ export class Net {
     }, 25000)
   }
 
-  _attach (pc, chan) {
+  _attach (pc, chan, reliable) {
     this.pc = pc
-    this.chan = chan
+    const key = reliable ? 'rchan' : 'chan'
+    this[key] = chan
     pc.oniceconnectionstatechange = () => {
       const s = pc.iceConnectionState
       if (s === 'failed') this.setState('error', NAT_HINT)
@@ -120,16 +128,22 @@ export class Net {
       this._lastRecv = performance.now()
       this._pingT = 0
       this._deadline = 0
-      this.setState('open')
+      if (reliable) this.ready = true; else this.fastReady = true
+      if (this.ready) this.setState('open')
     }
-    chan.onclose = () => this.setState('closed')
+    chan.onclose = () => { if (reliable) { this.ready = false; this.setState('closed') } }
+    if (reliable) chan.onbufferedamountlow = () => {}
     chan.onmessage = (e) => {
       this._lastRecv = performance.now()
       try {
         const msg = JSON.parse(e.data)
-        if (msg[0] === 'p') this.send(['q', msg[1]])
-        else if (msg[0] === 'q') this.ping = Math.max(0, Math.round(performance.now() - msg[1]))
-        else this.inbox.push(msg)
+        if (msg[0] === 'p') this.send(['q', msg[1]], true)
+        else if (msg[0] === 'q') {
+          const rtt = Math.max(0, performance.now() - msg[1])
+          // smooth, but jump on big spikes so the HUD never lies
+          this.rtt = this.rtt ? this.rtt * 0.8 + rtt * 0.2 : rtt
+          this.ping = Math.round(this.rtt)
+        } else this.inbox.push(msg)
       } catch (err) { /* ignore malformed */ }
       if (this.inbox.length > 400) this.inbox.splice(0, 200)
     }
@@ -151,8 +165,10 @@ export class Net {
     this.role = 'host'
     this.setState('offering')
     const pc = new RTCPeerConnection(ICE)
-    const chan = pc.createDataChannel('qyngun', { ordered: false, maxRetransmits: 0 })
-    this._attach(pc, chan)
+    const chan = pc.createDataChannel('qyn-f', { ordered: false, maxRetransmits: 0 })
+    const rchan = pc.createDataChannel('qyn-r')
+    this._attach(pc, chan, false)
+    this._attach(pc, rchan, true)
     const offer = await pc.createOffer()
     await pc.setLocalDescription(offer)
     await this._gathered(pc)
@@ -165,8 +181,7 @@ export class Net {
     this.setState('answering')
     const desc = JSON.parse(await unpack(code))
     const pc = new RTCPeerConnection(ICE)
-    let chan = null
-    pc.ondatachannel = (e) => { chan = e.channel; this._attach(pc, chan) }
+    pc.ondatachannel = (e) => { this._attach(pc, e.channel, e.channel.label === 'qyn-r') }
     await pc.setRemoteDescription(desc)
     const answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
@@ -180,9 +195,10 @@ export class Net {
     this.setState('connecting')
   }
 
-  send (msg) {
-    if (!this.open) return false
-    try { this.chan.send(JSON.stringify(msg)); return true } catch (e) { return false }
+  send (msg, fast = false) {
+    const c = fast ? this.chan : this.rchan
+    if (!c || c.readyState !== 'open') return false
+    try { c.send(JSON.stringify(msg)); return true } catch (e) { return false }
   }
 
   // Drain everything received since the last call.
@@ -195,13 +211,15 @@ export class Net {
   tick (dt) {
     if (!this.open) return
     this._pingT -= dt
-    if (this._pingT <= 0) { this._pingT = 1; this.send(['p', performance.now()]) }
+    if (this._pingT <= 0) { this._pingT = 1; this.send(['p', performance.now()], true) }
     if (this._lastRecv && performance.now() - this._lastRecv > 9000) this.setState('error', 'The other player stopped responding.')
   }
 
   close () {
     try { this.chan?.close() } catch (e) {}
+    try { this.rchan?.close() } catch (e) {}
     try { this.pc?.close() } catch (e) {}
+    this.ready = this.fastReady = false
     this.setState('closed')
   }
 }
@@ -220,6 +238,9 @@ export const MSG = {
   shot: (x, y, z, dx, dy, dz, weapon) =>
     ['f', +x.toFixed(2), +y.toFixed(2), +z.toFixed(2), +dx.toFixed(3), +dy.toFixed(3), +dz.toFixed(3), weapon],
   hit: (x, y, z) => ['i', +x.toFixed(2), +y.toFixed(2), +z.toFixed(2)],
+  // three snapshots in one packet: losing one packet then costs nothing,
+  // because the next one still carries the state you missed
+  batch: (snaps) => ['b', snaps],
   match: (phase, round, scoreA, scoreB, timer) => ['m', phase, round, scoreA, scoreB, +timer.toFixed(2)],
   hello: (name, loadout, skin) => ['l', name, loadout, skin],
   ready: (mapId, modeId) => ['y', mapId, modeId],
@@ -227,4 +248,4 @@ export const MSG = {
   bye: () => ['x'],
 }
 
-export const FLAG = { grounded: 1, sliding: 2, sprinting: 4, crouching: 8, alive: 16, firing: 32, reloading: 64 }
+export const FLAG = { grounded: 1, sliding: 2, sprinting: 4, crouching: 8, alive: 16, firing: 32, reloading: 64, wall: 128 }

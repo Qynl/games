@@ -10,19 +10,19 @@ import React2, { useState as useState2 } from "react";
 
 // src/game/data/maps.js
 var PAL = {
-  floor: 2634302,
-  floorAlt: 3095368,
-  wall: 3819351,
-  wallDark: 2831683,
-  plat: 4609639,
-  platHigh: 5202548,
-  ramp: 2911092,
-  rampWarm: 8016688,
-  trim: 16747069,
-  neon: 7268351,
-  violet: 10320895,
-  stair: 4148316,
-  cover: 5464431
+  floor: 4873070,
+  floorAlt: 5597566,
+  wall: 7045529,
+  wallDark: 5267568,
+  plat: 8427955,
+  platHigh: 9678537,
+  ramp: 4891568,
+  rampWarm: 12618314,
+  trim: 16752970,
+  neon: 9367807,
+  violet: 12033023,
+  stair: 7440545,
+  cover: 9742781
 };
 var B = (cx, cy, cz, hx, hy, hz, rot = [0, 0, 0], color = PAL.wall, tag = "") => ({ center: [cx, cy, cz], half: [hx, hy, hz], rot, color, tag });
 var slab = (x0, z0, x1, z1, y = 0, color = PAL.floor, tag = "floor") => B((x0 + x1) / 2, y - 1, (z0 + z1) / 2, (x1 - x0) / 2, 1, (z1 - z0) / 2, [0, 0, 0], color, tag);
@@ -281,10 +281,10 @@ var MAPS = [
     name: "QYN YARD",
     sub: "MOVEMENT PLAYGROUND",
     desc: "Flat ground, ramps, stairs, gaps, long platforms, walls, corners. Built for chains.",
-    sky: [725014, 1714744],
-    fog: 1450542,
-    fogNear: 60,
-    fogFar: 190,
+    sky: [2771555, 8369359],
+    fog: 9418444,
+    fogNear: 90,
+    fogFar: 300,
     brushes: qynYard(),
     spawns: {
       a: [[0, 0.2, -44, 0], [-24, 0.2, -26, 0.4], [24, 0.2, -26, -0.4], [-10, 0.2, -50, 0.2]],
@@ -299,10 +299,10 @@ var MAPS = [
     name: "VERTEX",
     sub: "DUEL ARENA",
     desc: "Tight and symmetrical. Centre tower, four ramps, instant fights.",
-    sky: [856088, 2366771],
-    fog: 1776684,
-    fogNear: 45,
-    fogFar: 150,
+    sky: [3352655, 9072565],
+    fog: 10129341,
+    fogNear: 80,
+    fogFar: 260,
     brushes: vertex(),
     spawns: {
       a: [[0, 0.2, -26, 0], [-16, 0.2, -22, 0.3], [16, 0.2, -22, -0.3], [0, 0.2, -18, 0]],
@@ -317,10 +317,10 @@ var MAPS = [
     name: "CONDUIT",
     sub: "THREE LANES",
     desc: "Mid deck, side towers, long lanes. Space to rotate and flank.",
-    sky: [660504, 1192e3],
-    fog: 1188396,
-    fogNear: 55,
-    fogFar: 175,
+    sky: [1919580, 7652310],
+    fog: 9422034,
+    fogNear: 85,
+    fogFar: 280,
     brushes: conduit(),
     spawns: {
       a: [[0, 0.2, -36, 0], [-20, 0.2, -32, 0.3], [20, 0.2, -32, -0.3], [-8, 0.2, -38, 0], [8, 0.2, -38, 0]],
@@ -335,10 +335,10 @@ var MAPS = [
     name: "DESCENT",
     sub: "THE HILL",
     desc: "Summit to bowl. Sprint down, slide the whole way, learn to carry speed.",
-    sky: [1314572, 3810328],
-    fog: 2365972,
-    fogNear: 60,
-    fogFar: 210,
+    sky: [6042399, 14721130],
+    fog: 13214084,
+    fogNear: 95,
+    fogFar: 320,
     brushes: descent(),
     spawns: {
       a: [[-38, 23, 0, Math.PI / 2], [-38, 23, -8, Math.PI / 2], [-38, 23, 8, Math.PI / 2]],
@@ -353,10 +353,10 @@ var MAPS = [
     name: "FRACTURE",
     sub: "SPLIT LEVEL",
     desc: "Upper deck over a bowl. Drop, slide the downhill, come back up the long ramp.",
-    sky: [921878, 2374468],
-    fog: 1516588,
-    fogNear: 55,
-    fogFar: 180,
+    sky: [2380380, 9425112],
+    fog: 10340044,
+    fogNear: 90,
+    fogFar: 300,
     brushes: fracture(),
     spawns: {
       a: [[-30, 4.6, -28, 0.6], [-8, 4.6, -30, 0.2], [-28, 4.6, -10, 0.9], [-14, 4.6, -16, 0.4]],
@@ -371,10 +371,10 @@ var MAPS = [
     name: "QYN RANGE",
     sub: "TRAINING",
     desc: "Every loadout, every distance, plus a speed track to test your chains.",
-    sky: [790548, 1779507],
-    fog: 1318182,
-    fogNear: 50,
-    fogFar: 170,
+    sky: [2372680, 7312309],
+    fog: 8824512,
+    fogNear: 70,
+    fogFar: 230,
     brushes: range(),
     spawns: { a: [[0, 0.6, 30, 0], [-8, 0.6, 30, 0], [8, 0.6, 30, 0]], b: [[0, 0.6, -22, Math.PI]] },
     bots: false,
@@ -823,7 +823,8 @@ var DEFAULT_PROFILE = {
     showMovement: true,
     invertY: false,
     botLevel: "normal",
-    adaptive: true
+    adaptive: true,
+    brightness: 1
   }
 };
 function loadProfile() {
@@ -989,7 +990,18 @@ function Toggle({ label, value, onChange }) {
 function Settings({ profile, save, onBack }) {
   const s = profile.settings;
   const set = (k, v) => save({ ...profile, settings: { ...s, [k]: v } });
-  return /* @__PURE__ */ React5.createElement("div", { className: "screen" }, /* @__PURE__ */ React5.createElement("div", { className: "topbar" }, /* @__PURE__ */ React5.createElement("div", { className: "logo" }, "QynGun", /* @__PURE__ */ React5.createElement("small", null, "SETTINGS")), /* @__PURE__ */ React5.createElement("div", { className: "wallet" }, /* @__PURE__ */ React5.createElement("button", { className: "btn sm ghost", onClick: onBack }, "\u25C0 MENU"))), /* @__PURE__ */ React5.createElement("div", { className: "content", style: { maxWidth: 760 } }, /* @__PURE__ */ React5.createElement("div", { className: "h" }, "FEEL"), /* @__PURE__ */ React5.createElement(Slider, { label: "FIELD OF VIEW", value: s.fov, min: 75, max: 120, step: 1, onChange: (v) => set("fov", v), fmt: (v) => v + "\xB0" }), /* @__PURE__ */ React5.createElement(Slider, { label: "MOUSE SENSITIVITY", value: s.sensitivity, min: 0.2, max: 3, step: 0.05, onChange: (v) => set("sensitivity", v), fmt: (v) => v.toFixed(2) }), /* @__PURE__ */ React5.createElement(Toggle, { label: "INVERT Y", value: s.invertY, onChange: (v) => set("invertY", v) }), /* @__PURE__ */ React5.createElement(Slider, { label: "VOLUME", value: s.volume, min: 0, max: 1, step: 0.05, onChange: (v) => set("volume", v), fmt: (v) => Math.round(v * 100) + "%" }), /* @__PURE__ */ React5.createElement(Toggle, { label: "SOUND", value: s.sound, onChange: (v) => set("sound", v) }), /* @__PURE__ */ React5.createElement("div", { className: "h", style: { marginTop: 26 } }, "DISPLAY"), /* @__PURE__ */ React5.createElement("div", { className: "set" }, /* @__PURE__ */ React5.createElement("label", null, "QUALITY"), /* @__PURE__ */ React5.createElement("select", { className: "sel", value: s.quality, onChange: (e) => set("quality", e.target.value) }, /* @__PURE__ */ React5.createElement("option", { value: "high" }, "HIGH"), /* @__PURE__ */ React5.createElement("option", { value: "low" }, "PERFORMANCE"))), /* @__PURE__ */ React5.createElement(Toggle, { label: "MOVEMENT TELEMETRY PANEL", value: s.showMovement, onChange: (v) => set("showMovement", v) }), /* @__PURE__ */ React5.createElement(Toggle, { label: "ADAPTIVE RESOLUTION", value: s.adaptive !== false, onChange: (v) => set("adaptive", v) }), /* @__PURE__ */ React5.createElement("div", { className: "hint", style: { marginTop: 4 } }, "Drops pixels instead of frames when the FPS dips."), /* @__PURE__ */ React5.createElement("div", { className: "h", style: { marginTop: 26 } }, "GAME"), /* @__PURE__ */ React5.createElement("div", { className: "set" }, /* @__PURE__ */ React5.createElement("label", null, "BOT DIFFICULTY"), /* @__PURE__ */ React5.createElement("select", { className: "sel", value: s.botLevel, onChange: (e) => set("botLevel", e.target.value) }, /* @__PURE__ */ React5.createElement("option", { value: "easy" }, "EASY"), /* @__PURE__ */ React5.createElement("option", { value: "normal" }, "NORMAL"), /* @__PURE__ */ React5.createElement("option", { value: "hard" }, "HARD"), /* @__PURE__ */ React5.createElement("option", { value: "qyn" }, "QYN"))), /* @__PURE__ */ React5.createElement("div", { style: { marginTop: 26, display: "flex", gap: 12 } }, /* @__PURE__ */ React5.createElement("button", { className: "btn ghost", onClick: () => {
+  return /* @__PURE__ */ React5.createElement("div", { className: "screen" }, /* @__PURE__ */ React5.createElement("div", { className: "topbar" }, /* @__PURE__ */ React5.createElement("div", { className: "logo" }, "QynGun", /* @__PURE__ */ React5.createElement("small", null, "SETTINGS")), /* @__PURE__ */ React5.createElement("div", { className: "wallet" }, /* @__PURE__ */ React5.createElement("button", { className: "btn sm ghost", onClick: onBack }, "\u25C0 MENU"))), /* @__PURE__ */ React5.createElement("div", { className: "content", style: { maxWidth: 760 } }, /* @__PURE__ */ React5.createElement("div", { className: "h" }, "FEEL"), /* @__PURE__ */ React5.createElement(Slider, { label: "FIELD OF VIEW", value: s.fov, min: 75, max: 120, step: 1, onChange: (v) => set("fov", v), fmt: (v) => v + "\xB0" }), /* @__PURE__ */ React5.createElement(Slider, { label: "MOUSE SENSITIVITY", value: s.sensitivity, min: 0.2, max: 3, step: 0.05, onChange: (v) => set("sensitivity", v), fmt: (v) => v.toFixed(2) }), /* @__PURE__ */ React5.createElement(Toggle, { label: "INVERT Y", value: s.invertY, onChange: (v) => set("invertY", v) }), /* @__PURE__ */ React5.createElement(Slider, { label: "VOLUME", value: s.volume, min: 0, max: 1, step: 0.05, onChange: (v) => set("volume", v), fmt: (v) => Math.round(v * 100) + "%" }), /* @__PURE__ */ React5.createElement(Toggle, { label: "SOUND", value: s.sound, onChange: (v) => set("sound", v) }), /* @__PURE__ */ React5.createElement("div", { className: "h", style: { marginTop: 26 } }, "DISPLAY"), /* @__PURE__ */ React5.createElement(
+    Slider,
+    {
+      label: "BRIGHTNESS",
+      value: s.brightness ?? 1,
+      min: 0.7,
+      max: 1.6,
+      step: 0.05,
+      onChange: (v) => set("brightness", v),
+      fmt: (v) => Math.round(v * 100) + "%"
+    }
+  ), /* @__PURE__ */ React5.createElement("div", { className: "hint", style: { marginTop: 4 } }, "1.00 is the intended look. Push it up if your screen is dim."), /* @__PURE__ */ React5.createElement("div", { className: "set" }, /* @__PURE__ */ React5.createElement("label", null, "QUALITY"), /* @__PURE__ */ React5.createElement("select", { className: "sel", value: s.quality, onChange: (e) => set("quality", e.target.value) }, /* @__PURE__ */ React5.createElement("option", { value: "high" }, "HIGH"), /* @__PURE__ */ React5.createElement("option", { value: "low" }, "PERFORMANCE"))), /* @__PURE__ */ React5.createElement(Toggle, { label: "MOVEMENT TELEMETRY PANEL", value: s.showMovement, onChange: (v) => set("showMovement", v) }), /* @__PURE__ */ React5.createElement(Toggle, { label: "ADAPTIVE RESOLUTION", value: s.adaptive !== false, onChange: (v) => set("adaptive", v) }), /* @__PURE__ */ React5.createElement("div", { className: "hint", style: { marginTop: 4 } }, "Drops pixels instead of frames when the FPS dips."), /* @__PURE__ */ React5.createElement("div", { className: "h", style: { marginTop: 26 } }, "GAME"), /* @__PURE__ */ React5.createElement("div", { className: "set" }, /* @__PURE__ */ React5.createElement("label", null, "BOT DIFFICULTY"), /* @__PURE__ */ React5.createElement("select", { className: "sel", value: s.botLevel, onChange: (e) => set("botLevel", e.target.value) }, /* @__PURE__ */ React5.createElement("option", { value: "easy" }, "EASY"), /* @__PURE__ */ React5.createElement("option", { value: "normal" }, "NORMAL"), /* @__PURE__ */ React5.createElement("option", { value: "hard" }, "HARD"), /* @__PURE__ */ React5.createElement("option", { value: "qyn" }, "QYN"))), /* @__PURE__ */ React5.createElement("div", { style: { marginTop: 26, display: "flex", gap: 12 } }, /* @__PURE__ */ React5.createElement("button", { className: "btn ghost", onClick: () => {
     if (!confirm("Reset all progress, Qyns and unlocks?")) return;
     localStorage.removeItem("qyngun.profile.v1");
     location.reload();
@@ -2044,7 +2056,13 @@ function HUD({ hud, paused, needsLock, onResume, onQuit, showMv, mapName, mode }
   const pct = Math.min(100, spd / 18 * 100);
   const low = hud.hp / hud.maxHp < 0.34;
   const chains = hud.chains?.done || {};
-  return /* @__PURE__ */ React7.createElement("div", { className: "hud" }, /* @__PURE__ */ React7.createElement("div", { className: "vig" }), /* @__PURE__ */ React7.createElement("div", { className: "dmg", style: { opacity: hud.damageFlash * 0.9 } }), low && hud.alive && /* @__PURE__ */ React7.createElement("div", { className: "lowhp", style: { opacity: 0.5 + Math.sin(Date.now() / 260) * 0.25 } }), /* @__PURE__ */ React7.createElement("div", { className: "flash", style: { opacity: Math.min(0.92, (hud.flashTime || 0) * 0.6) } }), /* @__PURE__ */ React7.createElement("div", { className: "center cross", style: { opacity: hud.ads > 0.9 ? 0 : 1 } }, /* @__PURE__ */ React7.createElement("i", { className: "d", style: { width: 2 + (hud.reloading ? 0 : 1) } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21, top: 21 - gap - 4, width: 2, height: 5 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21, top: 21 + gap, width: 2, height: 5 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21 - gap - 4, top: 21, width: 5, height: 2 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21 + gap, top: 21, width: 5, height: 2 } }), /* @__PURE__ */ React7.createElement("div", { className: `hm ${hud.hitmarker > 0 ? "on" : ""} ${hud.hitmarker > 0 && hud.headshot ? "hs" : ""} ${hud.killHit > 0 ? "kill" : ""}` }, /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null))), /* @__PURE__ */ React7.createElement("div", { className: "center dmgring" }, (hud.hitDirs || []).map((h) => /* @__PURE__ */ React7.createElement("div", { key: h.id, className: "dmga", style: { transform: `rotate(${h.ang * 57.2958}deg)`, opacity: Math.min(1, h.t / 0.9) } }, /* @__PURE__ */ React7.createElement("i", null)))), /* @__PURE__ */ React7.createElement("div", { className: "banners" }, (hud.banners || []).map((b) => /* @__PURE__ */ React7.createElement("div", { key: b.id, className: `bann ${b.kind || "info"}`, style: { opacity: Math.min(1, b.t / 0.45) } }, b.text))), showMv && /* @__PURE__ */ React7.createElement("div", { className: "panel mv" }, /* @__PURE__ */ React7.createElement("div", { className: "t" }, "MOVEMENT TELEMETRY"), /* @__PURE__ */ React7.createElement("div", { className: "big" }, f1(spd), /* @__PURE__ */ React7.createElement("small", null, "M/S"), /* @__PURE__ */ React7.createElement("span", { style: { float: "right", fontSize: 12, color: "var(--dim)" } }, "TOP ", f1(hud.topSpeed || 0))), /* @__PURE__ */ React7.createElement("div", { className: "spdbar" }, /* @__PURE__ */ React7.createElement("i", { style: { width: pct + "%" } }), /* @__PURE__ */ React7.createElement("u", { style: { left: "56%" } })), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "VELOCITY XZ"), /* @__PURE__ */ React7.createElement("b", null, f1(Math.hypot(hud.vel?.x || 0, hud.vel?.z || 0)))), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "VELOCITY Y"), /* @__PURE__ */ React7.createElement("b", null, f1(hud.vert || 0))), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "STATE"), /* @__PURE__ */ React7.createElement("b", { className: "on" }, hud.wallRunning ? "WALL" : hud.grounded ? hud.sliding ? "SLIDING" : "GROUND" : "AIR")), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "SLOPE"), /* @__PURE__ */ React7.createElement("b", null, (Math.acos(Math.min(1, hud.slope || 1)) * 57.3).toFixed(0), "\xB0")), /* @__PURE__ */ React7.createElement("div", { className: "pills" }, /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.sprinting ? "on" : ""}` }, "SPRINT"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.sliding ? "on" : ""}` }, "SLIDE"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.crouching ? "on" : ""}` }, "CROUCH"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${!hud.grounded ? "on" : ""}` }, "AIR"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.wallRunning ? "on" : ""}` }, "WALL"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.haste ? "on" : ""}` }, "HASTE")), /* @__PURE__ */ React7.createElement("div", { className: "t", style: { marginTop: 10 } }, "CHAINS ", hud.chains?.count || 0, "/", CHAINS.length), /* @__PURE__ */ React7.createElement("div", { className: "chainrow" }, CHAINS.map((c) => /* @__PURE__ */ React7.createElement("i", { key: c.id, className: chains[c.id] ? "on" : "", title: c.name }))), /* @__PURE__ */ React7.createElement("div", { style: { marginTop: 6, fontSize: 9.5, color: "var(--dim2)", lineHeight: 1.5, minHeight: 26 } }, CHAINS.filter((c) => !chains[c.id])[0]?.name || "ALL CHAINS CLEAN")), /* @__PURE__ */ React7.createElement("div", { className: "panel hp" }, hud.spawnGuard > 0 && /* @__PURE__ */ React7.createElement("div", { className: "shield" }, "SPAWN SHIELD ", hud.spawnGuard.toFixed(1), "s"), /* @__PURE__ */ React7.createElement("div", { className: "n", style: { color: low ? "var(--rd)" : "#fff" } }, hud.hp, /* @__PURE__ */ React7.createElement("small", null, " / ", hud.maxHp, " HP")), /* @__PURE__ */ React7.createElement("div", { className: `hpbar ${low ? "low" : ""}` }, /* @__PURE__ */ React7.createElement("i", { style: { width: hud.hp / hud.maxHp * 100 + "%" } })), /* @__PURE__ */ React7.createElement("div", { style: { marginTop: 6, fontSize: 10, color: "var(--dim)", letterSpacing: ".1em" } }, mapName, " \xB7 ", String(mode).replace("_", " "))), /* @__PURE__ */ React7.createElement("div", { className: "panel ammo" }, /* @__PURE__ */ React7.createElement("div", { className: "w" }, hud.weapon), /* @__PURE__ */ React7.createElement("div", { className: "n" }, hud.ammo, /* @__PURE__ */ React7.createElement("span", null, " / ", hud.reserve)), hud.reloading && /* @__PURE__ */ React7.createElement("div", { className: "reload", style: { position: "static", marginTop: 6, width: "100%" } }, /* @__PURE__ */ React7.createElement("i", { style: { width: hud.reloadProgress * 100 + "%" } })), hud.ammo !== "\u221E" && hud.ammo === 0 && !hud.reloading && /* @__PURE__ */ React7.createElement("div", { style: { color: "var(--rd)", fontSize: 11, letterSpacing: ".2em" } }, "PRESS R")), /* @__PURE__ */ React7.createElement("div", { className: "panel util" }, "[F] ", hud.utility?.name, " ", /* @__PURE__ */ React7.createElement("b", null, "\xD7", hud.utility?.uses)), spd > 5 && /* @__PURE__ */ React7.createElement("div", { className: "momentum" }, "MOMENTUM DAMAGE \xD7", hud.momentum.toFixed(2)), hud.net && /* @__PURE__ */ React7.createElement("div", { className: "netind" }, /* @__PURE__ */ React7.createElement("b", { style: { color: hud.net.state === "open" ? "var(--gr)" : "var(--rd)" } }, "\u25CF"), hud.net.role === "host" ? "HOST" : "GUEST", " \xB7 ", hud.net.ping, "ms", hud.net.peer && /* @__PURE__ */ React7.createElement("span", null, " \xB7 VS ", hud.net.peer)), /* @__PURE__ */ React7.createElement("div", { className: "score" }, /* @__PURE__ */ React7.createElement("span", { className: "r" }, "ROUND ", hud.round?.round), /* @__PURE__ */ React7.createElement("span", { className: "a" }, hud.round?.scoreA), /* @__PURE__ */ React7.createElement("span", { style: { color: "var(--dim)" } }, ":"), /* @__PURE__ */ React7.createElement("span", { className: "b" }, hud.round?.scoreB), /* @__PURE__ */ React7.createElement("span", { className: "r", style: hud.matchPoint ? { color: "var(--gd)", fontWeight: 700 } : void 0 }, hud.matchPoint ? "MATCH POINT" : "FIRST TO 5")), /* @__PURE__ */ React7.createElement("div", { className: "kf" }, (hud.killfeed || []).slice(-5).map((k) => /* @__PURE__ */ React7.createElement("div", { key: k.id, className: `kfi ${k.mine ? "mine" : ""}` }, /* @__PURE__ */ React7.createElement("b", { style: { color: k.mine ? "var(--cy)" : "var(--txt)" } }, k.killer), /* @__PURE__ */ React7.createElement("span", { style: { color: "var(--dim)" } }, " ", k.head ? "\u2316" : "\u203A", " "), /* @__PURE__ */ React7.createElement("b", null, k.victim), k.weapon && /* @__PURE__ */ React7.createElement("i", { style: { color: "var(--dim2)", fontStyle: "normal", marginLeft: 6 } }, k.weapon)))), hud.round?.phase === "countdown" && /* @__PURE__ */ React7.createElement("div", { className: "banner", style: { color: "var(--cy)" } }, "ROUND ", hud.round.round, /* @__PURE__ */ React7.createElement("small", null, Math.ceil(hud.round.timer))), !hud.alive && hud.round?.phase === "live" && /* @__PURE__ */ React7.createElement("div", { className: "banner lose", style: { fontSize: 22 } }, "ELIMINATED", /* @__PURE__ */ React7.createElement("small", null, hud.spectating ? `SPECTATING \u2014 ${hud.spectating} \xB7 ${Math.ceil(hud.respawnTimer || 0)}s` : `${Math.ceil(hud.respawnTimer || 0)}s`)), hud.round?.phase === "roundend" && /* @__PURE__ */ React7.createElement("div", { className: `banner ${hud.round.scoreA > hud.round.scoreB ? "win" : "lose"}` }, hud.lastWin ? "ROUND WON" : hud.lastWin === false ? "ROUND LOST" : "ROUND OVER", /* @__PURE__ */ React7.createElement("small", null, hud.round.scoreA, " \u2014 ", hud.round.scoreB)), hud.scoreboard && hud.board && /* @__PURE__ */ React7.createElement("div", { className: "board" }, /* @__PURE__ */ React7.createElement("div", { className: "bh" }, /* @__PURE__ */ React7.createElement("span", null, mapName, " \xB7 ", String(mode).replace("_", " "), " \xB7 ", hud.ping, "ms"), /* @__PURE__ */ React7.createElement("span", { className: "cy" }, hud.round?.scoreA, " \u2014 ", hud.round?.scoreB), /* @__PURE__ */ React7.createElement("span", null, "FIRST TO 5 \xB7 ROUND ", hud.round?.round)), ["a", "b"].map((t) => /* @__PURE__ */ React7.createElement("div", { key: t, className: `bteam ${t}` }, /* @__PURE__ */ React7.createElement("div", { className: "bt" }, t === "a" ? "YOUR TEAM" : "ENEMY"), hud.board.filter((r) => r.team === t).sort((x, y) => y.kills - x.kills).map((r) => /* @__PURE__ */ React7.createElement("div", { key: r.name, className: `br ${r.you ? "you" : ""} ${r.alive ? "" : "dead"}` }, /* @__PURE__ */ React7.createElement("span", { className: "bn" }, r.name, /* @__PURE__ */ React7.createElement("i", { className: "bw" }, r.weapon)), /* @__PURE__ */ React7.createElement("span", { className: "bk" }, r.kills), /* @__PURE__ */ React7.createElement("span", { className: "bd" }, r.deaths), /* @__PURE__ */ React7.createElement("span", { className: "ba" }, r.assists), /* @__PURE__ */ React7.createElement("span", { className: "bm" }, r.damage))))), /* @__PURE__ */ React7.createElement("div", { className: "bf" }, /* @__PURE__ */ React7.createElement("span", null, "NAME"), /* @__PURE__ */ React7.createElement("span", null, "K"), /* @__PURE__ */ React7.createElement("span", null, "D"), /* @__PURE__ */ React7.createElement("span", null, "A"), /* @__PURE__ */ React7.createElement("span", null, "DMG"))), paused && /* @__PURE__ */ React7.createElement("div", { className: "pause" }, /* @__PURE__ */ React7.createElement("h2", null, needsLock ? "CLICK TO PLAY" : "PAUSED"), needsLock && /* @__PURE__ */ React7.createElement("div", { className: "hint", style: { textAlign: "center", maxWidth: 460, marginBottom: 10 } }, "Click the arena to capture your mouse. Mouse look, shooting and movement all live behind the pointer lock \u2014 press ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "ESC"), " to release it."), /* @__PURE__ */ React7.createElement("div", { className: "hint", style: { textAlign: "center", maxWidth: 460, marginBottom: 10 } }, /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "W"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "A"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "S"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "D"), " move \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "SHIFT"), " sprint \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "CTRL"), " slide/crouch \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "SPACE"), " jump \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "RMB"), " aim \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "F"), " utility \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "1"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "2"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "3"), " weapons \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "R"), " reload"), /* @__PURE__ */ React7.createElement("div", { className: "row" }, /* @__PURE__ */ React7.createElement("button", { className: "btn pri", onClick: onResume }, needsLock ? "CLICK TO PLAY" : "RESUME"), /* @__PURE__ */ React7.createElement("button", { className: "btn", onClick: onQuit }, "LEAVE MATCH"))));
+  return /* @__PURE__ */ React7.createElement("div", { className: "hud" }, /* @__PURE__ */ React7.createElement("div", { className: "vig" }), hud.speed > 10 && /* @__PURE__ */ React7.createElement(
+    "div",
+    {
+      className: `speedlines ${hud.wallRunning ? "wall" : ""} ${hud.sliding ? "slide" : ""}`,
+      style: { opacity: Math.min(1, (hud.speed - 10) / 8) }
+    }
+  ), /* @__PURE__ */ React7.createElement("div", { className: "dmg", style: { opacity: hud.damageFlash * 0.9 } }), low && hud.alive && /* @__PURE__ */ React7.createElement("div", { className: "lowhp", style: { opacity: 0.5 + Math.sin(Date.now() / 260) * 0.25 } }), /* @__PURE__ */ React7.createElement("div", { className: "flash", style: { opacity: Math.min(0.92, (hud.flashTime || 0) * 0.6) } }), /* @__PURE__ */ React7.createElement("div", { className: "center cross", style: { opacity: hud.ads > 0.9 ? 0 : 1 } }, /* @__PURE__ */ React7.createElement("i", { className: "d", style: { width: 2 + (hud.reloading ? 0 : 1) } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21, top: 21 - gap - 4, width: 2, height: 5 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21, top: 21 + gap, width: 2, height: 5 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21 - gap - 4, top: 21, width: 5, height: 2 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21 + gap, top: 21, width: 5, height: 2 } }), /* @__PURE__ */ React7.createElement("div", { className: `hm ${hud.hitmarker > 0 ? "on" : ""} ${hud.hitmarker > 0 && hud.headshot ? "hs" : ""} ${hud.killHit > 0 ? "kill" : ""}` }, /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null))), /* @__PURE__ */ React7.createElement("div", { className: "center dmgring" }, (hud.hitDirs || []).map((h) => /* @__PURE__ */ React7.createElement("div", { key: h.id, className: "dmga", style: { transform: `rotate(${h.ang * 57.2958}deg)`, opacity: Math.min(1, h.t / 0.9) } }, /* @__PURE__ */ React7.createElement("i", null)))), /* @__PURE__ */ React7.createElement("div", { className: "banners" }, (hud.banners || []).map((b) => /* @__PURE__ */ React7.createElement("div", { key: b.id, className: `bann ${b.kind || "info"}`, style: { opacity: Math.min(1, b.t / 0.45) } }, b.text))), showMv && /* @__PURE__ */ React7.createElement("div", { className: "panel mv" }, /* @__PURE__ */ React7.createElement("div", { className: "t" }, "MOVEMENT TELEMETRY"), /* @__PURE__ */ React7.createElement("div", { className: "big" }, f1(spd), /* @__PURE__ */ React7.createElement("small", null, "M/S"), /* @__PURE__ */ React7.createElement("span", { style: { float: "right", fontSize: 12, color: "var(--dim)" } }, "TOP ", f1(hud.topSpeed || 0))), /* @__PURE__ */ React7.createElement("div", { className: "spdbar" }, /* @__PURE__ */ React7.createElement("i", { style: { width: pct + "%" } }), /* @__PURE__ */ React7.createElement("u", { style: { left: "56%" } })), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "VELOCITY XZ"), /* @__PURE__ */ React7.createElement("b", null, f1(Math.hypot(hud.vel?.x || 0, hud.vel?.z || 0)))), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "VELOCITY Y"), /* @__PURE__ */ React7.createElement("b", null, f1(hud.vert || 0))), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "STATE"), /* @__PURE__ */ React7.createElement("b", { className: "on" }, hud.wallRunning ? "WALL" : hud.grounded ? hud.sliding ? "SLIDING" : "GROUND" : "AIR")), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "SLOPE"), /* @__PURE__ */ React7.createElement("b", null, (Math.acos(Math.min(1, hud.slope || 1)) * 57.3).toFixed(0), "\xB0")), /* @__PURE__ */ React7.createElement("div", { className: "pills" }, /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.sprinting ? "on" : ""}` }, "SPRINT"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.sliding ? "on" : ""}` }, "SLIDE"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.crouching ? "on" : ""}` }, "CROUCH"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${!hud.grounded ? "on" : ""}` }, "AIR"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.wallRunning ? "on" : ""}` }, "WALL"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.haste ? "on" : ""}` }, "HASTE")), /* @__PURE__ */ React7.createElement("div", { className: "t", style: { marginTop: 10 } }, "CHAINS ", hud.chains?.count || 0, "/", CHAINS.length), /* @__PURE__ */ React7.createElement("div", { className: "chainrow" }, CHAINS.map((c) => /* @__PURE__ */ React7.createElement("i", { key: c.id, className: chains[c.id] ? "on" : "", title: c.name }))), /* @__PURE__ */ React7.createElement("div", { style: { marginTop: 6, fontSize: 9.5, color: "var(--dim2)", lineHeight: 1.5, minHeight: 26 } }, CHAINS.filter((c) => !chains[c.id])[0]?.name || "ALL CHAINS CLEAN")), /* @__PURE__ */ React7.createElement("div", { className: "panel hp" }, hud.spawnGuard > 0 && /* @__PURE__ */ React7.createElement("div", { className: "shield" }, "SPAWN SHIELD ", hud.spawnGuard.toFixed(1), "s"), /* @__PURE__ */ React7.createElement("div", { className: "n", style: { color: low ? "var(--rd)" : "#fff" } }, hud.hp, /* @__PURE__ */ React7.createElement("small", null, " / ", hud.maxHp, " HP")), /* @__PURE__ */ React7.createElement("div", { className: `hpbar ${low ? "low" : ""}` }, /* @__PURE__ */ React7.createElement("i", { style: { width: hud.hp / hud.maxHp * 100 + "%" } })), /* @__PURE__ */ React7.createElement("div", { style: { marginTop: 6, fontSize: 10, color: "var(--dim)", letterSpacing: ".1em" } }, mapName, " \xB7 ", String(mode).replace("_", " "))), /* @__PURE__ */ React7.createElement("div", { className: "panel ammo" }, /* @__PURE__ */ React7.createElement("div", { className: "w" }, hud.weapon), /* @__PURE__ */ React7.createElement("div", { className: "n" }, hud.ammo, /* @__PURE__ */ React7.createElement("span", null, " / ", hud.reserve)), hud.reloading && /* @__PURE__ */ React7.createElement("div", { className: "reload", style: { position: "static", marginTop: 6, width: "100%" } }, /* @__PURE__ */ React7.createElement("i", { style: { width: hud.reloadProgress * 100 + "%" } })), hud.ammo !== "\u221E" && hud.ammo === 0 && !hud.reloading && /* @__PURE__ */ React7.createElement("div", { style: { color: "var(--rd)", fontSize: 11, letterSpacing: ".2em" } }, "PRESS R")), /* @__PURE__ */ React7.createElement("div", { className: "panel util" }, "[F] ", hud.utility?.name, " ", /* @__PURE__ */ React7.createElement("b", null, "\xD7", hud.utility?.uses)), spd > 5 && /* @__PURE__ */ React7.createElement("div", { className: "momentum" }, "MOMENTUM DAMAGE \xD7", hud.momentum.toFixed(2)), hud.net && /* @__PURE__ */ React7.createElement("div", { className: "netind" }, /* @__PURE__ */ React7.createElement("b", { style: { color: hud.net.state === "open" ? "var(--gr)" : "var(--rd)" } }, "\u25CF"), hud.net.role === "host" ? "HOST" : "GUEST", " \xB7 ", hud.net.ping, "ms", hud.net.peer && /* @__PURE__ */ React7.createElement("span", null, " \xB7 VS ", hud.net.peer)), /* @__PURE__ */ React7.createElement("div", { className: "score" }, /* @__PURE__ */ React7.createElement("span", { className: "r" }, "ROUND ", hud.round?.round), /* @__PURE__ */ React7.createElement("span", { className: "a" }, hud.round?.scoreA), /* @__PURE__ */ React7.createElement("span", { style: { color: "var(--dim)" } }, ":"), /* @__PURE__ */ React7.createElement("span", { className: "b" }, hud.round?.scoreB), /* @__PURE__ */ React7.createElement("span", { className: "r", style: hud.matchPoint ? { color: "var(--gd)", fontWeight: 700 } : void 0 }, hud.matchPoint ? "MATCH POINT" : "FIRST TO 5")), /* @__PURE__ */ React7.createElement("div", { className: "kf" }, (hud.killfeed || []).slice(-5).map((k) => /* @__PURE__ */ React7.createElement("div", { key: k.id, className: `kfi ${k.mine ? "mine" : ""}` }, /* @__PURE__ */ React7.createElement("b", { style: { color: k.mine ? "var(--cy)" : "var(--txt)" } }, k.killer), /* @__PURE__ */ React7.createElement("span", { style: { color: "var(--dim)" } }, " ", k.head ? "\u2316" : "\u203A", " "), /* @__PURE__ */ React7.createElement("b", null, k.victim), k.weapon && /* @__PURE__ */ React7.createElement("i", { style: { color: "var(--dim2)", fontStyle: "normal", marginLeft: 6 } }, k.weapon)))), hud.round?.phase === "countdown" && /* @__PURE__ */ React7.createElement("div", { className: "banner", style: { color: "var(--cy)" } }, "ROUND ", hud.round.round, /* @__PURE__ */ React7.createElement("small", null, Math.ceil(hud.round.timer))), !hud.alive && hud.round?.phase === "live" && /* @__PURE__ */ React7.createElement("div", { className: "banner lose", style: { fontSize: 22 } }, "ELIMINATED", /* @__PURE__ */ React7.createElement("small", null, hud.spectating ? `SPECTATING \u2014 ${hud.spectating} \xB7 ${Math.ceil(hud.respawnTimer || 0)}s` : `${Math.ceil(hud.respawnTimer || 0)}s`)), hud.round?.phase === "roundend" && /* @__PURE__ */ React7.createElement("div", { className: `banner ${hud.round.scoreA > hud.round.scoreB ? "win" : "lose"}` }, hud.lastWin ? "ROUND WON" : hud.lastWin === false ? "ROUND LOST" : "ROUND OVER", /* @__PURE__ */ React7.createElement("small", null, hud.round.scoreA, " \u2014 ", hud.round.scoreB)), hud.scoreboard && hud.board && /* @__PURE__ */ React7.createElement("div", { className: "board" }, /* @__PURE__ */ React7.createElement("div", { className: "bh" }, /* @__PURE__ */ React7.createElement("span", null, mapName, " \xB7 ", String(mode).replace("_", " "), " \xB7 ", hud.ping, "ms"), /* @__PURE__ */ React7.createElement("span", { className: "cy" }, hud.round?.scoreA, " \u2014 ", hud.round?.scoreB), /* @__PURE__ */ React7.createElement("span", null, "FIRST TO 5 \xB7 ROUND ", hud.round?.round)), ["a", "b"].map((t) => /* @__PURE__ */ React7.createElement("div", { key: t, className: `bteam ${t}` }, /* @__PURE__ */ React7.createElement("div", { className: "bt" }, t === "a" ? "YOUR TEAM" : "ENEMY"), hud.board.filter((r) => r.team === t).sort((x, y) => y.kills - x.kills).map((r) => /* @__PURE__ */ React7.createElement("div", { key: r.name, className: `br ${r.you ? "you" : ""} ${r.alive ? "" : "dead"}` }, /* @__PURE__ */ React7.createElement("span", { className: "bn" }, r.name, /* @__PURE__ */ React7.createElement("i", { className: "bw" }, r.weapon)), /* @__PURE__ */ React7.createElement("span", { className: "bk" }, r.kills), /* @__PURE__ */ React7.createElement("span", { className: "bd" }, r.deaths), /* @__PURE__ */ React7.createElement("span", { className: "ba" }, r.assists), /* @__PURE__ */ React7.createElement("span", { className: "bm" }, r.damage))))), /* @__PURE__ */ React7.createElement("div", { className: "bf" }, /* @__PURE__ */ React7.createElement("span", null, "NAME"), /* @__PURE__ */ React7.createElement("span", null, "K"), /* @__PURE__ */ React7.createElement("span", null, "D"), /* @__PURE__ */ React7.createElement("span", null, "A"), /* @__PURE__ */ React7.createElement("span", null, "DMG"))), paused && /* @__PURE__ */ React7.createElement("div", { className: "pause" }, /* @__PURE__ */ React7.createElement("h2", null, needsLock ? "CLICK TO PLAY" : "PAUSED"), needsLock && /* @__PURE__ */ React7.createElement("div", { className: "hint", style: { textAlign: "center", maxWidth: 460, marginBottom: 10 } }, "Click the arena to capture your mouse. Mouse look, shooting and movement all live behind the pointer lock \u2014 press ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "ESC"), " to release it."), /* @__PURE__ */ React7.createElement("div", { className: "hint", style: { textAlign: "center", maxWidth: 460, marginBottom: 10 } }, /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "W"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "A"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "S"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "D"), " move \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "SHIFT"), " sprint \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "CTRL"), " slide/crouch \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "SPACE"), " jump \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "RMB"), " aim \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "F"), " utility \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "1"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "2"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "3"), " weapons \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "R"), " reload"), /* @__PURE__ */ React7.createElement("div", { className: "row" }, /* @__PURE__ */ React7.createElement("button", { className: "btn pri", onClick: onResume }, needsLock ? "CLICK TO PLAY" : "RESUME"), /* @__PURE__ */ React7.createElement("button", { className: "btn", onClick: onQuit }, "LEAVE MATCH"))));
 }
 
 // src/ui/Loadout.jsx
@@ -2232,18 +2250,25 @@ var Net = class {
     this.role = null;
     this.pc = null;
     this.chan = null;
+    this.rchan = null;
+    this.fastReady = false;
+    this.ready = false;
     this.state = "idle";
     this.inbox = [];
     this.onState = () => {
     };
     this.ping = 0;
+    this.rtt = 80;
     this._pingT = 0;
     this._lastRecv = 0;
     this._deadline = 0;
+    this._pingSent = 0;
     this.error = null;
   }
+  // A snapshot is worthless if it arrives late, but a hit is worthless if it
+  // never arrives at all — so the two kinds of traffic get their own channel.
   get open() {
-    return this.state === "open" && this.chan && this.chan.readyState === "open";
+    return this.state === "open" && this.ready && this.rchan && this.rchan.readyState === "open";
   }
   setState(s, err) {
     this.state = s;
@@ -2264,9 +2289,10 @@ var Net = class {
       this.setState("error", NAT_HINT);
     }, 25e3);
   }
-  _attach(pc, chan) {
+  _attach(pc, chan, reliable) {
     this.pc = pc;
-    this.chan = chan;
+    const key = reliable ? "rchan" : "chan";
+    this[key] = chan;
     pc.oniceconnectionstatechange = () => {
       const s = pc.iceConnectionState;
       if (s === "failed") this.setState("error", NAT_HINT);
@@ -2280,16 +2306,28 @@ var Net = class {
       this._lastRecv = performance.now();
       this._pingT = 0;
       this._deadline = 0;
-      this.setState("open");
+      if (reliable) this.ready = true;
+      else this.fastReady = true;
+      if (this.ready) this.setState("open");
     };
-    chan.onclose = () => this.setState("closed");
+    chan.onclose = () => {
+      if (reliable) {
+        this.ready = false;
+        this.setState("closed");
+      }
+    };
+    if (reliable) chan.onbufferedamountlow = () => {
+    };
     chan.onmessage = (e) => {
       this._lastRecv = performance.now();
       try {
         const msg = JSON.parse(e.data);
-        if (msg[0] === "p") this.send(["q", msg[1]]);
-        else if (msg[0] === "q") this.ping = Math.max(0, Math.round(performance.now() - msg[1]));
-        else this.inbox.push(msg);
+        if (msg[0] === "p") this.send(["q", msg[1]], true);
+        else if (msg[0] === "q") {
+          const rtt = Math.max(0, performance.now() - msg[1]);
+          this.rtt = this.rtt ? this.rtt * 0.8 + rtt * 0.2 : rtt;
+          this.ping = Math.round(this.rtt);
+        } else this.inbox.push(msg);
       } catch (err) {
       }
       if (this.inbox.length > 400) this.inbox.splice(0, 200);
@@ -2317,8 +2355,10 @@ var Net = class {
     this.role = "host";
     this.setState("offering");
     const pc = new RTCPeerConnection(ICE);
-    const chan = pc.createDataChannel("qyngun", { ordered: false, maxRetransmits: 0 });
-    this._attach(pc, chan);
+    const chan = pc.createDataChannel("qyn-f", { ordered: false, maxRetransmits: 0 });
+    const rchan = pc.createDataChannel("qyn-r");
+    this._attach(pc, chan, false);
+    this._attach(pc, rchan, true);
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     await this._gathered(pc);
@@ -2330,10 +2370,8 @@ var Net = class {
     this.setState("answering");
     const desc = JSON.parse(await unpack(code));
     const pc = new RTCPeerConnection(ICE);
-    let chan = null;
     pc.ondatachannel = (e) => {
-      chan = e.channel;
-      this._attach(pc, chan);
+      this._attach(pc, e.channel, e.channel.label === "qyn-r");
     };
     await pc.setRemoteDescription(desc);
     const answer = await pc.createAnswer();
@@ -2346,10 +2384,11 @@ var Net = class {
     await this.pc.setRemoteDescription(desc);
     this.setState("connecting");
   }
-  send(msg) {
-    if (!this.open) return false;
+  send(msg, fast = false) {
+    const c = fast ? this.chan : this.rchan;
+    if (!c || c.readyState !== "open") return false;
     try {
-      this.chan.send(JSON.stringify(msg));
+      c.send(JSON.stringify(msg));
       return true;
     } catch (e) {
       return false;
@@ -2366,7 +2405,7 @@ var Net = class {
     this._pingT -= dt;
     if (this._pingT <= 0) {
       this._pingT = 1;
-      this.send(["p", performance.now()]);
+      this.send(["p", performance.now()], true);
     }
     if (this._lastRecv && performance.now() - this._lastRecv > 9e3) this.setState("error", "The other player stopped responding.");
   }
@@ -2376,9 +2415,14 @@ var Net = class {
     } catch (e) {
     }
     try {
+      this.rchan?.close();
+    } catch (e) {
+    }
+    try {
       this.pc?.close();
     } catch (e) {
     }
+    this.ready = this.fastReady = false;
     this.setState("closed");
   }
 };
@@ -2405,13 +2449,16 @@ var MSG = {
   kill: (killer, victim, head, weapon) => ["k", killer, victim, head ? 1 : 0, weapon],
   shot: (x, y, z, dx, dy, dz, weapon) => ["f", +x.toFixed(2), +y.toFixed(2), +z.toFixed(2), +dx.toFixed(3), +dy.toFixed(3), +dz.toFixed(3), weapon],
   hit: (x, y, z) => ["i", +x.toFixed(2), +y.toFixed(2), +z.toFixed(2)],
+  // three snapshots in one packet: losing one packet then costs nothing,
+  // because the next one still carries the state you missed
+  batch: (snaps) => ["b", snaps],
   match: (phase, round, scoreA, scoreB, timer) => ["m", phase, round, scoreA, scoreB, +timer.toFixed(2)],
   hello: (name, loadout, skin) => ["l", name, loadout, skin],
   ready: (mapId, modeId) => ["y", mapId, modeId],
   spawn: (index) => ["r", index],
   bye: () => ["x"]
 };
-var FLAG = { grounded: 1, sliding: 2, sprinting: 4, crouching: 8, alive: 16, firing: 32, reloading: 64 };
+var FLAG = { grounded: 1, sliding: 2, sprinting: 4, crouching: 8, alive: 16, firing: 32, reloading: 64, wall: 128 };
 
 // src/ui/Netplay.jsx
 function Netplay({ profile, onConnected, onBack }) {
@@ -2592,17 +2639,30 @@ var World = class {
     const sky = new THREE3.Mesh(geo, matSky);
     sky.frustumCulled = false;
     this.scene.add(sky);
+    this.sky = sky;
   }
   buildLights() {
-    const hemi = new THREE3.HemisphereLight(10475775, 2764600, 1.15);
+    const hemi = new THREE3.HemisphereLight(14479871, 6977156, 2.1);
     this.scene.add(hemi);
-    const sun = new THREE3.DirectionalLight(16773856, 1.55);
+    const sun = new THREE3.DirectionalLight(16774370, 2.2);
     sun.position.set(60, 90, 40);
     this.scene.add(sun);
-    const rim = new THREE3.DirectionalLight(7268351, 0.5);
+    const rim = new THREE3.DirectionalLight(10479871, 0.85);
     rim.position.set(-50, 40, -60);
     this.scene.add(rim);
+    const bounce = new THREE3.DirectionalLight(13623536, 0.55);
+    bounce.position.set(-20, -60, 30);
+    this.scene.add(bounce);
     this.sun = sun;
+    this.lights = [hemi, sun, rim, bounce];
+    this.baseLight = this.lights.map((l) => l.intensity);
+  }
+  // brightness is a player setting: 1.0 is the intended look
+  setBrightness(b = 1) {
+    if (!this.lights) return;
+    this.lights.forEach((l, i) => {
+      l.intensity = this.baseLight[i] * b;
+    });
   }
   buildBrushes(map) {
     const n = map.brushes.length;
@@ -2637,7 +2697,7 @@ var World = class {
     this.mesh = mesh;
     this.group.add(mesh);
     const edges = new THREE3.Group();
-    const em = new THREE3.LineBasicMaterial({ color: 856343, transparent: true, opacity: 0.32 });
+    const em = new THREE3.LineBasicMaterial({ color: 2371645, transparent: true, opacity: 0.38 });
     let added = 0;
     for (const b of map.brushes) {
       if (added > 260) break;
@@ -2652,14 +2712,25 @@ var World = class {
     this.edges = edges;
     this.group.add(edges);
   }
+  // Only ever free what this class created. Fighter models, viewmodels and VFX
+  // live in this scene too, and their geometry comes from a shared cache that
+  // outlives any single match — disposing it here broke every later match.
   dispose() {
-    this.scene.traverse((o) => {
-      if (o.geometry) o.geometry.dispose();
-      if (o.material) {
-        if (Array.isArray(o.material)) o.material.forEach((m) => m.dispose());
-        else o.material.dispose();
-      }
-    });
+    if (this.mesh) {
+      this.mesh.geometry.dispose();
+      this.mesh.material.dispose();
+      this.mesh.dispose?.();
+    }
+    if (this.edges) {
+      for (const l of this.edges.children) l.geometry.dispose();
+      if (this.edges.children.length) this.edges.children[0].material?.dispose?.();
+    }
+    if (this.sky) {
+      this.sky.geometry.dispose();
+      this.sky.material.dispose();
+    }
+    this.scene.clear();
+    this.lights = null;
   }
 };
 
@@ -3053,6 +3124,11 @@ var AudioKit = class {
   headshot() {
     this.enabled && (this._tone(1500, 0.07, 0.25, "square", 500), this._tone(2200, 0.06, 0.16, "sine"));
   }
+  chain(n = 1) {
+    if (!this.enabled) return;
+    const base = 520 + Math.min(6, n) * 70;
+    [0, 1, 2].forEach((i) => setTimeout(() => this._tone(base * (1 + i * 0.26), 0.09, 0.14, "triangle"), i * 55));
+  }
   kill() {
     if (!this.enabled) return;
     this._tone(660, 0.1, 0.22, "triangle");
@@ -3214,9 +3290,15 @@ var Input = class {
     this.sensitivity = 1;
     this.invertY = false;
     this._onLock = null;
+    this._ls = [];
   }
   attach(el) {
+    this.detach();
     this.el = el;
+    const on = (target, type, fn, opts) => {
+      target.addEventListener(type, fn, opts);
+      this._ls.push([target, type, fn, opts]);
+    };
     const kd = (e) => {
       if (e.code === "Tab") e.preventDefault();
       if (e.code === "Escape" && this.fallback) {
@@ -3231,27 +3313,24 @@ var Input = class {
       this.keys[e.code] = false;
       this.released[e.code] = true;
     };
-    window.addEventListener("keydown", kd);
-    window.addEventListener("keyup", ku);
-    window.addEventListener("blur", () => {
+    const blur = () => {
       this.keys = {};
-    });
+    };
     const mm = (e) => {
       if (!this.engaged) return;
       this.mouse.dx += e.movementX || 0;
       this.mouse.dy += e.movementY || 0;
     };
-    document.addEventListener("mousemove", mm);
-    el.addEventListener("mousedown", (e) => {
+    const md = (e) => {
       if (!this.engaged) return;
       if (!this.mouseButtons[e.button]) this.mousePressed[e.button] = true;
       this.mouseButtons[e.button] = true;
-    });
-    window.addEventListener("mouseup", (e) => {
+    };
+    const mu = (e) => {
       this.mouseButtons[e.button] = false;
-    });
-    el.addEventListener("contextmenu", (e) => e.preventDefault());
-    document.addEventListener("pointerlockchange", () => {
+    };
+    const ctx = (e) => e.preventDefault();
+    const plc = () => {
       const was = this.engaged;
       if (document.pointerLockElement === el) {
         this.locked = true;
@@ -3261,10 +3340,32 @@ var Input = class {
         this._lastExit = performance.now();
       }
       if (was !== this.engaged) this._onLock?.(this.engaged);
-    });
-    window.addEventListener("wheel", (e) => {
+    };
+    const wheel = (e) => {
       this.wheel += Math.sign(e.deltaY);
-    }, { passive: true });
+    };
+    on(window, "keydown", kd);
+    on(window, "keyup", ku);
+    on(window, "blur", blur);
+    on(document, "mousemove", mm);
+    on(el, "mousedown", md);
+    on(window, "mouseup", mu);
+    on(el, "contextmenu", ctx);
+    on(document, "pointerlockchange", plc);
+    on(window, "wheel", wheel, { passive: true });
+  }
+  // A disposed game must stop listening — otherwise a second match reads the
+  // mouse through two inputs at once and the sensitivity doubles.
+  detach() {
+    for (const [t, type, fn, opts] of this._ls || []) t.removeEventListener(type, fn, opts);
+    this._ls = [];
+    if (this._retryT) {
+      clearTimeout(this._retryT);
+      this._retryT = null;
+    }
+    this.locked = false;
+    this.fallback = false;
+    this.el = null;
   }
   get engaged() {
     return this.locked || this.fallback;
@@ -4161,7 +4262,8 @@ var Match = class {
             winner: this.scoreA >= FIRST_TO ? "a" : "b",
             scoreA: this.scoreA,
             scoreB: this.scoreB,
-            stats: this.game.player.stats
+            stats: this.game.player.stats,
+            board: this.game.buildBoard()
           });
         } else this.startRound();
       }
@@ -4189,6 +4291,9 @@ var Match = class {
 var STEP = 1 / 120;
 var TEAM_COLORS = { a: 7268351, b: 16747069 };
 var clamp4 = (v, a, b) => v < a ? a : v > b ? b : v;
+var _netA = new THREE8.Vector3();
+var _fx = new THREE8.Vector3();
+var _fxv = new THREE8.Vector3();
 var shortAngle = (a, b) => {
   let d = b - a;
   while (d > Math.PI) d -= Math.PI * 2;
@@ -4321,7 +4426,7 @@ var Game = class {
     this.renderer = makeRenderer(canvas);
     if ("toneMapping" in this.renderer) {
       this.renderer.toneMapping = THREE8.ACESFilmicToneMapping;
-      this.renderer.toneMappingExposure = 1.06;
+      this.renderer.toneMappingExposure = this.exposureFor(this.settings.brightness ?? 1);
     }
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.settings.quality === "high" ? 2 : 1.35));
     this.renderer.setSize(canvas.clientWidth || 1280, canvas.clientHeight || 720, false);
@@ -4376,17 +4481,42 @@ var Game = class {
     window.addEventListener("resize", this._onResize);
   }
   // ── lifecycle ────────────────────────────────────────────────────────────
+  // Brightness is a player setting: 1.0 is the look the art was tuned for.
+  exposureFor(b) {
+    return 1.14 * (0.55 + 0.45 * (b ?? 1));
+  }
+  setBrightness(b) {
+    this.settings.brightness = b;
+    if (this.world) this.world.setBrightness(b);
+    if ("toneMapping" in this.renderer) this.renderer.toneMappingExposure = this.exposureFor(b);
+  }
   load(config) {
     const { mapId, modeId, loadout, skin, botLevel, teamBots, net, netRole, peerName } = config;
     this.config = config;
     this.net = net || null;
     this.netRole = netRole || null;
-    this.netState = net ? { hello: null, remoteHello: null, buf: [], slot: 0, lastHello: 0, sentKill: false } : null;
+    this.netState = net ? {
+      hello: null,
+      remoteHello: null,
+      buf: [],
+      recent: [],
+      lastHello: 0,
+      sentKill: false,
+      clock: null,
+      winBest: Infinity,
+      winStart: 0,
+      jitter: 0,
+      late: 0,
+      delay: 70,
+      seen: null,
+      shown: null
+    } : null;
     this.netPing = 0;
     this.map = MAP_BY_ID[mapId] || MAP_BY_ID.yard;
     this.mode = MODES.find((m) => m.id === modeId) || MODES[0];
     this.skin = SKIN_MAP[skin] || SKIN_MAP.stock;
     this.world = new World(this.map);
+    this.world.setBrightness(this.settings.brightness ?? 1);
     this.vfx = new VFX(this.world.scene);
     this.playerLoadout = loadout || { ...DEFAULT_LOADOUT };
     this.playerName = config.playerName || (this.netRole === "host" ? "HOST" : this.netRole === "guest" ? "GUEST" : "YOU");
@@ -4479,6 +4609,15 @@ var Game = class {
       p.sp.material.dispose?.();
     }
     this.plates.clear();
+    for (const f of this.fighters) if (f.model) this.world.scene.remove(f.model);
+    try {
+      this.vfx?.clear();
+    } catch (e) {
+    }
+    try {
+      this.input?.detach?.();
+    } catch (e) {
+    }
     window.removeEventListener("resize", this._onResize);
     if (this.world) this.world.dispose();
     this.renderer.dispose();
@@ -4741,7 +4880,18 @@ var Game = class {
     if (f.mv.horizontalSpeed > (f.stats.topSpeed || 0)) f.stats.topSpeed = f.mv.horizontalSpeed;
     const before = f.mv.grounded;
     f.mv.step(dt, f.input);
-    if (f.mv.grounded && !before && f.mv.lastFallSpeed > 4) this.audio.land(clamp4(f.mv.lastFallSpeed / 12, 0, 1));
+    this.chainWatch(f);
+    if (f.mv.grounded && !before && f.mv.lastFallSpeed > 4) {
+      this.audio.land(clamp4(f.mv.lastFallSpeed / 12, 0, 1));
+      const hard = clamp4(f.mv.lastFallSpeed / 12, 0, 1);
+      for (let i = 0; i < 5 + hard * 9; i++) {
+        const a = i / (5 + hard * 9) * Math.PI * 2 + Math.random();
+        _fx.set(f.mv.pos.x + Math.cos(a) * 0.3, f.mv.pos.y + 0.05, f.mv.pos.z + Math.sin(a) * 0.3);
+        _fxv.set(Math.cos(a) * (1.4 + hard * 3), 0.7 + Math.random() * 1.2, Math.sin(a) * (1.4 + hard * 3));
+        this.vfx.particle(_fx, _fxv, 14148334, 0.11 + hard * 0.07, 0.45 + hard * 0.4, 6, 2.2);
+      }
+    }
+    this.groundFx(f, dt);
     if (f.mv.grounded && f.mv.horizontalSpeed > 1.5) {
       f.stepPhase += f.mv.horizontalSpeed * dt;
       if (f.stepPhase > 2.4) {
@@ -4908,8 +5058,11 @@ var Game = class {
     return t;
   }
   // ══ netplay ═══════════════════════════════════════════════════════════════
-  netSay(msg) {
-    if (this.net && this.net.open) this.net.send(msg);
+  // Two channels: snapshots go out 30×/s on an unreliable channel (three per
+  // packet, so one lost packet costs nothing), everything that must land —
+  // damage, kills, the round clock — goes on a reliable one.
+  netSay(msg, fast) {
+    if (this.net && this.net.open) this.net.send(msg, !!fast);
   }
   stepNet(dt) {
     const net = this.net;
@@ -4942,15 +5095,64 @@ var Game = class {
       if (f.alive) flags |= FLAG.alive;
       if (f.wantFire) flags |= FLAG.firing;
       if (f.weapon.reloading) flags |= FLAG.reloading;
-      this.netSay(MSG.snapshot(performance.now(), f.mv, flags, f.health, f.slot, f.weapon.isMelee ? 0 : f.weapon.ammo));
+      if (f.mv.wallRunning) flags |= FLAG.wall;
+      const snap = MSG.snapshot(performance.now(), f.mv, flags, f.health, f.slot, f.weapon.isMelee ? 0 : f.weapon.ammo);
+      st.recent.push(snap);
+      if (st.recent.length > 3) st.recent.shift();
+      this.netSay(MSG.batch(st.recent.slice()), true);
     }
     if (this.netRole === "host" && this.match) {
       st.matchT = (st.matchT || 0) - dt;
       if (st.matchT <= 0) {
-        st.matchT = 0.1;
+        st.matchT = 0.5;
         this.netSay(MSG.match(this.match.phase, this.match.round, this.match.scoreA, this.match.scoreB, this.match.timer));
       }
     }
+    const jitter2 = st.jitter || 0;
+    const want = clamp4(38 + jitter2 * 1.7 + (st.late > 0 ? 14 : 0), 38, 150);
+    st.delay += (want - st.delay) * Math.min(1, dt * 1.5);
+  }
+  // Map the peer's clock onto ours. The lowest observed offset over a few
+  // seconds is the truest one (the least queued packet wins), and we ease into
+  // it so the remote never visibly jumps.
+  syncClock(remoteT) {
+    const st = this.netState;
+    const now = performance.now();
+    const want = now - remoteT - (this.net?.rtt || 80) / 2;
+    if (now - (st.winStart || 0) > 3e3) {
+      st.winStart = now;
+      st.winBest = Infinity;
+    }
+    if (want < (st.winBest ?? Infinity)) st.winBest = want;
+    if (st.clock === null || st.clock === void 0 || Math.abs(st.clock - st.winBest) > 200) st.clock = st.winBest;
+  }
+  pushSnapshot(m) {
+    const st = this.netState;
+    this.syncClock(m[1]);
+    if (st.buf.some((q) => q.rt === m[1])) return;
+    const t = m[1] + (st.clock || 0);
+    if (t > (st.maxT ?? -Infinity)) {
+      const gap = t - (st.maxT ?? t - 33.3);
+      const err = Math.abs(gap - 33.3);
+      st.jitter = st.jitter === void 0 ? Math.min(err, 90) : st.jitter * 0.88 + Math.min(err, 90) * 0.12;
+      if (gap > 70 && st.maxT !== void 0) st.late = (st.late || 0) + 1;
+      else st.late = Math.max(0, (st.late || 0) - 0.2);
+      st.maxT = t;
+    }
+    st.buf.push({
+      rt: m[1],
+      t,
+      p: [m[2], m[3], m[4]],
+      v: [m[5], m[6], m[7]],
+      yaw: m[8],
+      pitch: m[9],
+      flags: m[10],
+      hp: m[11],
+      slot: m[12],
+      ammo: m[13]
+    });
+    if (st.buf.length > 1 && st.buf[st.buf.length - 1].t < st.buf[st.buf.length - 2].t) st.buf.sort((a, b) => a.t - b.t);
+    if (st.buf.length > 48) st.buf.shift();
   }
   onNetMessage(m) {
     const st = this.netState;
@@ -4963,12 +5165,7 @@ var Game = class {
           r.name = m[1];
           r.loadout = { ...DEFAULT_LOADOUT, ...m[2] || {} };
           r.skin = SKIN_MAP[m[3]] || SKIN_MAP.stock;
-          if (r.model) {
-            this.world.scene.remove(r.model);
-            r.model.traverse?.((o) => {
-              if (o.isMesh && o.geometry) o.geometry.dispose?.();
-            });
-          }
+          if (r.model) this.world.scene.remove(r.model);
           r.model = buildFighterModel(TEAM_COLORS.b, true, WEAPON_MAP[r.loadout.primary]);
           this.world.scene.add(r.model);
           for (const k of ["primary", "secondary", "melee"]) r.weapons[k] = new Weapon(r.loadout[k], r.skin);
@@ -4977,36 +5174,24 @@ var Game = class {
         this.banner("CONNECTED \u2014 " + m[1], "good", 2);
         break;
       }
-      case "s": {
-        if (!r) break;
-        st.buf.push({
-          t: performance.now(),
-          p: [m[2], m[3], m[4]],
-          v: [m[5], m[6], m[7]],
-          yaw: m[8],
-          pitch: m[9],
-          flags: m[10],
-          hp: m[11],
-          slot: m[12],
-          ammo: m[13],
-          spd: m[14]
-        });
-        if (st.buf.length > 40) st.buf.shift();
+      case "b":
+        for (const s of m[1]) this.pushSnapshot(s);
         break;
-      }
+      case "s":
+        this.pushSnapshot(m);
+        break;
       case "d": {
         if (!this.player || !this.player.alive) break;
         const from = this.remote;
         const before = this.player.health;
-        this.player.spawnGuard = 0;
         this.player.health = Math.max(0, this.player.health - m[1]);
-        from.stats.damage += m[1];
+        if (from) from.stats.damage += m[1];
         this.damageFlash = 1;
-        this.rig.addShake(0.5);
+        this.rig.addShake(0.45);
         this.audio.hurt();
         if (from) this.addHitDir(from.mv.pos);
         if (this.player.health <= 0) this.killFighter(this.player, from, !!m[2]);
-        if (before !== this.player.health) this.emit("damage", { amount: -m[1], head: !!m[2], speed: 0 });
+        else if (before !== this.player.health) this.audio.hit(0.1);
         break;
       }
       case "k": {
@@ -5014,9 +5199,8 @@ var Game = class {
         const killerIsMe = m[1] === this.player.name;
         const victimIsMe = m[2] === this.player.name;
         if (victimIsMe) this.killFighter(this.player, r, !!m[3]);
-        else if (killerIsMe) {
-          this.killFighter(r, this.player, !!m[3]);
-        } else this.killFighter(r, null, !!m[3]);
+        else if (killerIsMe) this.killFighter(r, this.player, !!m[3]);
+        else this.killFighter(r, null, !!m[3]);
         break;
       }
       case "f": {
@@ -5047,7 +5231,7 @@ var Game = class {
           this.match.endRound(scoreA > this.match.scoreA ? "a" : scoreB > this.match.scoreB ? "b" : null);
         } else if (phase === "matchend" && this.match.phase !== "matchend") {
           this.match.phase = "matchend";
-          this.emit("matchend", { winner: scoreA > scoreB ? "a" : "b", scoreA, scoreB, stats: this.player.stats, board: [] });
+          this.emit("matchend", { winner: scoreA > scoreB ? "a" : "b", scoreA, scoreB, stats: this.player.stats, board: this.buildBoard() });
         }
         this.match.scoreA = scoreA;
         this.match.scoreB = scoreB;
@@ -5063,15 +5247,17 @@ var Game = class {
         break;
     }
   }
-  // Render the remote fighter a hair in the past and slide between samples,
-  // so a 30 Hz link still looks like a smooth 60+ fps player.
-  interpolateRemote() {
+  // Render the remote fighter a hair in the past — but only as far in the past
+  // as this connection actually needs — and slide between samples, so 30 Hz
+  // over a jittery link still looks like a smooth player.
+  interpolateRemote(dt = 0.016) {
     const st = this.netState;
     const r = this.remote;
     if (!st || !r || st.buf.length === 0) return;
+    if (st.clock === null || st.clock === void 0) return;
     const now = performance.now();
-    const renderAt = now - 90;
-    let a = st.buf[0], b = st.buf[0];
+    const renderAt = now - st.delay;
+    let a = st.buf[0], b = st.buf[st.buf.length - 1];
     for (let i = 0; i < st.buf.length; i++) {
       if (st.buf[i].t <= renderAt) a = st.buf[i];
       if (st.buf[i].t >= renderAt) {
@@ -5083,11 +5269,16 @@ var Game = class {
     let k = span > 0 ? (renderAt - a.t) / span : 1;
     let ex = 0;
     if (k > 1) {
-      ex = Math.min(0.12, (now - b.t) / 1e3);
+      ex = Math.min(0.14, (renderAt - b.t) / 1e3);
       k = 1;
     }
     const lerp3 = (i) => a.p[i] + (b.p[i] - a.p[i]) * k + (b.v[i] || 0) * ex;
-    r.mv.pos.set(lerp3(0), lerp3(1), lerp3(2));
+    _netA.set(lerp3(0), lerp3(1), lerp3(2));
+    if (!st.shown) st.shown = _netA.clone();
+    const err = st.shown.distanceTo(_netA);
+    if (err > 1.4) st.shown.copy(_netA);
+    else st.shown.lerp(_netA, Math.min(1, dt * 26));
+    r.mv.pos.copy(st.shown);
     r.mv.vel.set(b.v[0], b.v[1], b.v[2]);
     r.mv.yaw = a.yaw + shortAngle(a.yaw, b.yaw) * k;
     r.mv.pitch = a.pitch + (b.pitch - a.pitch) * k;
@@ -5095,6 +5286,7 @@ var Game = class {
     r.mv.sliding = !!(b.flags & FLAG.sliding);
     r.mv.crouching = !!(b.flags & FLAG.crouching);
     r.mv.sprinting = !!(b.flags & FLAG.sprinting);
+    r.mv.wallRunning = !!(b.flags & FLAG.wall);
     const wasAlive = r.alive;
     r.alive = !!(b.flags & FLAG.alive);
     r.health = b.hp;
@@ -5102,6 +5294,7 @@ var Game = class {
     if (wasAlive && !r.alive) this.vfx.burst(new THREE8.Vector3(r.mv.pos.x, r.mv.pos.y + 1, r.mv.pos.z), 20, 16731501, 6, 0.13, 0.9, 14);
     r.model.visible = r.alive;
     r.model.position.set(r.mv.pos.x, r.mv.pos.y, r.mv.pos.z);
+    r.model.rotation.order = "YXZ";
     r.model.rotation.y = r.mv.yaw + Math.PI;
     const squash = r.mv.sliding ? 0.55 : r.mv.crouching ? 0.72 : 1;
     r.model.scale.set(1, squash, 1);
@@ -5114,6 +5307,42 @@ var Game = class {
       }
     }
   }
+  // Dust and sparks: the ground tells you how fast you are going.
+  groundFx(f, dt) {
+    const mv = f.mv;
+    const sp = mv.horizontalSpeed;
+    if (f !== this.player && !f.isBot) return;
+    if (mv.grounded && mv.sliding && sp > 4.5 && Math.random() < dt * 30) {
+      _fx.set(mv.pos.x + (Math.random() - 0.5) * 0.4, mv.pos.y + 0.05, mv.pos.z + (Math.random() - 0.5) * 0.4);
+      _fxv.set(-mv.vel.x * 0.12 + (Math.random() - 0.5), 0.5 + Math.random() * 0.9, -mv.vel.z * 0.12 + (Math.random() - 0.5));
+      this.vfx.particle(_fx, _fxv, 14674162, 0.1 + Math.random() * 0.07, 0.5, 5, 1.8);
+    }
+    if (mv.wallRunning && Math.random() < dt * 34) {
+      const n = mv.wallNormal;
+      _fx.set(mv.pos.x - n.x * 0.3, mv.pos.y + 0.5 + Math.random() * 0.6, mv.pos.z - n.z * 0.3);
+      _fxv.set(n.x * 1.6, -0.6 - Math.random(), n.z * 1.6);
+      this.vfx.particle(_fx, _fxv, 10479871, 0.07, 0.32, 3, 1.4);
+    }
+  }
+  // A completed chain is the whole point of the game — say it out loud.
+  chainWatch(f) {
+    if (f !== this.player) return;
+    const n = f.mv.tracker.order.length;
+    if (this._lastChains === void 0) {
+      this._lastChains = n;
+      return;
+    }
+    if (n > this._lastChains) {
+      const id = f.mv.tracker.order[n - 1];
+      const c = CHAINS.find((x) => x.id === id);
+      if (c) {
+        this.banner("CHAIN " + id + " \u2014 " + c.name, "good", 1.8);
+        this.audio.chain(n);
+        this.rig.addShake(0.12);
+      }
+    }
+    this._lastChains = n;
+  }
   // Deterministic climb: shot N always kicks the same way, so the spray can be
   // learned. Bots get the same kick on their own internal aim, which is why a
   // higher difficulty (faster turn rate) controls a spray better.
@@ -5125,6 +5354,30 @@ var Game = class {
       f.bot.aimPitch = f.mv.pitch;
       f.bot.aimYaw = f.mv.yaw;
     }
+  }
+  // The end-of-match scoreboard. Used by the result screen and by the in-game
+  // TAB panel — one definition so the two can never drift apart.
+  buildBoard() {
+    return this.fighters.map((x) => ({
+      name: x.name,
+      team: x.team,
+      you: x === this.player,
+      dummy: !!x.isDummy,
+      kills: x.stats.kills,
+      deaths: x.stats.deaths,
+      damage: Math.round(x.stats.damage),
+      headshots: x.stats.headshots || 0,
+      assists: x.stats.assists || 0,
+      topSpeed: +(x.stats.topSpeed || 0).toFixed(1),
+      acc: x.stats.shots ? Math.min(1, (x.stats.hits || 0) / x.stats.shots) : 0,
+      alive: x.alive,
+      ping: x.ping ?? 0
+    }));
+  }
+  netQuality() {
+    const st = this.netState;
+    if (!st) return null;
+    return { ping: this.netPing, delay: Math.round(st.delay), jitter: Math.round(st.jitter || 0) };
   }
   // ── aiming & shooting ────────────────────────────────────────────────────
   aimOrigin(f) {
@@ -5252,12 +5505,16 @@ var Game = class {
   }
   damageTarget(target, dmg, from, head, dir, isPlayer, point) {
     if (this.net && target.isRemote && from === this.player) {
-      dmg = Math.round(dmg);
+      dmg = Math.max(1, Math.round(dmg));
       this.netSay(MSG.damage(dmg, head, Math.max(0, target.health - dmg)));
-      this.hitmarker = 0.22;
+      from.stats.damage += dmg;
+      from.stats.hits = (from.stats.hits || 0) + 1;
+      const killing = dmg >= target.health;
+      this.hitmarker = killing ? 0.4 : 0.22;
+      this.killHit = killing ? 0.4 : Math.max(0, this.killHit);
       this.lastHitWasHead = head;
       if (head) this.audio.headshot();
-      else this.audio.hit();
+      else this.audio.hit(0.16 + Math.min(0.22, dmg / 260));
       this.emit("damage", { amount: dmg, head, speed: from.mv.horizontalSpeed });
       return;
     }
@@ -5715,7 +5972,7 @@ var Game = class {
       landImpact: cam.mv.landImpact
     }, spec ? 0 : f.weapon.ads, spec ? 0 : f.weapon.def.stats.adsFov);
     for (let i = this.banners.length - 1; i >= 0; i--) if ((this.banners[i].t -= dt) <= 0) this.banners.splice(i, 1);
-    if (this.net) this.interpolateRemote();
+    if (this.net) this.interpolateRemote(dt);
     this.updatePlates(dt);
     if (this.vmRoot) this.vmRoot.visible = f.alive && !spec;
     this.updateViewmodel(dt);
@@ -5782,19 +6039,9 @@ var Game = class {
       streak: this.killStreak,
       matchPoint: this.match.scoreA >= FIRST_TO - 1 || this.match.scoreB >= FIRST_TO - 1,
       ping: this.net ? this.netPing : 0,
-      net: this.net ? { role: this.netRole, state: this.net.state, ping: this.netPing, peer: this.netState?.remoteHello?.name || null } : null,
+      net: this.net ? { role: this.netRole, state: this.net.state, ping: this.netPing, peer: this.netState?.remoteHello?.name || null, delay: Math.round(this.netState.delay || 0), jitter: Math.round(this.netState.jitter || 0) } : null,
       scoreboard: this.scoreboard,
-      board: this.scoreboard ? this.fighters.map((x) => ({
-        name: x.name,
-        team: x.team,
-        you: x === f,
-        dummy: !!x.isDummy,
-        kills: x.stats.kills,
-        deaths: x.stats.deaths,
-        damage: Math.round(x.stats.damage),
-        alive: x.alive,
-        ping: x.ping ?? 0
-      })) : null,
+      board: this.scoreboard ? this.buildBoard() : null,
       lastWin: this.lastRoundWin
     });
   }
@@ -5934,6 +6181,7 @@ function App() {
     g.rig.baseFov = profile.settings.fov;
     g.audio.setVolume(profile.settings.volume);
     g.audio.enabled = profile.settings.sound !== false;
+    g.setBrightness(profile.settings.brightness ?? 1);
   }, [profile.settings]);
   const finishMatch = (g, data) => {
     const p = structuredClone(profile);

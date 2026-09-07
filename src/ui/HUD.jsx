@@ -14,6 +14,12 @@ export default function HUD ({ hud, paused, needsLock, onResume, onQuit, showMv,
   return (
     <div className="hud">
       <div className="vig" />
+      {/* ── speed: the faster you go, the more the world streaks ── */}
+      {hud.speed > 10 && (
+        <div className={`speedlines ${hud.wallRunning ? 'wall' : ''} ${hud.sliding ? 'slide' : ''}`}
+          style={{ opacity: Math.min(1, (hud.speed - 10) / 8) }} />
+      )}
+
       <div className="dmg" style={{ opacity: hud.damageFlash * 0.9 }} />
       {low && hud.alive && <div className="lowhp" style={{ opacity: 0.5 + Math.sin(Date.now() / 260) * 0.25 }} />}
       <div className="flash" style={{ opacity: Math.min(0.92, (hud.flashTime || 0) * 0.6) }} />

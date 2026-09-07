@@ -100,6 +100,7 @@ export default function App () {
     g.rig.baseFov = profile.settings.fov
     g.audio.setVolume(profile.settings.volume)
     g.audio.enabled = profile.settings.sound !== false
+    g.setBrightness(profile.settings.brightness ?? 1)
   }, [profile.settings])
 
   const finishMatch = (g, data) => {

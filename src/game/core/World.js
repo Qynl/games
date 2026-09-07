@@ -33,18 +33,32 @@ export class World {
     const sky = new THREE.Mesh(geo, matSky)
     sky.frustumCulled = false
     this.scene.add(sky)
+    this.sky = sky
   }
 
   buildLights () {
-    const hemi = new THREE.HemisphereLight(0x9fd8ff, 0x2a2f38, 1.15)
+    // Bright, readable, three-point lighting. The bounce light from below is
+    // what stops undersides from going to black on a lowpoly arena.
+    const hemi = new THREE.HemisphereLight(0xdcf1ff, 0x6a7684, 2.1)
     this.scene.add(hemi)
-    const sun = new THREE.DirectionalLight(0xfff2e0, 1.55)
+    const sun = new THREE.DirectionalLight(0xfff4e2, 2.2)
     sun.position.set(60, 90, 40)
     this.scene.add(sun)
-    const rim = new THREE.DirectionalLight(0x6ee7ff, 0.5)
+    const rim = new THREE.DirectionalLight(0x9fe8ff, 0.85)
     rim.position.set(-50, 40, -60)
     this.scene.add(rim)
+    const bounce = new THREE.DirectionalLight(0xcfe0f0, 0.55)
+    bounce.position.set(-20, -60, 30)
+    this.scene.add(bounce)
     this.sun = sun
+    this.lights = [hemi, sun, rim, bounce]
+    this.baseLight = this.lights.map((l) => l.intensity)
+  }
+
+  // brightness is a player setting: 1.0 is the intended look
+  setBrightness (b = 1) {
+    if (!this.lights) return
+    this.lights.forEach((l, i) => { l.intensity = this.baseLight[i] * b })
   }
 
   buildBrushes (map) {
@@ -83,7 +97,7 @@ export class World {
 
     // edge outlines — the "stylised" pass that makes the lowpoly read cleanly
     const edges = new THREE.Group()
-    const em = new THREE.LineBasicMaterial({ color: 0x0d1117, transparent: true, opacity: 0.32 })
+    const em = new THREE.LineBasicMaterial({ color: 0x24303d, transparent: true, opacity: 0.38 })
     let added = 0
     for (const b of map.brushes) {
       if (added > 260) break
@@ -99,13 +113,24 @@ export class World {
     this.group.add(edges)
   }
 
+  // Only ever free what this class created. Fighter models, viewmodels and VFX
+  // live in this scene too, and their geometry comes from a shared cache that
+  // outlives any single match — disposing it here broke every later match.
   dispose () {
-    this.scene.traverse((o) => {
-      if (o.geometry) o.geometry.dispose()
-      if (o.material) {
-        if (Array.isArray(o.material)) o.material.forEach((m) => m.dispose())
-        else o.material.dispose()
-      }
-    })
+    if (this.mesh) {
+      this.mesh.geometry.dispose()
+      this.mesh.material.dispose()
+      this.mesh.dispose?.()
+    }
+    if (this.edges) {
+      for (const l of this.edges.children) l.geometry.dispose()
+      if (this.edges.children.length) this.edges.children[0].material?.dispose?.()
+    }
+    if (this.sky) {
+      this.sky.geometry.dispose()
+      this.sky.material.dispose()
+    }
+    this.scene.clear()
+    this.lights = null
   }
 }

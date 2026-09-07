@@ -71,6 +71,7 @@ export class Match {
             winner: this.scoreA >= FIRST_TO ? 'a' : 'b',
             scoreA: this.scoreA, scoreB: this.scoreB,
             stats: this.game.player.stats,
+            board: this.game.buildBoard(),
           })
         } else this.startRound()
       }

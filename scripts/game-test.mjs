@@ -165,6 +165,12 @@ for (const mode of MODES.filter((m) => m.id !== 'p2p')) {   // p2p needs a live 
     steps++
   }
   check('a match reaches MATCH END (first to 5)', !!ended, ended ? `${ended.scoreA}-${ended.scoreB} in ${(steps / 120).toFixed(0)}s` : 'timed out')
+  const board = ended?.board || []
+  check('the match result carries a full scoreboard', board.length >= 2 && board.some((r) => r.you),
+    `${board.length} rows, you: ${board.find((r) => r.you)?.name || 'MISSING'}`)
+  check('scoreboard rows carry kills / damage / accuracy',
+    board.every((r) => typeof r.kills === 'number' && typeof r.damage === 'number' && typeof r.acc === 'number'),
+    board.map((r) => `${r.name}:${r.kills}/${r.damage}`).join(' '))
   check('player wins rounds with perfect aim', !!ended && ended.stats.kills >= 3, ended ? `kills ${ended.stats.kills} dmg ${Math.round(ended.stats.damage)}` : '')
   g.dispose()
 }
@@ -219,6 +225,32 @@ for (const mode of MODES.filter((m) => m.id !== 'p2p')) {   // p2p needs a live 
   check('dead player spectates someone', !!spec && spec !== p, spec ? spec.name : 'nobody')
   check('spectating does not watch a corpse', !!spec && spec.alive)
   g.dispose()
+}
+
+// ── disposing a match must never free geometry the next match reuses ────────
+{
+  const g1 = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
+  g1.load({ mapId: 'yard', modeId: '1v1', loadout: { primary: 'vex9', secondary: 'q1', melee: 'knife', utility: 'frag' }, skin: SKINS[0] })
+  let shared = null
+  g1.fighters[0].model.traverse((o) => { if (!shared && o.isMesh && o.geometry) shared = o.geometry })
+  let freed = false
+  const flag = () => { freed = true }
+  shared?.addEventListener?.('dispose', flag)
+  g1.dispose()
+  check('disposing a match does not free shared model geometry', shared && !freed,
+    shared ? (freed ? 'GEOMETRY WAS DISPOSED — the next match would render nothing' : 'shared geometry survived') : 'no geometry found')
+  const g2 = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
+  g2.load({ mapId: 'yard', modeId: '1v1', loadout: { primary: 'vex9', secondary: 'q1', melee: 'knife', utility: 'frag' }, skin: SKINS[0] })
+  let meshes = 0
+  g2.fighters[0].model.traverse((o) => { if (o.isMesh) meshes++ })
+  check('a second match still builds visible fighters', meshes > 4, `${meshes} meshes`)
+  // and a disposed game stops listening to the mouse
+  let moved = 0
+  g1.input.mouse.dx = 0
+  window.dispatchEvent?.({ type: 'mousemove', movementX: 10 })
+  moved = g1.input.mouse.dx
+  check('a disposed game detaches its input listeners', moved === 0, `dx=${moved}`)
+  g2.dispose()
 }
 
 // ── recoil patterns: learnable, and they come home on their own ─────────────

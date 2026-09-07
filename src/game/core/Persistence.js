@@ -17,6 +17,7 @@ export const DEFAULT_PROFILE = {
   settings: {
     fov: 95, sensitivity: 1.0, volume: 0.7, sound: true, quality: 'high',
     crosshair: 'dot', showMovement: true, invertY: false, botLevel: 'normal', adaptive: true,
+    brightness: 1.0,
   },
 }
 

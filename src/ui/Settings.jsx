@@ -36,6 +36,9 @@ export default function Settings ({ profile, save, onBack }) {
         <Toggle label="SOUND" value={s.sound} onChange={(v) => set('sound', v)} />
 
         <div className="h" style={{ marginTop: 26 }}>DISPLAY</div>
+        <Slider label="BRIGHTNESS" value={s.brightness ?? 1} min={0.7} max={1.6} step={0.05}
+          onChange={(v) => set('brightness', v)} fmt={(v) => Math.round(v * 100) + '%'} />
+        <div className="hint" style={{ marginTop: 4 }}>1.00 is the intended look. Push it up if your screen is dim.</div>
         <div className="set">
           <label>QUALITY</label>
           <select className="sel" value={s.quality} onChange={(e) => set('quality', e.target.value)}>

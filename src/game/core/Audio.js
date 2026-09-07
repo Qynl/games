@@ -74,6 +74,12 @@ export class AudioKit {
     this._tone(1250 - gain * 900, 0.07 + gain * 0.06, gain, 'square', 250)
   }
   headshot () { this.enabled && (this._tone(1500, 0.07, 0.25, 'square', 500), this._tone(2200, 0.06, 0.16, 'sine')) }
+  chain (n = 1) {
+    if (!this.enabled) return
+    // a rising arpeggio — the faster you chain, the higher it climbs
+    const base = 520 + Math.min(6, n) * 70
+    ;[0, 1, 2].forEach((i) => setTimeout(() => this._tone(base * (1 + i * 0.26), 0.09, 0.14, 'triangle'), i * 55))
+  }
   kill () {
     if (!this.enabled) return
     this._tone(660, 0.1, 0.22, 'triangle')

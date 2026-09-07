@@ -15,10 +15,16 @@ export class Input {
     this.sensitivity = 1
     this.invertY = false
     this._onLock = null
+    this._ls = []
   }
 
   attach (el) {
+    this.detach()
     this.el = el
+    const on = (target, type, fn, opts) => {
+      target.addEventListener(type, fn, opts)
+      this._ls.push([target, type, fn, opts])
+    }
     const kd = (e) => {
       if (e.code === 'Tab') e.preventDefault()
       // no lock to escape from in fallback mode — pause instead
@@ -28,29 +34,46 @@ export class Input {
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault()
     }
     const ku = (e) => { this.keys[e.code] = false; this.released[e.code] = true }
-    window.addEventListener('keydown', kd)
-    window.addEventListener('keyup', ku)
-    window.addEventListener('blur', () => { this.keys = {} })
+    const blur = () => { this.keys = {} }
     const mm = (e) => {
       if (!this.engaged) return
       this.mouse.dx += e.movementX || 0
       this.mouse.dy += e.movementY || 0
     }
-    document.addEventListener('mousemove', mm)
-    el.addEventListener('mousedown', (e) => {
+    const md = (e) => {
       if (!this.engaged) return
       if (!this.mouseButtons[e.button]) this.mousePressed[e.button] = true
       this.mouseButtons[e.button] = true
-    })
-    window.addEventListener('mouseup', (e) => { this.mouseButtons[e.button] = false })
-    el.addEventListener('contextmenu', (e) => e.preventDefault())
-    document.addEventListener('pointerlockchange', () => {
+    }
+    const mu = (e) => { this.mouseButtons[e.button] = false }
+    const ctx = (e) => e.preventDefault()
+    const plc = () => {
       const was = this.engaged
       if (document.pointerLockElement === el) { this.locked = true; this.fallback = false }
       else { this.locked = false; this._lastExit = performance.now() }   // ESC exits behind our back
       if (was !== this.engaged) this._onLock?.(this.engaged)
-    })
-    window.addEventListener('wheel', (e) => { this.wheel += Math.sign(e.deltaY) }, { passive: true })
+    }
+    const wheel = (e) => { this.wheel += Math.sign(e.deltaY) }
+    on(window, 'keydown', kd)
+    on(window, 'keyup', ku)
+    on(window, 'blur', blur)
+    on(document, 'mousemove', mm)
+    on(el, 'mousedown', md)
+    on(window, 'mouseup', mu)
+    on(el, 'contextmenu', ctx)
+    on(document, 'pointerlockchange', plc)
+    on(window, 'wheel', wheel, { passive: true })
+  }
+
+  // A disposed game must stop listening — otherwise a second match reads the
+  // mouse through two inputs at once and the sensitivity doubles.
+  detach () {
+    for (const [t, type, fn, opts] of this._ls || []) t.removeEventListener(type, fn, opts)
+    this._ls = []
+    if (this._retryT) { clearTimeout(this._retryT); this._retryT = null }
+    this.locked = false
+    this.fallback = false
+    this.el = null
   }
 
   get engaged () { return this.locked || this.fallback }

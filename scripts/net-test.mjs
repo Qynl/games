@@ -49,24 +49,31 @@ const rendererStub = () => ({
 
 // a stand-in for an RTCDataChannel: same API surface Game uses
 class FakeLink {
-  constructor (latency = 60, jitter = 15, loss = 0.02) {
-    this.latency = latency; this.jitter = jitter; this.loss = loss
+  constructor (latency = 60, jitter = 15, loss = 0.02, reorder = 0) {
+    this.latency = latency; this.jitter = jitter; this.loss = loss; this.reorder = reorder
     this.peers = [null, null]
+    this.fast = 0; this.reliable = 0; this.seen = []
   }
   attach (peer) { const i = this.peers[0] === null ? 0 : 1; this.peers[i] = peer; peer.idx = i; return peer }
-  send (from, msg) {
-    if (Math.random() < this.loss) return
+  send (from, msg, fast) {
+    // a real WebRTC link drops unreliable packets and never drops reliable ones
+    if (fast && Math.random() < this.loss) return
     const to = this.peers[1 - from.idx]
     if (!to) return
-    const delay = this.latency + (Math.random() * 2 - 1) * this.jitter
+    // an unordered channel really does deliver packets out of order
+    const reorder = fast && Math.random() < this.reorder ? 140 : 0
+    const delay = this.latency + (Math.random() * 2 - 1) * this.jitter + reorder
     const wire = JSON.parse(JSON.stringify(msg))          // exactly what a data channel does
     to.inbox.push({ msg: wire, at: now + delay })
+    if (fast) this.fast++
+    else this.reliable++
+    this.seen.push([msg[0], !!fast])
   }
 }
 class FakeNet {
   constructor (link, role) { this.link = link; this.role = role; this.inbox = []; this.other = null; this.open = true; this.state = 'open'; this.ping = 0; this.onState = () => {} }
-  send (msg) { this.link.send(this, msg) }
-  tick (dt) { this.t = (this.t || 0) + dt; const half = (this.t % 2) / 2; this.ping = Math.round(this.link.latency * 2) }
+  send (msg, fast) { this.link.send(this, msg, fast) }
+  tick (dt) { this.t = (this.t || 0) + dt; this.ping = Math.round(this.link.latency * 2); this.rtt = this.link.latency * 2 }
   receive () {
     const out = []
     for (let i = this.inbox.length - 1; i >= 0; i--) if (this.inbox[i].at <= now) { out.push(this.inbox[i].msg); this.inbox.splice(i, 1) }
@@ -173,8 +180,63 @@ check('the guest mirrors the host score', B.match.scoreA === A.match.scoreA && B
   `host ${A.match.scoreA}-${A.match.scoreB} vs guest ${B.match.scoreA}-${B.match.scoreB}`)
 check('the guest mirrors the round phase', B.match.phase === A.match.phase, `${A.match.phase} / ${B.match.phase}`)
 
+// routing: state is fast+lossy, decisions are reliable
+const routed = (ch) => link.seen.filter(([t, fast]) => t === ch).map(([, fast]) => fast)
+check('snapshots ride the fast unreliable channel', routed('b').length > 0 && routed('b').every((f) => f === true),
+  `${routed('b').length} batches, all fast: ${routed('b').every((f) => f === true)}`)
+check('damage never rides the lossy channel', routed('d').length > 0 && routed('d').every((f) => f === false),
+  `${routed('d').length} damage messages`)
+check('kills never ride the lossy channel', routed('k').length === 0 || routed('k').every((f) => f === false),
+  `${routed('k').length} kill messages`)
+check('the round clock never rides the lossy channel', routed('m').length > 0 && routed('m').every((f) => f === false),
+  `${routed('m').length} match messages`)
+
+// adaptive buffering tightens on a clean link instead of sitting at a guess
+check('interpolation delay adapts and stays sane', A.netState.delay > 30 && A.netState.delay < 160,
+  `${A.netState.delay.toFixed(0)} ms on a ${A.netPing} ms link`)
+check('jitter is measured', A.netState.jitter >= 0 && A.netState.jitter < 100, `${(A.netState.jitter || 0).toFixed(1)} ms`)
+
 // ping readout
 check('ping is reported to the HUD', A.netPing > 0 && B.netPing > 0, `${A.netPing}/${B.netPing} ms`)
+
+// ── 3. the same duel on a bad link: 20% packet loss, 90 ms, 35 ms jitter ────
+{
+  const bad = new FakeLink(90, 35, 0.2, 0.12)   // lossy AND out of order
+  const nA = bad.attach(new FakeNet(bad, 'host'))
+  const nB = bad.attach(new FakeNet(bad, 'guest'))
+  const X = mk(nA, 'host', 'HOST'), Y = mk(nB, 'guest', 'GUEST')
+  place(X, -7, 0, -Math.PI / 2)
+  place(Y, 7, 0, Math.PI / 2)
+  let holes = 0, samples = 0
+  let bErr = null
+  try {
+    for (let i = 0; i < 120 * 10; i++) {
+      now += STEP * 1000
+      for (const g of [X, Y]) {
+        const IN = g.input
+        IN.mouse.dx = 0
+        if (i % 36 === 0 && g.netState.buf.length > 0) {
+          const dd = new THREE.Vector3().subVectors(g.remote.mv.pos, g.player.mv.pos)
+          g.player.mv.yaw = Math.atan2(-dd.x, -dd.z)
+          g.player.mv.pitch = Math.atan2(dd.y + 1.0 - (g.player.mv.pos.y + g.player.mv.height * 0.92), Math.hypot(dd.x, dd.z))
+        }
+        IN.mouseButtons[0] = g.match.phase === 'live' && (i % 36) < 14 && i > 120
+        IN.mousePressed[0] = g.match.phase === 'live' && i % 36 === 0 && i > 120
+        g.fixedStep(STEP)
+        if (i % 4 === 0) g.renderFrame(STEP * 4)
+      }
+      samples++
+    }
+  } catch (e) { bErr = e }
+  check('a lossy, out-of-order link still runs a duel', !bErr, bErr ? bErr.stack?.split('\n').slice(0, 2).join(' | ') : `${samples} steps`)
+  check('redundant snapshots keep the buffer fed under loss', X.netState.buf.length > 20 && Y.netState.buf.length > 20,
+    `${X.netState.buf.length} / ${Y.netState.buf.length} samples buffered`)
+  check('the lossy link still lands damage', X.player.health < 150 || Y.player.health < 150 || X.match.scoreA + X.match.scoreB > 0,
+    `host ${Math.round(X.player.health)} guest ${Math.round(Y.player.health)} score ${X.match.scoreA}-${X.match.scoreB}`)
+  check('delay backs off when the link is bad', X.netState.delay > A.netState.delay * 0.9,
+    `${X.netState.delay.toFixed(0)} ms on the bad link vs ${A.netState.delay.toFixed(0)} ms on the clean one`)
+  X.dispose(); Y.dispose()
+}
 
 // a dropped peer is handled, not fatal
 let byeErr = null

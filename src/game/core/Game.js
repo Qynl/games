@@ -19,6 +19,9 @@ const STEP = 1 / 120
 const TEAM_COLORS = { a: 0x6ee7ff, b: 0xff8a3d }
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v)
+const _netA = new THREE.Vector3()
+const _fx = new THREE.Vector3()
+const _fxv = new THREE.Vector3()
 const shortAngle = (a, b) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d }
 const lerp = (a, b, t) => a + (b - a) * t
 
@@ -151,7 +154,7 @@ export class Game {
     this.renderer = makeRenderer(canvas)
     if ('toneMapping' in this.renderer) {
       this.renderer.toneMapping = THREE.ACESFilmicToneMapping
-      this.renderer.toneMappingExposure = 1.06
+      this.renderer.toneMappingExposure = this.exposureFor(this.settings.brightness ?? 1)
     }
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.settings.quality === 'high' ? 2 : 1.35))
     this.renderer.setSize(canvas.clientWidth || 1280, canvas.clientHeight || 720, false)
@@ -213,17 +216,30 @@ export class Game {
   }
 
   // ── lifecycle ────────────────────────────────────────────────────────────
+  // Brightness is a player setting: 1.0 is the look the art was tuned for.
+  exposureFor (b) { return 1.14 * (0.55 + 0.45 * (b ?? 1)) }
+
+  setBrightness (b) {
+    this.settings.brightness = b
+    if (this.world) this.world.setBrightness(b)
+    if ('toneMapping' in this.renderer) this.renderer.toneMappingExposure = this.exposureFor(b)
+  }
+
   load (config) {
     const { mapId, modeId, loadout, skin, botLevel, teamBots, net, netRole, peerName } = config
     this.config = config
     this.net = net || null
     this.netRole = netRole || null
-    this.netState = net ? { hello: null, remoteHello: null, buf: [], slot: 0, lastHello: 0, sentKill: false } : null
+    this.netState = net ? {
+      hello: null, remoteHello: null, buf: [], recent: [], lastHello: 0, sentKill: false,
+      clock: null, winBest: Infinity, winStart: 0, jitter: 0, late: 0, delay: 70, seen: null, shown: null,
+    } : null
     this.netPing = 0
     this.map = MAP_BY_ID[mapId] || MAP_BY_ID.yard
     this.mode = MODES.find((m) => m.id === modeId) || MODES[0]
     this.skin = SKIN_MAP[skin] || SKIN_MAP.stock
     this.world = new World(this.map)
+    this.world.setBrightness(this.settings.brightness ?? 1)
     this.vfx = new VFX(this.world.scene)
     this.playerLoadout = loadout || { ...DEFAULT_LOADOUT }
 
@@ -318,6 +334,10 @@ export class Game {
       p.sp.material.dispose?.()
     }
     this.plates.clear()
+    // take our own objects out of the scene before the world tears itself down
+    for (const f of this.fighters) if (f.model) this.world.scene.remove(f.model)
+    try { this.vfx?.clear() } catch (e) {}
+    try { this.input?.detach?.() } catch (e) {}
     window.removeEventListener('resize', this._onResize)
     if (this.world) this.world.dispose()
     this.renderer.dispose()
@@ -558,7 +578,19 @@ export class Game {
     if (f.mv.horizontalSpeed > (f.stats.topSpeed || 0)) f.stats.topSpeed = f.mv.horizontalSpeed
     const before = f.mv.grounded
     f.mv.step(dt, f.input)
-    if (f.mv.grounded && !before && f.mv.lastFallSpeed > 4) this.audio.land(clamp(f.mv.lastFallSpeed / 12, 0, 1))
+    this.chainWatch(f)
+    if (f.mv.grounded && !before && f.mv.lastFallSpeed > 4) {
+      this.audio.land(clamp(f.mv.lastFallSpeed / 12, 0, 1))
+      // a hard landing throws a ring of dust — you can see the impact
+      const hard = clamp(f.mv.lastFallSpeed / 12, 0, 1)
+      for (let i = 0; i < 5 + hard * 9; i++) {
+        const a = (i / (5 + hard * 9)) * Math.PI * 2 + Math.random()
+        _fx.set(f.mv.pos.x + Math.cos(a) * 0.3, f.mv.pos.y + 0.05, f.mv.pos.z + Math.sin(a) * 0.3)
+        _fxv.set(Math.cos(a) * (1.4 + hard * 3), 0.7 + Math.random() * 1.2, Math.sin(a) * (1.4 + hard * 3))
+        this.vfx.particle(_fx, _fxv, 0xd7e2ee, 0.11 + hard * 0.07, 0.45 + hard * 0.4, 6, 2.2)
+      }
+    }
+    this.groundFx(f, dt)
     // footsteps
     if (f.mv.grounded && f.mv.horizontalSpeed > 1.5) {
       f.stepPhase += f.mv.horizontalSpeed * dt
@@ -721,7 +753,10 @@ export class Game {
 
 
   // ══ netplay ═══════════════════════════════════════════════════════════════
-  netSay (msg) { if (this.net && this.net.open) this.net.send(msg) }
+  // Two channels: snapshots go out 30×/s on an unreliable channel (three per
+  // packet, so one lost packet costs nothing), everything that must land —
+  // damage, kills, the round clock — goes on a reliable one.
+  netSay (msg, fast) { if (this.net && this.net.open) this.net.send(msg, !!fast) }
 
   stepNet (dt) {
     const net = this.net
@@ -735,7 +770,6 @@ export class Game {
       if (st.mapT <= 0) { st.mapT = 0.4; this.netSay(MSG.ready(this.config.mapId, this.config.modeId)) }
     }
 
-    // keep saying hello until the other side answers (either peer may be first)
     st.lastHello -= dt
     if (st.lastHello <= 0) {
       st.lastHello = 1
@@ -744,7 +778,7 @@ export class Game {
 
     for (const m of net.receive()) this.onNetMessage(m)
 
-    // push our own state 30×/s
+    // ── 30 Hz redundant snapshots ─────────────────────────────────────────
     st.snapT = (st.snapT || 0) - dt
     if (st.snapT <= 0 && this.player) {
       st.snapT = 1 / 30
@@ -757,17 +791,61 @@ export class Game {
       if (f.alive) flags |= FLAG.alive
       if (f.wantFire) flags |= FLAG.firing
       if (f.weapon.reloading) flags |= FLAG.reloading
-      this.netSay(MSG.snapshot(performance.now(), f.mv, flags, f.health, f.slot, f.weapon.isMelee ? 0 : f.weapon.ammo))
+      if (f.mv.wallRunning) flags |= FLAG.wall
+      const snap = MSG.snapshot(performance.now(), f.mv, flags, f.health, f.slot, f.weapon.isMelee ? 0 : f.weapon.ammo)
+      st.recent.push(snap)
+      if (st.recent.length > 3) st.recent.shift()
+      this.netSay(MSG.batch(st.recent.slice()), true)
     }
 
-    // the host owns the clock: it broadcasts the round state
     if (this.netRole === 'host' && this.match) {
       st.matchT = (st.matchT || 0) - dt
       if (st.matchT <= 0) {
-        st.matchT = 0.1
+        st.matchT = 0.5
         this.netSay(MSG.match(this.match.phase, this.match.round, this.match.scoreA, this.match.scoreB, this.match.timer))
       }
     }
+
+    // adaptive interpolation delay: as tight as the link allows, never sloppy
+    const jitter = st.jitter || 0
+    const want = clamp(38 + jitter * 1.7 + (st.late > 0 ? 14 : 0), 38, 150)
+    st.delay += (want - st.delay) * Math.min(1, dt * 1.5)
+  }
+
+  // Map the peer's clock onto ours. The lowest observed offset over a few
+  // seconds is the truest one (the least queued packet wins), and we ease into
+  // it so the remote never visibly jumps.
+  syncClock (remoteT) {
+    const st = this.netState
+    const now = performance.now()
+    const want = now - remoteT - (this.net?.rtt || 80) / 2
+    if (now - (st.winStart || 0) > 3000) { st.winStart = now; st.winBest = Infinity }
+    if (want < (st.winBest ?? Infinity)) st.winBest = want
+    if (st.clock === null || st.clock === undefined || Math.abs(st.clock - st.winBest) > 200) st.clock = st.winBest
+  }
+
+  pushSnapshot (m) {
+    const st = this.netState
+    this.syncClock(m[1])
+    // the channel is unordered and every packet repeats the last three states,
+    // so duplicates (and late arrivals) have to be recognised by timestamp
+    if (st.buf.some((q) => q.rt === m[1])) return
+    const t = m[1] + (st.clock || 0)
+    if (t > (st.maxT ?? -Infinity)) {
+      const gap = t - (st.maxT ?? t - 33.3)
+      const err = Math.abs(gap - 33.3)
+      st.jitter = st.jitter === undefined ? Math.min(err, 90) : st.jitter * 0.88 + Math.min(err, 90) * 0.12
+      if (gap > 70 && st.maxT !== undefined) st.late = (st.late || 0) + 1
+      else st.late = Math.max(0, (st.late || 0) - 0.2)
+      st.maxT = t
+    }
+    st.buf.push({
+      rt: m[1], t, p: [m[2], m[3], m[4]], v: [m[5], m[6], m[7]],
+      yaw: m[8], pitch: m[9], flags: m[10], hp: m[11], slot: m[12], ammo: m[13],
+    })
+    // keep the buffer ordered in time even when the network is not
+    if (st.buf.length > 1 && st.buf[st.buf.length - 1].t < st.buf[st.buf.length - 2].t) st.buf.sort((a, b) => a.t - b.t)
+    if (st.buf.length > 48) st.buf.shift()
   }
 
   onNetMessage (m) {
@@ -781,7 +859,8 @@ export class Game {
           r.name = m[1]
           r.loadout = { ...DEFAULT_LOADOUT, ...(m[2] || {}) }
           r.skin = SKIN_MAP[m[3]] || SKIN_MAP.stock
-          if (r.model) { this.world.scene.remove(r.model); r.model.traverse?.((o) => { if (o.isMesh && o.geometry) o.geometry.dispose?.() }) }
+          // note: model geometry is shared from a cache — never dispose it here
+          if (r.model) this.world.scene.remove(r.model)
           r.model = buildFighterModel(TEAM_COLORS.b, true, WEAPON_MAP[r.loadout.primary])
           this.world.scene.add(r.model)
           for (const k of ['primary', 'secondary', 'melee']) r.weapons[k] = new Weapon(r.loadout[k], r.skin)
@@ -790,29 +869,20 @@ export class Game {
         this.banner('CONNECTED — ' + m[1], 'good', 2)
         break
       }
-      case 's': {   // snapshot
-        if (!r) break
-        st.buf.push({
-          t: performance.now(),
-          p: [m[2], m[3], m[4]], v: [m[5], m[6], m[7]],
-          yaw: m[8], pitch: m[9], flags: m[10], hp: m[11], slot: m[12], ammo: m[13], spd: m[14],
-        })
-        if (st.buf.length > 40) st.buf.shift()
-        break
-      }
+      case 'b': for (const s of m[1]) this.pushSnapshot(s); break
+      case 's': this.pushSnapshot(m); break
       case 'd': {   // we got hit — we own our own health
         if (!this.player || !this.player.alive) break
         const from = this.remote
         const before = this.player.health
-        this.player.spawnGuard = 0
         this.player.health = Math.max(0, this.player.health - m[1])
-        from.stats.damage += m[1]
+        if (from) from.stats.damage += m[1]
         this.damageFlash = 1
-        this.rig.addShake(0.5)
+        this.rig.addShake(0.45)
         this.audio.hurt()
         if (from) this.addHitDir(from.mv.pos)
         if (this.player.health <= 0) this.killFighter(this.player, from, !!m[2])
-        if (before !== this.player.health) this.emit('damage', { amount: -m[1], head: !!m[2], speed: 0 })
+        else if (before !== this.player.health) this.audio.hit(0.1)
         break
       }
       case 'k': {   // somebody died
@@ -820,7 +890,7 @@ export class Game {
         const killerIsMe = m[1] === this.player.name
         const victimIsMe = m[2] === this.player.name
         if (victimIsMe) this.killFighter(this.player, r, !!m[3])
-        else if (killerIsMe) { this.killFighter(r, this.player, !!m[3]) }
+        else if (killerIsMe) this.killFighter(r, this.player, !!m[3])
         else this.killFighter(r, null, !!m[3])
         break
       }
@@ -852,7 +922,7 @@ export class Game {
           this.match.endRound(scoreA > this.match.scoreA ? 'a' : scoreB > this.match.scoreB ? 'b' : null)
         } else if (phase === 'matchend' && this.match.phase !== 'matchend') {
           this.match.phase = 'matchend'
-          this.emit('matchend', { winner: scoreA > scoreB ? 'a' : 'b', scoreA, scoreB, stats: this.player.stats, board: [] })
+          this.emit('matchend', { winner: scoreA > scoreB ? 'a' : 'b', scoreA, scoreB, stats: this.player.stats, board: this.buildBoard() })
         }
         this.match.scoreA = scoreA
         this.match.scoreB = scoreB
@@ -868,15 +938,17 @@ export class Game {
     }
   }
 
-  // Render the remote fighter a hair in the past and slide between samples,
-  // so a 30 Hz link still looks like a smooth 60+ fps player.
-  interpolateRemote () {
+  // Render the remote fighter a hair in the past — but only as far in the past
+  // as this connection actually needs — and slide between samples, so 30 Hz
+  // over a jittery link still looks like a smooth player.
+  interpolateRemote (dt = 0.016) {
     const st = this.netState
     const r = this.remote
     if (!st || !r || st.buf.length === 0) return
+    if (st.clock === null || st.clock === undefined) return
     const now = performance.now()
-    const renderAt = now - 90
-    let a = st.buf[0], b = st.buf[0]
+    const renderAt = now - st.delay
+    let a = st.buf[0], b = st.buf[st.buf.length - 1]
     for (let i = 0; i < st.buf.length; i++) {
       if (st.buf[i].t <= renderAt) a = st.buf[i]
       if (st.buf[i].t >= renderAt) { b = st.buf[i]; break }
@@ -884,9 +956,15 @@ export class Game {
     const span = b.t - a.t
     let k = span > 0 ? (renderAt - a.t) / span : 1
     let ex = 0
-    if (k > 1) { ex = Math.min(0.12, (now - b.t) / 1000); k = 1 }   // extrapolate briefly
+    if (k > 1) { ex = Math.min(0.14, (renderAt - b.t) / 1000); k = 1 }
     const lerp3 = (i) => a.p[i] + (b.p[i] - a.p[i]) * k + (b.v[i] || 0) * ex
-    r.mv.pos.set(lerp3(0), lerp3(1), lerp3(2))
+    _netA.set(lerp3(0), lerp3(1), lerp3(2))
+    // smooth out small disagreements instead of snapping on every packet
+    if (!st.shown) st.shown = _netA.clone()
+    const err = st.shown.distanceTo(_netA)
+    if (err > 1.4) st.shown.copy(_netA)
+    else st.shown.lerp(_netA, Math.min(1, dt * 26))
+    r.mv.pos.copy(st.shown)
     r.mv.vel.set(b.v[0], b.v[1], b.v[2])
     r.mv.yaw = a.yaw + shortAngle(a.yaw, b.yaw) * k
     r.mv.pitch = a.pitch + (b.pitch - a.pitch) * k
@@ -894,6 +972,7 @@ export class Game {
     r.mv.sliding = !!(b.flags & FLAG.sliding)
     r.mv.crouching = !!(b.flags & FLAG.crouching)
     r.mv.sprinting = !!(b.flags & FLAG.sprinting)
+    r.mv.wallRunning = !!(b.flags & FLAG.wall)
     const wasAlive = r.alive
     r.alive = !!(b.flags & FLAG.alive)
     r.health = b.hp
@@ -902,14 +981,49 @@ export class Game {
     // model
     r.model.visible = r.alive
     r.model.position.set(r.mv.pos.x, r.mv.pos.y, r.mv.pos.z)
+    r.model.rotation.order = 'YXZ'
     r.model.rotation.y = r.mv.yaw + Math.PI
     const squash = r.mv.sliding ? 0.55 : r.mv.crouching ? 0.72 : 1
     r.model.scale.set(1, squash, 1)
-    // muzzle flash for their shots
     if (b.flags & FLAG.firing) {
       const mz = r.model.userData.muzzle
       if (mz) { const p = new THREE.Vector3(); mz.getWorldPosition(p); this.vfx.muzzle(p, new THREE.Vector3(-Math.sin(r.mv.yaw), 0, -Math.cos(r.mv.yaw)), 0.8, 0xffd9a0) }
     }
+  }
+
+  // Dust and sparks: the ground tells you how fast you are going.
+  groundFx (f, dt) {
+    const mv = f.mv
+    const sp = mv.horizontalSpeed
+    if (f !== this.player && !f.isBot) return
+    if (mv.grounded && mv.sliding && sp > 4.5 && Math.random() < dt * 30) {
+      _fx.set(mv.pos.x + (Math.random() - 0.5) * 0.4, mv.pos.y + 0.05, mv.pos.z + (Math.random() - 0.5) * 0.4)
+      _fxv.set(-mv.vel.x * 0.12 + (Math.random() - 0.5), 0.5 + Math.random() * 0.9, -mv.vel.z * 0.12 + (Math.random() - 0.5))
+      this.vfx.particle(_fx, _fxv, 0xdfe8f2, 0.1 + Math.random() * 0.07, 0.5, 5, 1.8)
+    }
+    if (mv.wallRunning && Math.random() < dt * 34) {
+      const n = mv.wallNormal
+      _fx.set(mv.pos.x - n.x * 0.3, mv.pos.y + 0.5 + Math.random() * 0.6, mv.pos.z - n.z * 0.3)
+      _fxv.set(n.x * 1.6, -0.6 - Math.random(), n.z * 1.6)
+      this.vfx.particle(_fx, _fxv, 0x9fe8ff, 0.07, 0.32, 3, 1.4)
+    }
+  }
+
+  // A completed chain is the whole point of the game — say it out loud.
+  chainWatch (f) {
+    if (f !== this.player) return
+    const n = f.mv.tracker.order.length
+    if (this._lastChains === undefined) { this._lastChains = n; return }
+    if (n > this._lastChains) {
+      const id = f.mv.tracker.order[n - 1]
+      const c = CHAINS.find((x) => x.id === id)
+      if (c) {
+        this.banner('CHAIN ' + id + ' — ' + c.name, 'good', 1.8)
+        this.audio.chain(n)
+        this.rig.addShake(0.12)
+      }
+    }
+    this._lastChains = n
   }
 
   // Deterministic climb: shot N always kicks the same way, so the spray can be
@@ -920,6 +1034,25 @@ export class Game {
     f.mv.pitch = clamp(f.mv.pitch + r.p, -Math.PI / 2 + 0.02, Math.PI / 2 - 0.02)
     f.mv.yaw += r.y
     if (f.bot) { f.bot.aimPitch = f.mv.pitch; f.bot.aimYaw = f.mv.yaw }
+  }
+
+  // The end-of-match scoreboard. Used by the result screen and by the in-game
+  // TAB panel — one definition so the two can never drift apart.
+  buildBoard () {
+    return this.fighters.map((x) => ({
+      name: x.name, team: x.team, you: x === this.player, dummy: !!x.isDummy,
+      kills: x.stats.kills, deaths: x.stats.deaths, damage: Math.round(x.stats.damage),
+      headshots: x.stats.headshots || 0, assists: x.stats.assists || 0,
+      topSpeed: +(x.stats.topSpeed || 0).toFixed(1),
+      acc: x.stats.shots ? Math.min(1, (x.stats.hits || 0) / x.stats.shots) : 0,
+      alive: x.alive, ping: x.ping ?? 0,
+    }))
+  }
+
+  netQuality () {
+    const st = this.netState
+    if (!st) return null
+    return { ping: this.netPing, delay: Math.round(st.delay), jitter: Math.round(st.jitter || 0) }
   }
 
   // ── aiming & shooting ────────────────────────────────────────────────────
@@ -1048,11 +1181,15 @@ export class Game {
   damageTarget (target, dmg, from, head, dir, isPlayer, point) {
     // over the wire the shooter decides: you hit what you see, the owner applies it
     if (this.net && target.isRemote && from === this.player) {
-      dmg = Math.round(dmg)
+      dmg = Math.max(1, Math.round(dmg))
       this.netSay(MSG.damage(dmg, head, Math.max(0, target.health - dmg)))
-      this.hitmarker = 0.22
+      from.stats.damage += dmg                       // your damage counts here too
+      from.stats.hits = (from.stats.hits || 0) + 1
+      const killing = dmg >= target.health
+      this.hitmarker = killing ? 0.4 : 0.22
+      this.killHit = killing ? 0.4 : Math.max(0, this.killHit)
       this.lastHitWasHead = head
-      if (head) this.audio.headshot(); else this.audio.hit()
+      if (head) this.audio.headshot(); else this.audio.hit(0.16 + Math.min(0.22, dmg / 260))
       this.emit('damage', { amount: dmg, head, speed: from.mv.horizontalSpeed })
       return
     }
@@ -1498,10 +1635,11 @@ export class Game {
       horizontalSpeed: cam.mv.horizontalSpeed, grounded: cam.mv.grounded,
       sliding: cam.mv.sliding, crouching: cam.mv.crouching, sprinting: cam.mv.sprinting,
       landImpact: cam.mv.landImpact,
+      wallRunning: cam.mv.wallRunning, wallNormal: cam.mv.wallNormal,
     }, spec ? 0 : f.weapon.ads, spec ? 0 : f.weapon.def.stats.adsFov)
 
     for (let i = this.banners.length - 1; i >= 0; i--) if ((this.banners[i].t -= dt) <= 0) this.banners.splice(i, 1)
-    if (this.net) this.interpolateRemote()
+    if (this.net) this.interpolateRemote(dt)
     this.updatePlates(dt)
 
     if (this.vmRoot) this.vmRoot.visible = f.alive && !spec
@@ -1574,13 +1712,9 @@ export class Game {
       streak: this.killStreak,
       matchPoint: this.match.scoreA >= FIRST_TO - 1 || this.match.scoreB >= FIRST_TO - 1,
       ping: this.net ? this.netPing : 0,
-      net: this.net ? { role: this.netRole, state: this.net.state, ping: this.netPing, peer: this.netState?.remoteHello?.name || null } : null,
+      net: this.net ? { role: this.netRole, state: this.net.state, ping: this.netPing, peer: this.netState?.remoteHello?.name || null, delay: Math.round(this.netState.delay || 0), jitter: Math.round(this.netState.jitter || 0) } : null,
       scoreboard: this.scoreboard,
-      board: this.scoreboard ? this.fighters.map((x) => ({
-        name: x.name, team: x.team, you: x === f, dummy: !!x.isDummy,
-        kills: x.stats.kills, deaths: x.stats.deaths, damage: Math.round(x.stats.damage),
-        alive: x.alive, ping: x.ping ?? 0,
-      })) : null,
+      board: this.scoreboard ? this.buildBoard() : null,
       lastWin: this.lastRoundWin,
     })
   }

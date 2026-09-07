@@ -321,3 +321,22 @@ input[type=range]{width:190px;accent-color:var(--cy)}
 .hm.kill i:nth-child(2){transform:rotate(-45deg)}
 .hm.kill i:nth-child(3){transform:rotate(-45deg)}
 .hm.kill i:nth-child(4){transform:rotate(45deg)}
+
+/* ── speed lines: motion you can feel at 12+ m/s ─────────────────────────── */
+.speedlines {
+  position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen;
+  background: repeating-conic-gradient(from 0deg at 50% 50%,
+    rgba(255, 255, 255, .5) 0deg .3deg, transparent .3deg 3.2deg);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 30%, #000 76%);
+  mask-image: radial-gradient(circle at 50% 50%, transparent 30%, #000 76%);
+  animation: slspin 2.4s linear infinite;
+  transition: opacity .12s linear;
+}
+.speedlines::after {
+  content: ''; position: absolute; inset: 0; mix-blend-mode: multiply;
+  background: radial-gradient(circle at 50% 50%, transparent 42%, rgba(10, 20, 30, .5) 100%);
+}
+.speedlines.wall { background: repeating-conic-gradient(from 0deg at 50% 50%,
+  rgba(140, 240, 255, .6) 0deg .3deg, transparent .3deg 3deg) }
+.speedlines.slide { animation-duration: 1.1s }
+@keyframes slspin { from { transform: rotate(0) scale(1.25) } to { transform: rotate(3deg) scale(1.25) } }

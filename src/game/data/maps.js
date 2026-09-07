@@ -3,20 +3,22 @@
 //  collision world and the renderer, so what you see is exactly what you hit.
 // ────────────────────────────────────────────────────────────────────────────
 
+// The arena is lit like a bright, clean sports venue, not a cave: everything
+// here is chosen so a player can read geometry at a glance at 15 m/s.
 export const PAL = {
-  floor: 0x28323e,
-  floorAlt: 0x2f3b48,
-  wall: 0x3a4757,
-  wallDark: 0x2b3543,
-  plat: 0x465667,
-  platHigh: 0x4f6274,
-  ramp: 0x2c6b74,
-  rampWarm: 0x7a5330,
-  trim: 0xff8a3d,
-  neon: 0x6ee7ff,
-  violet: 0x9d7bff,
-  stair: 0x3f4c5c,
-  cover: 0x53616f,
+  floor: 0x4a5b6e,
+  floorAlt: 0x55697e,
+  wall: 0x6b8199,
+  wallDark: 0x506070,
+  plat: 0x8099b3,
+  platHigh: 0x93aec9,
+  ramp: 0x4aa3b0,
+  rampWarm: 0xc08a4a,
+  trim: 0xffa14a,
+  neon: 0x8ef0ff,
+  violet: 0xb79bff,
+  stair: 0x7188a1,
+  cover: 0x94a9bd,
 }
 
 // box: centre + half extents (+ optional rotation)
@@ -342,7 +344,7 @@ export const MAPS = [
   {
     id: 'yard', name: 'QYN YARD', sub: 'MOVEMENT PLAYGROUND',
     desc: 'Flat ground, ramps, stairs, gaps, long platforms, walls, corners. Built for chains.',
-    sky: [0x0b1016, 0x1a2a38], fog: 0x16222e, fogNear: 60, fogFar: 190,
+    sky: [0x2a4a63, 0x7fb4cf], fog: 0x8fb6cc, fogNear: 90, fogFar: 300,
     brushes: qynYard(),
     spawns: {
       a: [[0, 0.2, -44, 0], [-24, 0.2, -26, 0.4], [24, 0.2, -26, -0.4], [-10, 0.2, -50, 0.2]],
@@ -353,7 +355,7 @@ export const MAPS = [
   {
     id: 'vertex', name: 'VERTEX', sub: 'DUEL ARENA',
     desc: 'Tight and symmetrical. Centre tower, four ramps, instant fights.',
-    sky: [0x0d1018, 0x241d33], fog: 0x1b1c2c, fogNear: 45, fogFar: 150,
+    sky: [0x33284f, 0x8a6fb5], fog: 0x9a8fbd, fogNear: 80, fogFar: 260,
     brushes: vertex(),
     spawns: {
       a: [[0, 0.2, -26, 0], [-16, 0.2, -22, 0.3], [16, 0.2, -22, -0.3], [0, 0.2, -18, 0]],
@@ -364,7 +366,7 @@ export const MAPS = [
   {
     id: 'conduit', name: 'CONDUIT', sub: 'THREE LANES',
     desc: 'Mid deck, side towers, long lanes. Space to rotate and flank.',
-    sky: [0x0a1418, 0x123040], fog: 0x12222c, fogNear: 55, fogFar: 175,
+    sky: [0x1d4a5c, 0x74c3d6], fog: 0x8fc4d2, fogNear: 85, fogFar: 280,
     brushes: conduit(),
     spawns: {
       a: [[0, 0.2, -36, 0], [-20, 0.2, -32, 0.3], [20, 0.2, -32, -0.3], [-8, 0.2, -38, 0], [8, 0.2, -38, 0]],
@@ -375,7 +377,7 @@ export const MAPS = [
   {
     id: 'descent', name: 'DESCENT', sub: 'THE HILL',
     desc: 'Summit to bowl. Sprint down, slide the whole way, learn to carry speed.',
-    sky: [0x140f0c, 0x3a2418], fog: 0x241a14, fogNear: 60, fogFar: 210,
+    sky: [0x5c331f, 0xe0a06a], fog: 0xc9a184, fogNear: 95, fogFar: 320,
     brushes: descent(),
     spawns: {
       a: [[-38, 23, 0, Math.PI / 2], [-38, 23, -8, Math.PI / 2], [-38, 23, 8, Math.PI / 2]],
@@ -386,7 +388,7 @@ export const MAPS = [
   {
     id: 'fracture', name: 'FRACTURE', sub: 'SPLIT LEVEL',
     desc: 'Upper deck over a bowl. Drop, slide the downhill, come back up the long ramp.',
-    sky: [0x0e1116, 0x243b44], fog: 0x17242c, fogNear: 55, fogFar: 180,
+    sky: [0x24525c, 0x8fd0d8], fog: 0x9dc6cc, fogNear: 90, fogFar: 300,
     brushes: fracture(),
     spawns: {
       a: [[-30, 4.6, -28, 0.6], [-8, 4.6, -30, 0.2], [-28, 4.6, -10, 0.9], [-14, 4.6, -16, 0.4]],
@@ -397,7 +399,7 @@ export const MAPS = [
   {
     id: 'range', name: 'QYN RANGE', sub: 'TRAINING',
     desc: 'Every loadout, every distance, plus a speed track to test your chains.',
-    sky: [0x0c1014, 0x1b2733], fog: 0x141d26, fogNear: 50, fogFar: 170,
+    sky: [0x243448, 0x6f93b5], fog: 0x86a6c0, fogNear: 70, fogFar: 230,
     brushes: range(),
     spawns: { a: [[0, 0.6, 30, 0], [-8, 0.6, 30, 0], [8, 0.6, 30, 0]], b: [[0, 0.6, -22, Math.PI]] },
     bots: false, killY: -25, modes: ['range'],
