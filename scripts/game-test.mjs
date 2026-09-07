@@ -375,6 +375,52 @@ for (const mode of MODES.filter((m) => m.id !== 'p2p')) {   // p2p needs a live 
   g.dispose()
 }
 
+// ── the HUD must never be handed an undefined or NaN ────────────────────────
+{
+  const scan = (o, path = '', out = [], depth = 0) => {
+    if (depth > 5 || o == null || typeof o !== 'object') return out
+    for (const k of Object.keys(o)) {
+      const v = o[k]
+      if (typeof v === 'undefined') out.push(path + k + '=undefined')
+      else if (typeof v === 'number' && !Number.isFinite(v)) out.push(path + k + '=' + v)
+      else if (v && typeof v === 'object') scan(v, path + k + '.', out, depth + 1)
+    }
+    return out
+  }
+  const g = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
+  g.load({ mapId: 'yard', modeId: '3v3', loadout: { primary: 'vex9', secondary: 'q1', melee: 'knife', utility: 'frag' }, skin: SKINS[0], botLevel: 'hard' })
+  g.input.fallback = true
+  const bad = new Set()
+  let snaps = 0
+  const realPush = g.onHud
+  // scan the object as it is handed over — JSON would quietly drop undefined
+  g.onHud = (h) => { snaps++; for (const p of scan(h)) bad.add(p); if (realPush) realPush(h) }
+  let died = false
+  for (let i = 0; i < 40 * 120; i++) {
+    const IN = g.input
+    IN.keys.KeyW = true
+    IN.keys.Space = i % 40 === 0
+    IN.pressed.Space = i % 40 === 0
+    IN.keys.ShiftLeft = true
+    IN.pressed.ControlLeft = i % 220 === 0
+    IN.mouse.dx = Math.sin(i / 30) * 26
+    IN.mouse.dy = Math.cos(i / 51) * 9
+    IN.mouseButtons[0] = i % 8 < 4
+    IN.mousePressed[0] = i % 8 === 0
+    IN.pressed.Digit2 = i === 900
+    IN.pressed.Digit3 = i === 1400
+    IN.pressed.KeyR = i % 600 === 0
+    IN.pressed.KeyF = i % 700 === 0
+    IN.pressed.Tab = i > 2000 && i < 2400
+    if (i === 2600 && !died) { died = true; g.damageTarget(g.player, 999, null, false, null, false) }
+    g.fixedStep(STEP)
+    if (i % 4 === 0) g.renderFrame(STEP * 4)
+  }
+  check('every HUD snapshot is free of undefined and NaN', bad.size === 0,
+    bad.size ? [...bad].slice(0, 4).join(', ') : `${snaps} snapshots inspected`)
+  g.dispose()
+}
+
 // ── weapon state machine under abuse ───────────────────────────────────────
 {
   const g = new Game(canvas, { rendererFactory: rendererStub, settings: {} })

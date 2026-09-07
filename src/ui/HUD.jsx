@@ -8,7 +8,8 @@ export default function HUD ({ hud, paused, needsLock, onResume, onQuit, showMv,
   const gap = Math.min(26, 3 + (hud.spread || 0) * 2.6)
   const spd = hud.speed || 0
   const pct = Math.min(100, (spd / 18) * 100)
-  const low = hud.hp / hud.maxHp < 0.34
+  const maxHp = hud.maxHp || 150
+  const low = hud.hp / maxHp < 0.34
   const chains = hud.chains?.done || {}
 
   return (
@@ -90,8 +91,8 @@ export default function HUD ({ hud, paused, needsLock, onResume, onQuit, showMv,
       {/* ── health ────────────────────────────────────────────────── */}
       <div className="panel hp">
         {hud.spawnGuard > 0 && <div className="shield">SPAWN SHIELD {hud.spawnGuard.toFixed(1)}s</div>}
-        <div className="n" style={{ color: low ? 'var(--rd)' : '#fff' }}>{hud.hp}<small> / {hud.maxHp} HP</small></div>
-        <div className={`hpbar ${low ? 'low' : ''}`}><i style={{ width: (hud.hp / hud.maxHp) * 100 + '%' }} /></div>
+        <div className="n" style={{ color: low ? 'var(--rd)' : '#fff' }}>{hud.hp}<small> / {maxHp} HP</small></div>
+        <div className={`hpbar ${low ? 'low' : ''}`}><i style={{ width: Math.max(0, (hud.hp / maxHp) * 100) + '%' }} /></div>
         <div style={{ marginTop: 6, fontSize: 10, color: 'var(--dim)', letterSpacing: '.1em' }}>
           {mapName} · {String(mode).replace('_', ' ')}
         </div>

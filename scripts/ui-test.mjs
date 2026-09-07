@@ -55,7 +55,7 @@ const screens = [
   }],
   ['HUD', UI.HUD, { showMv: true, mapName: 'QYN YARD', mode: '1v1',
     hud: {
-      hp: 150, alive: true, respawn: 0, speed: 12.4, vel: [3, 0, 11], momentum: 1.42,
+      hp: 150, maxHp: 150, alive: true, respawn: 0, speed: 12.4, vel: [3, 0, 11], momentum: 1.42,
       grounded: true, sliding: true, sprinting: true, chains: ['SPRINT→SLIDE', 'SLIDE→JUMP'], chainFlash: 1,
       slot: 'primary', ammo: 24, mag: 30, reserve: 150, reloading: false, weaponName: 'VEX-9',
       utility: { name: 'FRAG', count: 2, cooldown: 0 },
@@ -70,7 +70,8 @@ const screens = [
     paused: false, onResume: noop, onQuit: noop, profile: DEFAULT_PROFILE,
   }],
   ['HUD-paused', UI.HUD, {
-    hud: { hp: 0, alive: false, respawn: 2, speed: 0, vel: [0, 0, 0], momentum: 1, grounded: true, sliding: false, sprinting: false, chains: [], chainFlash: 0, slot: 'melee', ammo: 0, mag: 0, reserve: 0, reloading: false, weaponName: 'KNIFE', utility: null, scoreA: 0, scoreB: 0, round: 1, phase: 'countdown', timer: 2.4, killfeed: [], banner: 'GET READY', lastWin: false, hitmarker: 0, hitHead: false, damageFlash: 0, lowAmmo: true, fps: 60, spread: 0 },
+    showMv: false, mapName: 'QYN YARD', mode: '1v1',
+    hud: { hp: 0, maxHp: 150, alive: false, respawn: 2, speed: 0, vel: [0, 0, 0], momentum: 1, grounded: true, sliding: false, sprinting: false, chains: [], chainFlash: 0, slot: 'melee', ammo: 0, mag: 0, reserve: 0, reloading: false, weaponName: 'KNIFE', utility: null, scoreA: 0, scoreB: 0, round: 1, phase: 'countdown', timer: 2.4, killfeed: [], banner: 'GET READY', lastWin: false, hitmarker: 0, hitHead: false, damageFlash: 0, lowAmmo: true, fps: 60, spread: 0 },
     paused: true, onResume: noop, onQuit: noop, profile: DEFAULT_PROFILE,
   }],
   ['Loadout', UI.Loadout, { profile: DEFAULT_PROFILE, save: noop, onStart: noop, onBack: noop, mapId: 'yard', mode: MODES[0] }],
@@ -92,6 +93,14 @@ for (const [name, C, props] of screens) {
     const ok = html && html.length > 40
     console.log(`${ok ? ' PASS' : '*FAIL'}  ${name} renders (${html.length} bytes)`)
     if (!ok) fails++
+    // "undefined" leaking into the DOM is always a bug a player will see
+    const dross = [...html.matchAll(/>undefined<|undefined\b(?=[<\s])|NaN|\[object Object\]/g)]
+    if (dross.length) {
+      for (const m of dross.slice(0, 3)) {
+        console.log(`*FAIL  ${name} renders "${m[0]}" — …${html.slice(Math.max(0, m.index - 90), m.index + 30).replace(/\s+/g, ' ')}…`)
+      }
+      fails++
+    }
   } catch (e) {
     console.log(`*FAIL  ${name} → ${e.message.split('\n')[0]}`)
     fails++
