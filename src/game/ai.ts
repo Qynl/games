@@ -15,6 +15,8 @@ export interface AIData {
   superTimer: number
   leaderWish: Vec | null
   teamWishT: number
+  strafeSide: 1 | -1
+  strafeT: number
 }
 
 export function makeAI(b: BrawlerState): AIData {
@@ -26,6 +28,8 @@ export function makeAI(b: BrawlerState): AIData {
     superTimer: rand(1, 3),
     leaderWish: null,
     teamWishT: 0,
+    strafeSide: b.id % 2 === 0 ? 1 : -1,
+    strafeT: 0,
   }
 }
 
@@ -214,14 +218,14 @@ export function updateAI(g: GameState, me: BrawlerState, ai: AIData, dt: number)
     }
   }
   if (aimTarget) {
-    const lead = v(aimTarget.x + target!.vel.x * 0.25, aimTarget.y + target!.vel.y * 0.25)
-    const a = Math.atan2(lead.y - me.pos.y, lead.x - me.pos.x) + rand(-0.16, 0.16)
+    const lead = v(aimTarget.x + target!.vel.x * 0.3, aimTarget.y + target!.vel.y * 0.3)
+    const a = Math.atan2(lead.y - me.pos.y, lead.x - me.pos.x) + rand(-0.1, 0.1)
     ai.aimAngle = a
     me.aim = a
     ai.shotTimer -= dt
     if (ai.shotTimer <= 0) {
       g.tryFire(me)
-      ai.shotTimer = rand(0.28, 0.6)
+      ai.shotTimer = rand(0.26, 0.55)
     }
   } else {
     // face where we're moving, mostly
@@ -241,9 +245,55 @@ export function updateAI(g: GameState, me: BrawlerState, ai: AIData, dt: number)
     ai.superTimer = rand(2.5, 5)
   }
 
-  // --- movement ---
-  if (!desired) desired = findRallyPoint(g, me.team)
-  moveToward(g, me, ai, desired, dt, def.speed)
+  // --- gadget: pop defensive gadgets when hurt and engaged ---
+  if (
+    me.gadgetLeft > 0 &&
+    me.gadgetCd <= 0 &&
+    me.hp / me.maxHp < 0.45 &&
+    enemies.some((e) => dist(e.pos, me.pos) < 5 * TILE)
+  ) {
+    g.tryGadget(me)
+  }
+
+  // --- movement: kite, strafe, or push ---
+  const lowHp = me.hp / me.maxHp < 0.28
+  const threatened = enemies.some((e) => dist(e.pos, me.pos) < 4.5 * TILE)
+  if (lowHp && !threatened && !countdownActive) {
+    // retreat to spawn to regen
+    const spawnPts = g.map.spawns.filter((s) => s.team === myTeam).map((s) => v(s.pos.x * TILE, s.pos.y * TILE))
+    desired = spawnPts.length > 0 ? pick(spawnPts) : v((g.map.w / 2) * TILE, (g.map.h / 2) * TILE)
+  }
+
+  if (target && aimTarget && !lowHp) {
+    // combat positioning: keep the ideal range band, circle-strafe inside it
+    const d = dist(me.pos, target.pos)
+    const optLo = me.attackRange * 0.42
+    const optHi = me.attackRange * 0.82
+    ai.strafeT -= dt
+    if (ai.strafeT <= 0) {
+      ai.strafeSide = chance(0.5) ? 1 : -1
+      ai.strafeT = rand(0.8, 1.6)
+    }
+    const toT = norm(v(target.pos.x - me.pos.x, target.pos.y - me.pos.y))
+    const perp = v(-toT.y, toT.x)
+    let mv: Vec
+    if (d < optLo) {
+      // back off while circling
+      mv = norm(v(-toT.x * 1 + perp.x * 0.55 * ai.strafeSide, -toT.y * 1 + perp.y * 0.55 * ai.strafeSide))
+    } else if (d < optHi) {
+      // circle-strafe
+      mv = v(perp.x * ai.strafeSide, perp.y * ai.strafeSide)
+    } else {
+      // push in
+      mv = toT
+    }
+    const wallSafe = avoidWalls(g.map, me.pos, mv)
+    me.mx = wallSafe.x
+    me.my = wallSafe.y
+  } else {
+    if (!desired) desired = findRallyPoint(g, me.team)
+    moveToward(g, me, ai, desired, dt, def.speed)
+  }
 }
 
 function updateShowdownAI(
@@ -261,6 +311,7 @@ function updateShowdownAI(
   const inGas = dGas > -0.5 * TILE
 
   let desired: Vec | null = null
+  let strafe: Vec | null = null
 
   // flee gas
   if (inGas) {
@@ -269,25 +320,25 @@ function updateShowdownAI(
   } else {
     // fight if strong or threatened
     const cubes = me.cubes ?? 0
+    const hurt = me.hp / me.maxHp < 0.3
     let victim: BrawlerState | null = null
     for (const e of enemies) {
       const d = dist(me.pos, e.pos)
-      if (d < 5 * TILE && e.cubes <= cubes + 1 && hasLineOfSight(g.map, me.pos, e.pos)) {
+      if (d < 5 * TILE && (hurt || e.cubes <= cubes + 1) && hasLineOfSight(g.map, me.pos, e.pos)) {
         if (!victim || dist(me.pos, e.pos) < dist(me.pos, victim.pos)) victim = e
       }
     }
     const fleeFrom: BrawlerState[] = []
     for (const e of enemies) {
-      if (dist(me.pos, e.pos) < 5.5 * TILE && e.cubes > cubes + 1) fleeFrom.push(e)
+      if (dist(me.pos, e.pos) < 5.5 * TILE && (hurt || e.cubes > cubes + 1)) fleeFrom.push(e)
     }
     if (fleeFrom.length > 0) {
       const f = fleeFrom[0]
       const away = norm(v(me.pos.x - f.pos.x, me.pos.y - f.pos.y))
       desired = v(me.pos.x + away.x * 6 * TILE, me.pos.y + away.y * 6 * TILE)
     } else if (victim) {
-      desired = null // stand and fight
       const lead = v(victim.pos.x + victim.vel.x * 0.3, victim.pos.y + victim.vel.y * 0.3)
-      const a = Math.atan2(lead.y - me.pos.y, lead.x - me.pos.x) + rand(-0.14, 0.14)
+      const a = Math.atan2(lead.y - me.pos.y, lead.x - me.pos.x) + rand(-0.1, 0.1)
       ai.aimAngle = a
       me.aim = a
       const d = dist(me.pos, victim.pos)
@@ -297,9 +348,22 @@ function updateShowdownAI(
           g.tryFire(me)
           ai.shotTimer = rand(0.3, 0.65)
         }
-      } else if (d < def.attack.range * 0.45) {
+      }
+      // strafe to stay hard to hit
+      ai.strafeT -= dt
+      if (ai.strafeT <= 0) {
+        ai.strafeSide = chance(0.5) ? 1 : -1
+        ai.strafeT = rand(0.7, 1.4)
+      }
+      const toV = norm(v(victim.pos.x - me.pos.x, victim.pos.y - me.pos.y))
+      const perp = v(-toV.y, toV.x)
+      if (d < def.attack.range * 0.45) {
         const away = norm(v(me.pos.x - victim.pos.x, me.pos.y - victim.pos.y))
-        desired = v(me.pos.x + away.x * 4 * TILE, me.pos.y + away.y * 4 * TILE)
+        strafe = v(away.x * 0.85 + perp.x * 0.5 * ai.strafeSide, away.y * 0.85 + perp.y * 0.5 * ai.strafeSide)
+      } else if (d < def.attack.range * 0.9) {
+        strafe = v(perp.x * ai.strafeSide, perp.y * ai.strafeSide)
+      } else {
+        desired = victim.pos
       }
     } else {
       // hunt nearest box
@@ -343,11 +407,27 @@ function updateShowdownAI(
     }
   }
 
-  if (!desired) {
-    // hold position, occasionally stroll
-    if (chance(dt * 0.4)) desired = v(me.pos.x + rand(-5, 5) * TILE, me.pos.y + rand(-5, 5) * TILE)
+  // gadget: pop when hurt and someone's close
+  if (
+    me.gadgetLeft > 0 &&
+    me.gadgetCd <= 0 &&
+    me.hp / me.maxHp < 0.45 &&
+    enemies.some((e) => dist(e.pos, me.pos) < 4.5 * TILE)
+  ) {
+    g.tryGadget(me)
   }
-  if (desired) moveToward(g, me, ai, desired, dt, def.speed * (me.cubes > 3 ? 1.06 : 1))
+
+  if (strafe) {
+    const wallSafe = avoidWalls(g.map, me.pos, strafe)
+    me.mx = wallSafe.x
+    me.my = wallSafe.y
+  } else {
+    if (!desired) {
+      // hold position, occasionally stroll
+      if (chance(dt * 0.4)) desired = v(me.pos.x + rand(-5, 5) * TILE, me.pos.y + rand(-5, 5) * TILE)
+    }
+    if (desired) moveToward(g, me, ai, desired, dt, def.speed * (me.cubes > 3 ? 1.06 : 1))
+  }
 }
 
 // shared movement: pathfind around walls, avoid water, jitter wander
@@ -460,17 +540,43 @@ export function avoidBullets(g: GameState, me: BrawlerState, dt: number, speed: 
 
 export function avoidWalls(map: any, pos: Vec, dir: Vec): Vec {
   const look = v(pos.x + dir.x * 1.6 * TILE, pos.y + dir.y * 1.6 * TILE)
-  const tx = Math.floor(look.x)
-  const ty = Math.floor(look.y)
-  if (solidTile(map.tiles[ty * map.w + tx] ?? 0)) {
+  const tx = Math.floor(look.x / TILE)
+  const ty = Math.floor(look.y / TILE)
+  const tile = tx >= 0 && ty >= 0 && tx < map.w && ty < map.h ? map.tiles[ty * map.w + tx] : 0
+  if (solidTile(tile)) {
     // steer around: try perpendicular
     const perp = v(-dir.y, dir.x)
     const l1 = v(look.x + perp.x * TILE, look.y + perp.y * TILE)
-    const t1 = map.tiles[Math.floor(l1.y) * map.w + Math.floor(l1.x)] ?? 0
+    const t1x = Math.floor(l1.x / TILE)
+    const t1y = Math.floor(l1.y / TILE)
+    const t1 = t1x >= 0 && t1y >= 0 && t1x < map.w && t1y < map.h ? map.tiles[t1y * map.w + t1x] : 0
     if (!solidTile(t1)) return perp
     return v(dir.y, -dir.x)
   }
   return dir
+}
+
+// dodge enemies that are aiming at us (threat anticipation)
+export function dodgeThreat(g: GameState, me: BrawlerState): Vec | null {
+  let acc = v()
+  let n = 0
+  for (const e of g.brawlers) {
+    if (e.dead || e.id === me.id) continue
+    if (g.mode.id !== 'showdown' && e.team === me.team) continue
+    const d = dist(me.pos, e.pos)
+    const eRange = e.attackRange
+    if (d > eRange * 1.5) continue
+    const toMe = norm(v(me.pos.x - e.pos.x, me.pos.y - e.pos.y))
+    const facing = Math.cos(angDiff(Math.atan2(toMe.y, toMe.x), e.aim))
+    if (facing > 0.7) {
+      const perp = v(-toMe.y, toMe.x)
+      const w = (1.3 - d / (eRange * 1.5)) * 1.6
+      acc = v(acc.x + perp.x * w, acc.y + perp.y * w)
+      n++
+    }
+  }
+  if (n === 0) return null
+  return norm(acc)
 }
 
 export function spreadFromAllies(g: GameState, me: BrawlerState) {

@@ -33,12 +33,16 @@ export class InputManager {
   private vJoy: Vec | null = null
   private vAim: Vec | null = null
   private vAimStart = 0
-  private vAimHoldFiring = false
-  private fireBtnHeld = false
   private joyActive = false
   private aimActive = false
   private lastStickAim: Vec | null = null
   private stickReleasedAt = 0
+
+  // ---- fire button: a mini aim-stick (Brawl Stars style) ----
+  // tap inside the cancel radius = quick-fire (auto-aim); drag out & release = aimed shot
+  private fireBtnActive = false
+  private fireBtnStart: Vec | null = null
+  private fireBtnDrag: Vec | null = null
 
   // ---- canvas touch (tap/drag on the field) ----
   private canvasAimId: number | null = null
@@ -53,7 +57,8 @@ export class InputManager {
 
   private disposed = false
 
-  // fired when the aim stick / canvas tap releases: a single attack
+  // fired when the aim stick / fire button / canvas tap releases: a single attack
+  // dir = screen-space drag direction, null = auto-aim (nearest target)
   onAimRelease: (dir: Vec | null) => void = () => {}
 
   constructor(canvas: HTMLCanvasElement, state: InputState) {
@@ -230,7 +235,6 @@ export class InputManager {
     this.aimActive = true
     this.vAim = v(x, y)
     this.vAimStart = performance.now()
-    this.vAimHoldFiring = false
   }
   aimMove(x: number, y: number) {
     if (!this.aimActive) return
@@ -238,23 +242,42 @@ export class InputManager {
   }
   aimUp() {
     if (this.aimActive) {
-      const held = performance.now() - this.vAimStart
-      if (held < 420 && !this.vAimHoldFiring) {
-        // quick release = one shot (Brawl Stars style)
-        const dir =
-          this.vAim && Math.hypot(this.vAim.x, this.vAim.y) > 8
-            ? v(this.vAim.x, this.vAim.y)
-            : null
-        this.onAimRelease(dir)
-      }
+      // release-to-fire: quick release inside the cancel radius = auto-aim shot,
+      // dragged release = aimed shot in the drag direction
+      const dir =
+        this.vAim && Math.hypot(this.vAim.x, this.vAim.y) > 10
+          ? v(this.vAim.x, this.vAim.y)
+          : null
+      this.onAimRelease(dir)
     }
     if (this.vAim) this.lastStickAim = v(this.vAim.x, this.vAim.y)
     this.stickReleasedAt = performance.now()
     this.aimActive = false
     this.vAim = null
   }
-  setFireButton(held: boolean) {
-    this.fireBtnHeld = held
+
+  // ---- fire button stick: down / move / up (Brawl Stars quick-fire) ----
+  fireBtnDown() {
+    this.fireBtnActive = true
+    this.fireBtnStart = v(0, 0)
+    this.fireBtnDrag = v(0, 0)
+  }
+  fireBtnMove(dx: number, dy: number) {
+    if (!this.fireBtnActive) return
+    this.fireBtnDrag = v(dx, dy)
+  }
+  fireBtnUp() {
+    if (this.fireBtnActive) {
+      const drag = this.fireBtnDrag ?? v(0, 0)
+      const dir = Math.hypot(drag.x, drag.y) > 10 ? v(drag.x, drag.y) : null
+      this.onAimRelease(dir)
+    }
+    this.fireBtnActive = false
+    this.fireBtnStart = null
+    this.fireBtnDrag = null
+  }
+  isFireBtnActive() {
+    return this.fireBtnActive
   }
   isAimStickActive() {
     if (this.vAim) return true
@@ -291,7 +314,7 @@ export class InputManager {
       my /= ml
     }
     st.move = v(mx, my)
-    st.mode = this.vJoy || this.vAim || this.fireBtnHeld ? 'touch' : 'keyboard'
+    st.mode = this.vJoy || this.vAim || this.fireBtnActive ? 'touch' : 'keyboard'
 
     // ---- aim ----
     if (this.vAim) {
@@ -302,9 +325,8 @@ export class InputManager {
       st.aim = v(st.aimScreen.x, st.aimScreen.y)
     }
 
-    // ---- firing: hold mouse / hold fire button / hold aim stick long enough ----
-    if (this.vAim && performance.now() - this.vAimStart > 420) this.vAimHoldFiring = true
-    const firing = this.mouseDown || this.fireBtnHeld || (this.vAim ? this.vAimHoldFiring : false)
+    // ---- firing: hold-to-fire is mouse-only (mobile fires on release, like Brawl Stars) ----
+    const firing = this.mouseDown
 
     g.setMove(st.move.x, st.move.y)
     g.setFiring(firing)

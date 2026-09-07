@@ -10,7 +10,7 @@ import {
 import { BRAWLERS, brawlerById, BrawlerDef } from './brawlers'
 import { GameMap, mapById, solidTile, tileAt, T_WALL } from './maps'
 import { ParticleSystem, makeTombstone, Tombstone } from './particles'
-import { updateAI, makeAI, AIData } from './ai'
+import { updateAI, makeAI, AIData, avoidBullets, dodgeThreat, avoidWalls } from './ai'
 import { findPath, hasLineOfSight } from './pathfind'
 import { audio } from './audio'
 import {
@@ -113,6 +113,7 @@ export class GameState {
   playerSuperQueued = false
   private playerGadgetQueued = false
   private superFlashT = new Map<number, number>()
+  hitstop = 0
 
   constructor(mode: ModeDef, mapId: string, playerBrawlerId: string, botBrawlerIds?: string[]) {
     this.mode = mode
@@ -283,6 +284,13 @@ export class GameState {
     }
 
     // ------- playing -------
+    // hitstop: tiny freeze-frame on big moments (kill confirm feel)
+    if (this.hitstop > 0) {
+      this.hitstop -= dt
+      this.particles.update(dt)
+      return
+    }
+
     this.timeLeft -= dt
     this.mineT -= dt
 
@@ -304,7 +312,7 @@ export class GameState {
       this.mineT = 2.6
       const offset = vecFromAngle(rand(Math.PI * 2), rand(0, 40))
       this.dropPickup(v(this.map.mine.x * TILE + offset.x, this.map.mine.y * TILE + offset.y), 'gem')
-      this.particles.sparkBurst(this.map.mine, '#9c4dff', 8, 90)
+      this.particles.sparkBurst(v(this.map.mine.x * TILE, this.map.mine.y * TILE), '#9c4dff', 8, 90)
     }
 
     // gem countdown
@@ -484,6 +492,23 @@ export class GameState {
     for (const b of this.brawlers) {
       if (b.isBot && !b.dead && b.bot) {
         updateAI(this, b, b.bot, dt)
+        // dodge incoming projectiles
+        avoidBullets(this, b, dt, b.def.speed)
+        // dodge enemies aiming at us
+        const threat = dodgeThreat(this, b)
+        if (threat) {
+          b.mx += threat.x * 0.85
+          b.my += threat.y * 0.85
+          const l = Math.hypot(b.mx, b.my) || 1
+          b.mx /= l
+          b.my /= l
+        }
+        // don't walk into walls while dodging
+        if (b.mx !== 0 || b.my !== 0) {
+          const safe = avoidWalls(this.map, b.pos, v(b.mx, b.my))
+          b.mx = safe.x
+          b.my = safe.y
+        }
       }
       if (b.isBot) {
         if (Math.random() < dt * 0.02 && !b.dead) {
@@ -510,6 +535,7 @@ export class GameState {
     const dir = vecFromAngle(b.aim)
     const origin = v(b.pos.x + dir.x * 20, b.pos.y + dir.y * 20)
     const pTeam = b.team
+    this.particles.sparkBurst(origin, '#ffd23f', 3, 140)
 
     switch (atk.kind) {
       case 'spread': {
@@ -907,6 +933,7 @@ export class GameState {
     target.hitFlash = 1
     target.damage += dmg
     target.lastHitT = 0
+    if (target.isPlayer) this.shake = Math.max(this.shake, 0.14)
 
     // taking damage also charges your super a bit
     if (target.superCharge < 1) {
@@ -956,6 +983,7 @@ export class GameState {
     this.tombstones.push(makeTombstone(target.pos, target.team))
     audio.kill()
     this.shake = Math.max(this.shake, 0.3)
+    this.hitstop = Math.max(this.hitstop, 0.05)
 
     if (target.isPlayer) {
       this.pushEvent({ kind: 'lose', text: 'You got wrecked!', killerName: killer?.name })

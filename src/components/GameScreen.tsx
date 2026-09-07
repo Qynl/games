@@ -67,7 +67,7 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
   const [events, setEvents] = useState<GameEvent[]>([])
   const [touch, setTouch] = useState(false)
   const [endedText, setEndedText] = useState<{ title: string; sub: string; won: boolean } | null>(null)
-  const [fireHeld, setFireHeld] = useState(false)
+  const [firePressed, setFirePressed] = useState(false)
   const hudRef = useRef(hud)
   hudRef.current = hud
 
@@ -430,25 +430,29 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
         </div>
 
         <div
-          className={`fire-btn ${fireHeld ? 'active' : ''}`}
+          className={`fire-btn ${firePressed ? 'active' : ''}`}
           onPointerDown={(e) => {
             e.preventDefault()
             e.currentTarget.setPointerCapture(e.pointerId)
-            inputRef.current?.setFireButton(true)
-            setFireHeld(true)
+            inputRef.current?.fireBtnDown()
+            setFirePressed(true)
             setTouch(true)
+          }}
+          onPointerMove={(e) => {
+            const r = e.currentTarget.getBoundingClientRect()
+            inputRef.current?.fireBtnMove(e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2)
           }}
           onPointerUp={(e) => {
             e.preventDefault()
-            inputRef.current?.setFireButton(false)
-            setFireHeld(false)
+            inputRef.current?.fireBtnUp()
+            setFirePressed(false)
           }}
-          onPointerLeave={() => {
-            inputRef.current?.setFireButton(false)
-            setFireHeld(false)
+          onPointerCancel={() => {
+            inputRef.current?.fireBtnUp()
+            setFirePressed(false)
           }}
         >
-          {fireHeld ? '🔥' : '✊'}
+          {firePressed ? '🎯' : '✊'}
         </div>
 
         {!touch && (

@@ -723,6 +723,7 @@ export class Renderer {
     ctx.save()
     ctx.translate(b.pos.x, b.pos.y)
     ctx.scale(1 + speedNorm * 0.06, 1 - speedNorm * 0.1 + Math.sin(b.bobPhase) * 0.02)
+    ctx.rotate(clamp(b.vel.x / (b.def.speed + 40), -1, 1) * 0.16)
     ctx.translate(0, -bounce)
     const flip = Math.cos(b.aimVis) < 0 ? -1 : 1
     // legs
