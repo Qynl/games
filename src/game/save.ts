@@ -6,6 +6,7 @@ export interface SaveData {
   playerName: string
   trophies: Record<string, number>
   unlocked: string[]
+  equipped: string
   wins: number
   losses: number
   gemWins: number
@@ -31,6 +32,7 @@ export function defaultSave(): SaveData {
     playerName: DEFAULT_NAME,
     trophies: {},
     unlocked: ['rusty'],
+    equipped: 'rusty',
     wins: 0,
     losses: 0,
     gemWins: 0,
@@ -56,6 +58,10 @@ export function loadSave(): SaveData {
     const base = defaultSave()
     const merged: SaveData = { ...base, ...parsed, settings: { ...base.settings, ...(parsed.settings ?? {}) } }
     merged.unlocked = Array.from(new Set([...merged.unlocked, 'rusty']))
+    // migrate equipped brawler
+    if (!merged.equipped || !merged.unlocked.includes(merged.equipped)) {
+      merged.equipped = merged.unlocked[0] ?? 'rusty'
+    }
     // migrate legacy stat names
     const p = parsed as any
     if (typeof p.showdownWins !== 'number' && typeof p.soloWins === 'number') merged.showdownWins = p.soloWins
@@ -122,6 +128,12 @@ export function buyBrawler(s: SaveData, id: string, cost: number): SaveData {
     keys: s.keys - cost,
     unlocked: [...s.unlocked, id],
   }
+}
+
+export function equipBrawler(s: SaveData, id: string): SaveData {
+  if (!s.unlocked.includes(id)) return s
+  if (s.equipped === id) return s
+  return { ...s, equipped: id }
 }
 
 export function openBox(s: SaveData, guaranteedId?: string): { save: SaveData; def: BrawlerDef; isNew: boolean } {

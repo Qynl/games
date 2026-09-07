@@ -19,6 +19,8 @@ export class Renderer {
   private shakeT = 0
   private confetti: { x: number; y: number; vx: number; vy: number; rot: number; rotSpeed: number; color: string; size: number }[] = []
   private confettiT = 0
+  // drag-to-move target marker (world coords), set by GameScreen
+  moveTarget: Vec | null = null
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -209,6 +211,32 @@ export class Renderer {
       ctx.fillStyle = hpFrac > 0.5 ? '#4ade80' : hpFrac > 0.25 ? '#facc15' : '#f87171'
       rr(ctx, -8, -24, 16 * hpFrac, 4, 2)
       ctx.fill()
+      ctx.restore()
+    }
+
+    // ---- drag-to-move marker ----
+    if (this.moveTarget && g.player && !g.player.dead && g.phase === 'play') {
+      const mt = this.moveTarget
+      ctx.save()
+      ctx.translate(mt.x, mt.y)
+      const pulse = 0.5 + Math.sin(g.time * 7) * 0.5
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 + pulse * 0.4})`
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      ctx.arc(0, 0, 13 + pulse * 3, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.25 + pulse * 0.2})`
+      ctx.beginPath()
+      ctx.arc(0, 0, 5, 0, Math.PI * 2)
+      ctx.fill()
+      // little directional ticks
+      for (let i = 0; i < 4; i++) {
+        const a = g.time * 1.5 + (i * Math.PI) / 2
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + pulse * 0.4})`
+        ctx.beginPath()
+        ctx.arc(Math.cos(a) * 20, Math.sin(a) * 20, 2.5, 0, Math.PI * 2)
+        ctx.fill()
+      }
       ctx.restore()
     }
 

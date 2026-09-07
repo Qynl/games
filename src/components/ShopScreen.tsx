@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { SaveData, claimDaily, openBox, nextUnlocks, buyBrawler } from '../game/save'
-import { BrawlerDef } from '../game/brawlers'
+import { BrawlerDef, RARITY_INFO } from '../game/brawlers'
 import { UiButton, Portrait, ResourceBar } from '../ui/ui'
 import { audio } from '../game/audio'
 
@@ -78,7 +78,12 @@ export default function ShopScreen({ save, setSave, onBack }: Props) {
               <div key={o.def.id} className="offer-row">
                 <Portrait id={o.def.id} className="offer-portrait" />
                 <div className="offer-info">
-                  <div className="offer-name">{o.def.name}</div>
+                  <div className="offer-name">
+                    {o.def.name}
+                    <span className="offer-rarity" style={{ color: RARITY_INFO[o.def.rarity].color }}>
+                      {RARITY_INFO[o.def.rarity].name}
+                    </span>
+                  </div>
                   <div className="offer-sub">{o.def.title}</div>
                 </div>
                 <UiButton

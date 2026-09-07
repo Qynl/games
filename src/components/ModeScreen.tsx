@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { SaveData } from '../game/save'
-import { MODES, ModeDef } from '../game/types'
-import { brawlerById } from '../game/brawlers'
+import { MODES, MODE_MAP, ModeDef } from '../game/types'
+import { brawlerById, RARITY_INFO } from '../game/brawlers'
 import { UiButton, Portrait, Bar } from '../ui/ui'
 import { rankForTrophies } from '../game/types'
+import { mapById } from '../game/maps'
 import { audio } from '../game/audio'
 
 interface Props {
@@ -19,6 +20,7 @@ export default function ModeScreen({ save, brawlerId, onBack, onPickBrawler, onS
   const b = brawlerById(brawlerId)
   const trophies = save.trophies[brawlerId] ?? 0
   const rank = rankForTrophies(trophies)
+  const rarity = RARITY_INFO[b.rarity]
 
   return (
     <div className="screen mode-screen">
@@ -46,6 +48,7 @@ export default function ModeScreen({ save, brawlerId, onBack, onPickBrawler, onS
                 <div className="mode-name">{m.name}</div>
                 <div className="mode-tagline">{m.tagline}</div>
                 <div className="mode-desc">{m.desc}</div>
+                <div className="mode-map">🗺️ {mapName(m)}</div>
               </div>
               {selected.id === m.id && <div className="mode-check">✓</div>}
             </div>
@@ -54,9 +57,16 @@ export default function ModeScreen({ save, brawlerId, onBack, onPickBrawler, onS
 
         <div className="mode-side">
           <div className="selected-brawler-card" onClick={onPickBrawler}>
-            <Portrait id={b.id} className="side-portrait" />
+            <div className="side-portrait-wrap" style={{ borderColor: rarity.color }}>
+              <Portrait id={b.id} className="side-portrait" />
+            </div>
             <div className="side-brawler-info">
-              <div className="side-brawler-name">{b.name}</div>
+              <div className="side-brawler-name">
+                {b.name}
+                <span className="side-brawler-rarity" style={{ color: rarity.color }}>
+                  {rarity.name}
+                </span>
+              </div>
               <div className="side-brawler-rank">
                 {rank.name} · {trophies} 🏆
               </div>
@@ -75,9 +85,14 @@ export default function ModeScreen({ save, brawlerId, onBack, onPickBrawler, onS
             {selected.id === 'gem' && '💎 Grab crystals from the mine. Hold 10 as a team to win!'}
             {selected.id === 'showdown' && '💀 10 brawlers. Smash boxes, grab cubes, outrun the gas.'}
             {selected.id === 'bounty' && '⭐ Every takedown earns stars. First team to 10 wins!'}
+            {selected.id === 'heist' && '💰 Blast the enemy safe — most damage wins on time-out!'}
           </div>
         </div>
       </div>
     </div>
   )
+}
+
+function mapName(m: ModeDef): string {
+  return mapById(MODE_MAP[m.id]).name
 }

@@ -25,7 +25,7 @@ export default function MenuScreen({ save, onPlay, onBrawlers, onShop, onSetting
     audio.uiClick()
   }
 
-  const mascots = save.unlocked.slice(0, 4)
+  const mascots = [save.equipped, ...save.unlocked.filter((id) => id !== save.equipped)].slice(0, 4)
 
   return (
     <div className="menu-screen">
@@ -85,7 +85,10 @@ export default function MenuScreen({ save, onPlay, onBrawlers, onShop, onSetting
       <div className="menu-bottom">
         <div className="mascot-row">
           {mascots.map((id) => (
-            <Portrait key={id} id={id} className="mascot" />
+            <div key={id} className={`mascot-wrap ${id === save.equipped ? 'equipped' : ''}`}>
+              <Portrait id={id} className="mascot" />
+              {id === save.equipped && <span className="mascot-tag">READY</span>}
+            </div>
           ))}
         </div>
         <div className="menu-stats">

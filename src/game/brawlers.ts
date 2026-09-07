@@ -1,5 +1,16 @@
 import { TILE } from './types'
 
+export type Rarity = 'common' | 'rare' | 'super' | 'epic' | 'mythic' | 'legendary'
+
+export const RARITY_INFO: Record<Rarity, { name: string; color: string; dark: string }> = {
+  common: { name: 'COMMON', color: '#b9c4d4', dark: '#3d4657' },
+  rare: { name: 'RARE', color: '#4ade80', dark: '#0f3d22' },
+  super: { name: 'SUPER RARE', color: '#4fc3ff', dark: '#0c2f4a' },
+  epic: { name: 'EPIC', color: '#c9a0ff', dark: '#33204f' },
+  mythic: { name: 'MYTHIC', color: '#ff6b6b', dark: '#4a1515' },
+  legendary: { name: 'LEGENDARY', color: '#ffd23f', dark: '#4a360a' },
+}
+
 export interface Look {
   hat: 'helmet' | 'goggles' | 'cap' | 'headband' | 'beaker' | 'headphones' | 'hood' | 'visor'
   weapon: 'shotgun' | 'bazooka' | 'rifle' | 'gloves' | 'bottles' | 'amp' | 'blades' | 'smg'
@@ -51,6 +62,7 @@ export interface BrawlerDef {
   superNeed: number // damage needed for full super
   gadget: GadgetDef
   look: Look
+  rarity: Rarity
   colors: { body: string; skin: string; accent: string; outline: string }
   difficulty: 1 | 2 | 3
 }
@@ -58,6 +70,7 @@ export interface BrawlerDef {
 export const BRAWLERS: BrawlerDef[] = [
   {
     id: 'rusty',
+    rarity: 'common',
     name: 'Rusty',
     title: 'The Scattergun',
     desc: 'A grizzled badger with a double-barrel. Point blank? Say goodnight.',
@@ -76,6 +89,7 @@ export const BRAWLERS: BrawlerDef[] = [
   },
   {
     id: 'nova',
+    rarity: 'rare',
     name: 'Nova',
     title: 'The Firework',
     desc: 'Rockets the size of beach balls. Everything in the blast zone says ouch.',
@@ -94,6 +108,7 @@ export const BRAWLERS: BrawlerDef[] = [
   },
   {
     id: 'rex',
+    rarity: 'rare',
     name: 'Rex',
     title: 'The Marksman',
     desc: 'Four-round bursts at sniper range. Accuracy is just patience with attitude.',
@@ -112,6 +127,7 @@ export const BRAWLERS: BrawlerDef[] = [
   },
   {
     id: 'moose',
+    rarity: 'super',
     name: 'Moose',
     title: 'The Wall',
     desc: 'A walking mountain with boxing gloves. His hugs are not hugs.',
@@ -130,6 +146,7 @@ export const BRAWLERS: BrawlerDef[] = [
   },
   {
     id: 'tumble',
+    rarity: 'super',
     name: 'Tumble',
     title: 'The Brewmaster',
     desc: 'Lobs potion bottles over walls. Bottoms up — on their heads.',
@@ -148,6 +165,7 @@ export const BRAWLERS: BrawlerDef[] = [
   },
   {
     id: 'pip',
+    rarity: 'epic',
     name: 'Pip',
     title: 'The Soundwave',
     desc: 'A frog medic whose amplifier heals friends and flattens foes.',
@@ -166,6 +184,7 @@ export const BRAWLERS: BrawlerDef[] = [
   },
   {
     id: 'blitz',
+    rarity: 'epic',
     name: 'Blitz',
     title: 'The Ghost',
     desc: 'A fox ninja faster than bad news. Slash, dash, vanish.',
@@ -184,6 +203,7 @@ export const BRAWLERS: BrawlerDef[] = [
   },
   {
     id: 'twitch',
+    rarity: 'legendary',
     name: 'Twitch',
     title: 'The Engineer',
     desc: 'Sprays rapid fire and drops a turret that does the talking.',

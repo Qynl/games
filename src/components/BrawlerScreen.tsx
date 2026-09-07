@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { SaveData, nextUnlocks, buyBrawler, rankLabel } from '../game/save'
-import { BRAWLERS, brawlerById } from '../game/brawlers'
+import { useState, CSSProperties } from 'react'
+import { SaveData, nextUnlocks, buyBrawler, equipBrawler, rankLabel } from '../game/save'
+import { BRAWLERS, brawlerById, RARITY_INFO } from '../game/brawlers'
 import { rankForTrophies } from '../game/types'
 import { UiButton, Portrait, Bar } from '../ui/ui'
 import { audio } from '../game/audio'
@@ -8,15 +8,19 @@ import { audio } from '../game/audio'
 interface Props {
   save: SaveData
   setSave: (s: SaveData) => void
+  from: 'menu' | 'battle'
   onBack: () => void
+  onEquipped: () => void
 }
 
-export default function BrawlerScreen({ save, setSave, onBack }: Props) {
-  const [selectedId, setSelectedId] = useState(save.unlocked[0] ?? 'rusty')
+export default function BrawlerScreen({ save, setSave, from, onBack, onEquipped }: Props) {
+  const [selectedId, setSelectedId] = useState(save.equipped || 'rusty')
   const selected = brawlerById(selectedId)
   const unlocked = save.unlocked.includes(selectedId)
+  const equipped = save.equipped === selectedId
   const offers = nextUnlocks(save)
   const cost = offers.find((o) => o.def.id === selectedId)?.cost
+  const rarity = RARITY_INFO[selected.rarity]
 
   const statOf = (attack: any) => {
     switch (attack.kind) {
@@ -33,14 +37,28 @@ export default function BrawlerScreen({ save, setSave, onBack }: Props) {
   const maxDmg = Math.max(...BRAWLERS.map((b) => statOf(b.attack)))
   const maxSpeed = Math.max(...BRAWLERS.map((b) => b.speed))
 
+  const handleEquip = () => {
+    if (!unlocked || equipped) return
+    setSave(equipBrawler(save, selectedId))
+    audio.superReady()
+    if (from === 'battle') {
+      window.setTimeout(onEquipped, 420)
+    }
+  }
+
   const handleBuy = () => {
     if (cost === undefined) return
     if (save.keys < cost) {
       audio.hit()
       return
     }
-    setSave(buyBrawler(save, selectedId, cost))
+    const next = buyBrawler(save, selectedId, cost)
+    setSave(equipBrawler(next, selectedId))
     audio.cube()
+    window.setTimeout(() => audio.superReady(), 400)
+    if (from === 'battle') {
+      window.setTimeout(onEquipped, 900)
+    }
   }
 
   return (
@@ -50,33 +68,49 @@ export default function BrawlerScreen({ save, setSave, onBack }: Props) {
           ←
         </UiButton>
         <h2 className="screen-title">BRAWLERS</h2>
-        <div className="spacer" />
+        <div className="header-right">
+          {from === 'battle' && <div className="pick-hint">PICK YOUR FIGHTER</div>}
+        </div>
       </div>
 
       <div className="brawler-grid">
         {BRAWLERS.map((b) => {
           const isUnlocked = save.unlocked.includes(b.id)
+          const isEquipped = save.equipped === b.id
+          const r = RARITY_INFO[b.rarity]
           return (
             <div
               key={b.id}
-              className={`brawler-card ${selectedId === b.id ? 'selected' : ''} ${isUnlocked ? '' : 'locked'}`}
+              className={`brawler-card ${selectedId === b.id ? 'selected' : ''} ${isUnlocked ? '' : 'locked'} rarity-${b.rarity}`}
+              style={{ '--rarity': r.color, '--rarity-dark': r.dark } as CSSProperties}
               onClick={() => {
                 setSelectedId(b.id)
                 audio.uiClick()
               }}
             >
               <Portrait id={b.id} className="card-portrait" />
+              {isEquipped && <div className="card-equipped-badge">✓ EQUIPPED</div>}
               <div className="card-name">{isUnlocked ? b.name : '???'}</div>
+              <div className={`card-rarity ${isUnlocked ? '' : 'locked-rarity'}`} style={{ color: r.color }}>
+                {isUnlocked ? r.name : `🔒 ${r.name}`}
+              </div>
               <div className="card-trophies">🏆 {save.trophies[b.id] ?? 0}</div>
               {isUnlocked && <div className="card-rank">{rankLabel(save, b.id)}</div>}
-              {!isUnlocked && <div className="card-lock">🔒</div>}
             </div>
           )
         })}
       </div>
 
       <div className="brawler-detail">
-        <Portrait id={selected.id} className="detail-portrait" />
+        <div
+          className="detail-portrait-wrap"
+          style={{ borderColor: unlocked ? rarity.color : '#39445c', '--rarity': unlocked ? `${rarity.color}55` : 'transparent' } as CSSProperties}
+        >
+          <Portrait id={selected.id} className="detail-portrait" />
+          <div className="detail-rarity-chip" style={{ background: rarity.color, color: '#141414' }}>
+            {unlocked ? rarity.name : '🔒 LOCKED'}
+          </div>
+        </div>
         <div className="detail-info">
           <div className="detail-name">
             {unlocked ? selected.name : '???'}
@@ -118,9 +152,15 @@ export default function BrawlerScreen({ save, setSave, onBack }: Props) {
                 {save.trophies[selected.id] ?? 0} 🏆
               </div>
               <div className="detail-actions">
-                <UiButton variant="primary" disabled>
-                  SELECTED IN BATTLE ✓
-                </UiButton>
+                {equipped ? (
+                  <UiButton variant="secondary" disabled className="btn-equipped">
+                    ✓ EQUIPPED — READY TO BRAWL
+                  </UiButton>
+                ) : (
+                  <UiButton variant="primary" className="btn-equip" onClick={handleEquip}>
+                    ⚔️ EQUIP &nbsp;{from === 'battle' ? '& BATTLE' : ''}
+                  </UiButton>
+                )}
               </div>
             </>
           ) : (
@@ -128,7 +168,7 @@ export default function BrawlerScreen({ save, setSave, onBack }: Props) {
               <div className="locked-desc">
                 {selected.id === 'moose'
                   ? 'Play your first Gem Grab match to unlock this brawler free!'
-                  : 'Unlock this brawler with keys!'}
+                  : `A ${rarity.name.toLowerCase()} mystery! Unlock with keys.`}
               </div>
               {cost !== undefined && (
                 <UiButton variant="primary" onClick={handleBuy} disabled={save.keys < cost}>

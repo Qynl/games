@@ -14,7 +14,7 @@ import { useSaveState } from './ui/ui'
 export type Screen =
   | { name: 'menu' }
   | { name: 'modes' }
-  | { name: 'brawlers' }
+  | { name: 'brawlers'; from: 'menu' | 'battle' }
   | { name: 'shop' }
   | { name: 'game'; mode: ModeDef; brawlerId: string }
   | { name: 'results'; result: MatchResult; mode: ModeDef; brawlerId: string }
@@ -54,7 +54,7 @@ export default function App() {
         <MenuScreen
           save={save}
           onPlay={() => setScreen({ name: 'modes' })}
-          onBrawlers={() => setScreen({ name: 'brawlers' })}
+          onBrawlers={() => setScreen({ name: 'brawlers', from: 'menu' })}
           onShop={() => setScreen({ name: 'shop' })}
           onSettings={() => setShowSettings(true)}
           setSave={setSave}
@@ -63,9 +63,9 @@ export default function App() {
       {screen.name === 'modes' && (
         <ModeScreen
           save={save}
-          brawlerId={save.unlocked[0]}
+          brawlerId={save.equipped || save.unlocked[0]}
           onBack={() => setScreen({ name: 'menu' })}
-          onPickBrawler={() => setScreen({ name: 'brawlers' })}
+          onPickBrawler={() => setScreen({ name: 'brawlers', from: 'battle' })}
           onStart={(mode, brawlerId) => setScreen({ name: 'game', mode, brawlerId })}
         />
       )}
@@ -73,7 +73,9 @@ export default function App() {
         <BrawlerScreen
           save={save}
           setSave={setSave}
-          onBack={() => setScreen({ name: 'menu' })}
+          from={screen.from}
+          onBack={() => setScreen(screen.from === 'battle' ? { name: 'modes' } : { name: 'menu' })}
+          onEquipped={() => setScreen({ name: 'modes' })}
         />
       )}
       {screen.name === 'shop' && (
@@ -127,7 +129,7 @@ export default function App() {
           </button>
           <button
             className={`tab-btn ${screen.name === 'brawlers' ? 'active' : ''}`}
-            onClick={() => setScreen({ name: 'brawlers' })}
+            onClick={() => setScreen({ name: 'brawlers', from: 'menu' })}
           >
             <span className="tab-icon">🧑‍🎤</span>
             <span className="tab-label">Brawlers</span>

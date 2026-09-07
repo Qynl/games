@@ -172,6 +172,24 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
             g.setAim(aimWorld.x - p.pos.x, aimWorld.y - p.pos.y)
             pointerWorld.current = aimWorld
           }
+
+          // drag-to-move on the arena (touch): overrides when no stick/keys held
+          const mp = input.getCanvasMovePoint()
+          if (mp && !(st.move.x || st.move.y) && !input.isAimStickActive()) {
+            const w = screenToWorld(g, renderer, mp.x, mp.y)
+            const dx = w.x - p.pos.x
+            const dy = w.y - p.pos.y
+            const d = Math.hypot(dx, dy)
+            if (d > 24) {
+              g.setMove(dx / d, dy / d)
+              renderer.moveTarget = w
+            } else {
+              g.setMove(0, 0)
+              renderer.moveTarget = null
+            }
+          } else {
+            renderer.moveTarget = null
+          }
         }
         g.update(dt)
         renderer.render(g, dt, pointerWorld.current)

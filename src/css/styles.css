@@ -1556,3 +1556,195 @@ body,
     font-size: 20px;
   }
 }
+
+/* ================= RARITY & EQUIP (Brawl Stars style) ================= */
+.brawler-card {
+  background: linear-gradient(180deg, var(--rarity-dark, #232c40) 0%, #131a2c 65%);
+  border-color: var(--rarity, rgba(255, 255, 255, 0.25));
+}
+.brawler-card.selected {
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 3px rgba(255, 210, 63, 0.3), 0 0 20px var(--rarity, transparent);
+  transform: translateY(-3px);
+}
+.brawler-card.locked .card-portrait {
+  opacity: 0.55;
+}
+.card-rarity {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.card-equipped-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: #2f9e44;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 3px 7px;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  z-index: 2;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 130px;
+}
+.pick-hint {
+  font-family: 'Lilita One', sans-serif;
+  color: var(--yellow);
+  letter-spacing: 1.5px;
+  font-size: 14px;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+  animation: pickBlink 1.4s ease-in-out infinite;
+}
+@keyframes pickBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.detail-portrait-wrap {
+  position: relative;
+  border: 4px solid rgba(255, 255, 255, 0.9);
+  border-radius: 22px;
+  flex-shrink: 0;
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.4), 0 0 24px var(--rarity, transparent);
+  height: fit-content;
+}
+.detail-portrait-wrap .detail-portrait {
+  border: none;
+  box-shadow: none;
+  display: block;
+  width: min(240px, 30vw);
+  height: min(240px, 30vw);
+}
+.detail-rarity-chip {
+  position: absolute;
+  bottom: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Lilita One', sans-serif;
+  font-size: 13px;
+  letter-spacing: 1px;
+  padding: 3px 14px;
+  border-radius: 10px;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.4);
+}
+.detail-actions {
+  display: flex;
+  gap: 12px;
+}
+.btn-equip {
+  font-size: 20px;
+  padding: 14px 28px;
+  animation: equipPulse 1.5s ease-in-out infinite;
+}
+.btn-equipped {
+  font-size: 16px;
+  border: 3px solid rgba(74, 222, 128, 0.8);
+  color: #b9f6cd;
+  cursor: default;
+}
+@keyframes equipPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.035); }
+}
+
+/* mode screen polish */
+.mode-map {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.side-portrait-wrap {
+  border-radius: 18px;
+  border: 4px solid #fff;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
+}
+.side-portrait-wrap .side-portrait {
+  border: none;
+  display: block;
+  border-radius: 0;
+}
+.side-brawler-rarity {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 11px;
+  letter-spacing: 1px;
+  margin-left: 8px;
+}
+
+/* shop offer rarity */
+.offer-rarity {
+  font-family: 'Lilita One', sans-serif;
+  font-size: 10px;
+  letter-spacing: 1px;
+  margin-left: 8px;
+}
+
+/* menu mascots */
+.mascot-wrap {
+  position: relative;
+}
+.mascot-wrap .mascot {
+  display: block;
+}
+.mascot-wrap.equipped .mascot {
+  outline: 3px solid var(--yellow);
+  outline-offset: -3px;
+  box-shadow: 0 0 16px rgba(255, 210, 63, 0.55), 0 4px 0 rgba(0, 0, 0, 0.4);
+}
+.mascot-tag {
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--yellow);
+  color: #4a3000;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  border: 2px solid #fff;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+/* bottom tabs — punchier, Brawl Stars feel */
+.bottom-tabs {
+  gap: 8px;
+  padding: 8px 16px 12px;
+  border-radius: 22px 22px 0 0;
+  background: linear-gradient(180deg, rgba(20, 28, 46, 0.97), rgba(8, 12, 22, 0.97));
+  box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.55);
+}
+.tab-btn {
+  padding: 6px 20px;
+  gap: 3px;
+}
+.tab-btn.active {
+  background: linear-gradient(180deg, rgba(255, 210, 63, 0.28), rgba(255, 210, 63, 0.12));
+  color: var(--yellow);
+  box-shadow: inset 0 -3px 0 var(--yellow);
+}
+
+@media (max-width: 700px) {
+  .detail-portrait-wrap .detail-portrait {
+    width: 130px;
+    height: 130px;
+  }
+  .detail-actions {
+    justify-content: center;
+  }
+}

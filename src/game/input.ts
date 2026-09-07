@@ -45,6 +45,11 @@ export class InputManager {
   private canvasAimStart: Vec | null = null
   private canvasAimMoved = false
   private canvasAimT0 = 0
+  // left half of the arena = drag to move (Brawl Stars style)
+  private canvasMoveId: number | null = null
+  private canvasMovePoint: Vec | null = null
+  private canvasMoveStart: Vec | null = null
+  private canvasMoveT0 = 0
 
   private disposed = false
 
@@ -104,6 +109,11 @@ export class InputManager {
     this.mouseDown = false
     this.vJoy = null
     this.vAim = null
+    this.canvasAimId = null
+    this.canvasAimStart = null
+    this.canvasMoveId = null
+    this.canvasMovePoint = null
+    this.canvasMoveStart = null
   }
 
   private onMouseDown = (e: MouseEvent) => {
@@ -123,18 +133,25 @@ export class InputManager {
     this.state.aimScreen = v(e.clientX - rect.left, e.clientY - rect.top)
   }
 
-  // ---- canvas touch: tap right half = auto-aim shot, drag = aimed shot ----
+  // ---- canvas touch: right half tap/drag = fire, left half drag = move ----
   private onTouchStart = (e: TouchEvent) => {
     e.preventDefault()
     const rect = this.canvas.getBoundingClientRect()
     for (const t of Array.from(e.changedTouches)) {
       const x = t.clientX - rect.left
       const y = t.clientY - rect.top
-      if (x > rect.width * 0.5 && this.canvasAimId === null) {
-        this.canvasAimId = t.identifier
-        this.canvasAimStart = v(x, y)
-        this.canvasAimMoved = false
-        this.canvasAimT0 = performance.now()
+      if (x > rect.width * 0.5) {
+        if (this.canvasAimId === null) {
+          this.canvasAimId = t.identifier
+          this.canvasAimStart = v(x, y)
+          this.canvasAimMoved = false
+          this.canvasAimT0 = performance.now()
+        }
+      } else if (this.canvasMoveId === null) {
+        this.canvasMoveId = t.identifier
+        this.canvasMovePoint = v(x, y)
+        this.canvasMoveStart = v(x, y)
+        this.canvasMoveT0 = performance.now()
       }
     }
   }
@@ -143,13 +160,16 @@ export class InputManager {
     e.preventDefault()
     const rect = this.canvas.getBoundingClientRect()
     for (const t of Array.from(e.changedTouches)) {
+      const x = t.clientX - rect.left
+      const y = t.clientY - rect.top
       if (this.canvasAimId === t.identifier && this.canvasAimStart) {
-        const x = t.clientX - rect.left
-        const y = t.clientY - rect.top
         this.state.aimScreen = v(x, y)
         if (Math.hypot(x - this.canvasAimStart.x, y - this.canvasAimStart.y) > 12) {
           this.canvasAimMoved = true
         }
+      }
+      if (this.canvasMoveId === t.identifier) {
+        this.canvasMovePoint = v(x, y)
       }
     }
   }
@@ -171,7 +191,26 @@ export class InputManager {
         this.canvasAimId = null
         this.canvasAimStart = null
       }
+      if (this.canvasMoveId === t.identifier) {
+        // quick tap on the left half also fires (Brawl Stars: tap = shoot)
+        const quick = performance.now() - this.canvasMoveT0 < 450
+        const moved =
+          this.canvasMoveStart &&
+          Math.hypot(t.clientX - rect.left - this.canvasMoveStart.x, t.clientY - rect.top - this.canvasMoveStart.y) > 14
+        if (quick && !moved) this.onAimRelease(null)
+        this.canvasMoveId = null
+        this.canvasMovePoint = null
+        this.canvasMoveStart = null
+      }
     }
+  }
+
+  // left-half arena drag = move command
+  isCanvasMoveActive() {
+    return this.canvasMovePoint !== null
+  }
+  getCanvasMovePoint(): Vec | null {
+    return this.canvasMovePoint
   }
 
   // ---- virtual stick API (zone coordinates are relative to zone center) ----
