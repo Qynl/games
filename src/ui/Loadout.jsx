@@ -29,7 +29,7 @@ function WeaponCard ({ w, owned, equipped, onPick, onBuy, qyns }) {
       <div className="mt">
         {owned
           ? <span className="price own">{equipped ? 'EQUIPPED' : 'OWNED'}</span>
-          : <span className="price">{w.qyns} ◈ {qyns < w.qyns ? '(NEED MORE)' : ''}</span>}
+          : <span className="price">{w.qyn} ◈ {qyns < w.qyn ? '(NEED MORE)' : ''}</span>}
         <span>{w.slot.toUpperCase()}</span>
       </div>
     </div>
@@ -97,9 +97,11 @@ export default function Loadout ({ profile, onStart, onBack, mapId, mode, save, 
   const readyUp = () => { if (phase === 'pick') lockIn() }
 
   const buy = (w) => {
-    if (profile.qyns < w.qyns) return
-    const p = { ...profile, qyns: profile.qyns - w.qyns, unlocked: [...profile.unlocked, w.id] }
+    if (profile.qyns < w.qyn) return
+    // buy it and take it — you came here to pick something, not to go shopping twice
+    const p = { ...profile, qyns: profile.qyns - w.qyn, unlocked: [...profile.unlocked, w.id] }
     save(p)
+    pick(w)
   }
 
   if (phase !== 'pick') {

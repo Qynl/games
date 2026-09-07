@@ -25,12 +25,13 @@ export default function HUD ({ hud, paused, needsLock, onResume, onQuit, showMv,
       <div className="flash" style={{ opacity: Math.min(0.92, (hud.flashTime || 0) * 0.6) }} />
 
       {/* ── crosshair ─────────────────────────────────────────────── */}
-      <div className={`center cross ${hud.onTarget ? 'tgt' : ''}`} style={{ opacity: hud.ads > 0.9 ? 0 : 1 }}>
+      <div className={`center cross ch-${hud.crosshair || 'cross'} ${hud.onTarget ? 'tgt' : ''}`} style={{ opacity: hud.ads > 0.9 ? 0 : 1 }}>
         <i className="d" style={{ width: 2 + (hud.reloading ? 0 : 1) }} />
-        <i style={{ left: 21, top: 21 - gap - 4, width: 2, height: 5 }} />
-        <i style={{ left: 21, top: 21 + gap, width: 2, height: 5 }} />
-        <i style={{ left: 21 - gap - 4, top: 21, width: 5, height: 2 }} />
-        <i style={{ left: 21 + gap, top: 21, width: 5, height: 2 }} />
+        <i className="t" style={{ left: 21, top: 21 - gap - 4, width: 2, height: 5 }} />
+        <i className="t" style={{ left: 21, top: 21 + gap, width: 2, height: 5 }} />
+        <i className="t" style={{ left: 21 - gap - 4, top: 21, width: 5, height: 2 }} />
+        <i className="t" style={{ left: 21 + gap, top: 21, width: 5, height: 2 }} />
+        <i className="ring" style={{ width: gap * 2 + 11, height: gap * 2 + 11, left: 22 - gap - 5.5, top: 22 - gap - 5.5 }} />
         <div className={`hm ${hud.hitmarker > 0 ? 'on' : ''} ${hud.hitmarker > 0 && hud.headshot ? 'hs' : ''} ${hud.killHit > 0 ? 'kill' : ''}`}>
           <i /><i /><i /><i />
         </div>

@@ -1709,6 +1709,7 @@ export class Game {
       hitmarker: this.hitmarker,
       killHit: this.killHit,
       onTarget,
+      crosshair: this.settings.crosshair || 'cross',
       headshot: this.lastHitWasHead,
       damageFlash: this.damageFlash,
       flashTime: f.flashTime,

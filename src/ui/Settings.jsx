@@ -45,6 +45,13 @@ export default function Settings ({ profile, save, onBack }) {
             <option value="high">HIGH</option><option value="low">PERFORMANCE</option>
           </select>
         </div>
+        <div className="set">
+          <label>CROSSHAIR</label>
+          <select className="sel" value={s.crosshair || 'cross'} onChange={(e) => set('crosshair', e.target.value)}>
+            <option value="cross">CROSS</option><option value="dot">DOT</option>
+            <option value="circle">CIRCLE</option><option value="tick">TICKS</option>
+          </select>
+        </div>
         <Toggle label="MOVEMENT TELEMETRY PANEL" value={s.showMovement} onChange={(v) => set('showMovement', v)} />
         <Toggle label="ADAPTIVE RESOLUTION" value={s.adaptive !== false} onChange={(v) => set('adaptive', v)} />
         <div className="hint" style={{ marginTop: 4 }}>Drops pixels instead of frames when the FPS dips.</div>

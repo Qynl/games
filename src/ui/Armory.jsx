@@ -9,7 +9,7 @@ export default function Armory ({ profile, save, onBack, toast }) {
   const buy = (w) => {
     if (owned(w.id)) { toast(`${w.name} ALREADY OWNED`); return }
     const p = structuredClone(profile)
-    if (!unlock(p, w.id, w.qyns)) { toast('NOT ENOUGH QYNS', true); return }
+    if (!unlock(p, w.id, w.qyn)) { toast('NOT ENOUGH QYNS', true); return }
     save(p)
     toast(`${w.name} UNLOCKED`)
   }
@@ -60,7 +60,7 @@ export default function Armory ({ profile, save, onBack, toast }) {
                 <div className="mt">
                   {isOwned
                     ? <span className="price own">{eq ? '● EQUIPPED' : 'OWNED — EQUIP'}</span>
-                    : <span className="price">{w.qyns} ◈ — BUY</span>}
+                    : <span className="price">{w.qyn} ◈ — BUY</span>}
                   <span>{WEAPONS.indexOf(w) + 1}</span>
                 </div>
               </div>

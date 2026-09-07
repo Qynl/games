@@ -143,6 +143,42 @@ hud = document.querySelector('.hud')
 check('range HUD renders', gotHud3)
 check('range hint is shown', /CHANGE LOADOUT|DUMMIES/i.test(txt()))
 
+// ══ PATH D — the shop: spend, own, equip, and keep it ═════════════════════
+console.log('— path D: armory economy —')
+await mount()
+await click(findBtn(/^ARMORY$/i))
+await wait(60)
+const wallet = () => { const m = txt().match(/(\d+)\s*◈ QYNS/); return m ? +m[1] : null }
+check('armory renders with a wallet', /QYNS/.test(txt()) && wallet() !== null, `${wallet()} ◈`)
+const wallet0 = wallet()
+const locked = [...q('.card.locked')][0]
+check('there is something to buy', !!locked)
+if (locked) {
+  const name = (locked.querySelector('.nm')?.textContent || '').trim()
+  const price = +(((locked.querySelector('.price')?.textContent) || '0').match(/\d+/) || [0])[0]
+  await click(locked)
+  await wait(80)
+  const after = wallet()
+  check(`buying ${name} charges exactly the price on the card`, after === wallet0 - price, `${wallet0} → ${after} (card said ${price})`)
+  check('the purchase is confirmed', new RegExp(`${name} UNLOCKED`).test(txt()))
+  const card1 = findCard(name)
+  check('the card is no longer locked', card1 && !card1.className.includes('locked'))
+  check('an owned card offers to equip', card1 && /EQUIP/.test(card1.textContent))
+  await click(findCard(name))
+  await wait(80)
+  check('clicking an owned card equips it', /EQUIPPED/.test((findCard(name)?.textContent) || ''))
+  check('equipping is free', wallet() === after, `${wallet()} ◈`)
+  await click(findCard(name))
+  await wait(80)
+  check('equipping twice costs nothing', wallet() === after, `${wallet()} ◈`)
+  // a reload must not hand the money back
+  await mount()
+  await click(findBtn(/^ARMORY$/i))
+  await wait(80)
+  check('the purchase survives a reload', wallet() === after, `${wallet()} ◈`)
+  check('and the gun is still unlocked', !((findCard(name)?.className) || 'locked').includes('locked'))
+}
+
 await act(async () => { root.unmount() })
 console.log(`\n${fails === 0 ? 'ALL FLOW TESTS PASSED' : fails + ' FAILURES'}`)
 process.exit(fails ? 1 : 0)

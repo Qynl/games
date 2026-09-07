@@ -76,7 +76,16 @@ const screens = [
   ['Loadout', UI.Loadout, { profile: DEFAULT_PROFILE, save: noop, onStart: noop, onBack: noop, mapId: 'yard', mode: MODES[0] }],
 ]
 
+// ── economy data: every item must carry a real price ───────────────────────
 let fails = 0
+const check = (n, ok, info = '') => { console.log(`${ok ? ' PASS' : '*FAIL'}  ${n}  ${info}`); if (!ok) fails++ }
+const badPrice = [...WEAPONS, ...SKINS].filter((it) => typeof it.qyn !== 'number' || !isFinite(it.qyn))
+check('every weapon and skin has a numeric price', badPrice.length === 0, badPrice.map((i) => i.id).join(', ') || `${WEAPONS.length + SKINS.length} items priced`)
+const src = (f) => fsSync.readFileSync(new URL('../src/ui/' + f, import.meta.url).pathname, 'utf8')
+const typo = ['Armory.jsx', 'Loadout.jsx', 'Skins.jsx'].filter((f) => /\b[ws]\.qyns\b/.test(src(f)))
+check('no shop screen reads a price field that does not exist', typo.length === 0,
+  typo.join(', ') || 'prices come from item.qyn')
+
 for (const [name, C, props] of screens) {
   try {
     const html = renderToString(React.createElement(C, props))

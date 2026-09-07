@@ -26,6 +26,9 @@ export function loadProfile () {
     const raw = localStorage.getItem(KEY)
     if (!raw) return structuredClone(DEFAULT_PROFILE)
     const p = JSON.parse(raw)
+    // a corrupted wallet (null / NaN) should never lock the game out — hand
+    // back a starting balance rather than a dead one
+    if (!Number.isFinite(p.qyns)) p.qyns = DEFAULT_PROFILE.qyns
     return {
       ...structuredClone(DEFAULT_PROFILE), ...p,
       stats: { ...DEFAULT_PROFILE.stats, ...(p.stats || {}) },
@@ -79,7 +82,8 @@ export function rewardMatch (profile, { won, scoreA, scoreB, kills, deaths, dama
 
 export function unlock (profile, id, cost) {
   if (profile.unlocked.includes(id)) return true
-  if (profile.qyns < cost) return false
+  // a price that is not a number would quietly turn the whole wallet into NaN
+  if (!Number.isFinite(cost) || profile.qyns < cost) return false
   profile.qyns -= cost
   profile.unlocked.push(id)
   saveProfile(profile)
@@ -88,7 +92,7 @@ export function unlock (profile, id, cost) {
 
 export function unlockSkin (profile, id, cost) {
   if (profile.skins.includes(id)) return true
-  if (profile.qyns < cost) return false
+  if (!Number.isFinite(cost) || profile.qyns < cost) return false
   profile.qyns -= cost
   profile.skins.push(id)
   saveProfile(profile)
