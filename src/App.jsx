@@ -129,10 +129,18 @@ export default function App () {
     setScreen('playing')
   }
 
-  const quitMatch = () => {
-    const net = matchCfg?.net
+  // the peer connection outlives a match (rematches reuse it), so it has to be
+  // closed explicitly whenever we actually leave the duel — otherwise the
+  // WebRTC link stays up in the background forever
+  const closeNet = () => {
+    const net = netInfo?.net || matchCfg?.net
     if (net) { net.send(['x']); net.close() }
     setNetInfo(null)
+    return net
+  }
+
+  const quitMatch = () => {
+    closeNet()
     setMatchCfg(null)
     setScreen('lobby')
   }
@@ -207,7 +215,7 @@ export default function App () {
       {screen === 'result' && result && (
         <Result data={result} profile={profile}
           onAgain={() => { setResult(null); setScreen('loadout') }}
-          onLobby={() => { setResult(null); setScreen('lobby') }} />
+          onLobby={() => { setResult(null); closeNet(); setMatchCfg(null); setScreen('lobby') }} />
       )}
 
       {screen === 'playing' && (

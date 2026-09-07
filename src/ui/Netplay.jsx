@@ -17,8 +17,14 @@ export default function Netplay ({ profile, onConnected, onBack }) {
   const [mapId, setMapId] = useState('vertex')
   const [name, setName] = useState(profile.name || '')
   const netRef = useRef(null)
+  // Once the lobby owns the connection this screen must NOT close it on unmount
+  // — unmounting is exactly what happens when we hand it over.
+  const handedOff = useRef(false)
 
-  useEffect(() => () => { netRef.current?.close(); netRef.current = null }, [])
+  useEffect(() => () => {
+    if (!handedOff.current) netRef.current?.close()
+    netRef.current = null
+  }, [])
 
   const say = (m, isBad) => { setStatus(m); setBad(!!isBad) }
 
@@ -30,7 +36,10 @@ export default function Netplay ({ profile, onConnected, onBack }) {
         setStep(3)
         if (n.role === 'host') {
           say('CONNECTED — entering the lobby…')
-          setTimeout(() => onConnected(n, { role: 'host', mapId, name: name.trim() || 'HOST' }), 400)
+          setTimeout(() => {
+            handedOff.current = true; netRef.current = null
+            onConnected(n, { role: 'host', mapId, name: name.trim() || 'HOST' })
+          }, 400)
         } else {
           // the host owns the map choice: wait for it to arrive before loading
           say('CONNECTED — waiting for the host to pick the arena…')
@@ -42,13 +51,23 @@ export default function Netplay ({ profile, onConnected, onBack }) {
                 const mid = MAPS.some((mm) => mm.id === m[1]) ? m[1] : mapId
                 setMapId(mid)
                 say('Arena locked in: ' + (MAPS.find((mm) => mm.id === mid)?.name || mid))
-                setTimeout(() => onConnected(n, { role: 'guest', mapId: mid, name: name.trim() || 'GUEST' }), 400)
+                setTimeout(() => {
+                  handedOff.current = true; netRef.current = null
+                  onConnected(n, { role: 'guest', mapId: mid, name: name.trim() || 'GUEST' })
+                }, 400)
               }
             }
           }, 120)
           // if the host never says which arena, load ours rather than hang
           setTimeout(() => {
-            if (!clearInterval.done) { clearInterval(iv); clearInterval.done = true; say('No arena word from the host — loading yours.', true); setTimeout(() => onConnected(n, { role: 'guest', mapId, name: name.trim() || 'GUEST' }), 500) }
+            if (!clearInterval.done) {
+              clearInterval(iv); clearInterval.done = true
+              say('No arena word from the host — loading yours.', true)
+              setTimeout(() => {
+                handedOff.current = true; netRef.current = null
+                onConnected(n, { role: 'guest', mapId, name: name.trim() || 'GUEST' })
+              }, 500)
+            }
           }, 15000)
         }
       } else if (s === 'error') say(err || 'Connection failed.', true)
