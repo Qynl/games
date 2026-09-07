@@ -340,3 +340,7 @@ input[type=range]{width:190px;accent-color:var(--cy)}
   rgba(140, 240, 255, .6) 0deg .3deg, transparent .3deg 3deg) }
 .speedlines.slide { animation-duration: 1.1s }
 @keyframes slspin { from { transform: rotate(0) scale(1.25) } to { transform: rotate(3deg) scale(1.25) } }
+
+/* crosshair confirms a target: it goes red the instant you are on one */
+.cross.tgt i { background: var(--rd); box-shadow: 0 0 6px rgba(255, 77, 109, .8) }
+.cross.tgt .d { background: var(--rd) }

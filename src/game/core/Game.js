@@ -195,6 +195,7 @@ export class Game {
     this.killCam = null
     this.hitmarker = 0
     this.killHit = 0
+    this.hitStop = 0
     this.plates = new Map()
     this.platesEnabled = typeof document !== 'undefined' && typeof document.createElement === 'function'
     this.renderScale = 1
@@ -472,7 +473,14 @@ export class Game {
       }
     }
 
-    this.acc += dt
+    // hit-stop: 70 ms of slow motion the moment you land a kill. Never in
+    // netplay — a peer's clock is not ours to stretch.
+    let scale = 1
+    if (this.hitStop > 0) {
+      this.hitStop = Math.max(0, this.hitStop - dt)
+      scale = 0.3
+    }
+    this.acc += dt * scale
     let steps = 0
     while (this.acc >= STEP && steps < 8) { this.fixedStep(STEP); this.acc -= STEP; steps++ }
     if (steps === 8) this.acc = 0
@@ -1258,7 +1266,10 @@ export class Game {
       else if (ks === 4) this.banner('QUAD KILL', 'good')
       else if (ks >= 5) this.banner('RAMPAGE ×' + ks, 'good', 2.1)
       else if (entry.head) this.banner('HEADSHOT', 'good', 1.2)
-      this.audio.kill(); this.emit('kill', entry)
+      this.audio.kill()
+      // hit-stop: the world leans in for a moment on a kill you earned
+      if (!this.net) this.hitStop = head ? 0.085 : 0.06
+      this.emit('kill', entry)
     } else if (victim === this.player) {
       this.killStreak = 0
       this.killCam = killer && killer !== victim ? { target: killer, t: 2.2 } : null
@@ -1664,6 +1675,12 @@ export class Game {
     const w = f.weapon
     const spd = f.mv.horizontalSpeed
     const chains = f.mv.tracker.progress()
+    // is the crosshair on somebody? the crosshair says so in red
+    let onTarget = false
+    if (f.alive && !w.isMelee) {
+      const hit = this.raycastAll(f, this.aimOrigin(f), this.aimDir(f), w.def.stats.range ?? 90)
+      onTarget = !!hit.fighter && (hit.fighter.team !== f.team || this.mode.id === 'range')
+    }
     this.onHud({
       hp: Math.max(0, Math.round(f.health)),
       maxHp: f.maxHealth,
@@ -1691,6 +1708,7 @@ export class Game {
       spread: w.currentSpread ? w.currentSpread({ speed: spd, grounded: f.mv.grounded, sliding: f.mv.sliding, crouching: f.mv.crouching }) : 0,
       hitmarker: this.hitmarker,
       killHit: this.killHit,
+      onTarget,
       headshot: this.lastHitWasHead,
       damageFlash: this.damageFlash,
       flashTime: f.flashTime,
