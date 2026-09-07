@@ -243,6 +243,19 @@ export class GameState {
     if (this.player && !this.player.dead) this.player.emote = { icon, t: 1.6 }
   }
 
+  // single attack — used by tap-to-fire / release-to-fire
+  fireOnce(dir?: Vec | null) {
+    const p = this.player
+    if (!p || p.dead || this.phase !== 'play' || this.countdownT > 0) return
+    if (dir && Math.hypot(dir.x, dir.y) > 4) {
+      p.aim = Math.atan2(dir.y, dir.x)
+    } else {
+      const t = this.pickAutoTarget(p)
+      if (t) p.aim = Math.atan2(t.pos.y - p.pos.y, t.pos.x - p.pos.x)
+    }
+    this.tryFire(p)
+  }
+
   // ================= MAIN UPDATE =================
   update(dtRaw: number) {
     const dt = Math.min(dtRaw, 0.05)
@@ -288,7 +301,7 @@ export class GameState {
 
     // gem mine
     if (this.mode.id === 'gem' && this.map.mine && this.mineT <= 0) {
-      this.mineT = 3.2
+      this.mineT = 2.6
       const offset = vecFromAngle(rand(Math.PI * 2), rand(0, 40))
       this.dropPickup(v(this.map.mine.x * TILE + offset.x, this.map.mine.y * TILE + offset.y), 'gem')
       this.particles.sparkBurst(this.map.mine, '#9c4dff', 8, 90)
@@ -447,7 +460,7 @@ export class GameState {
   }
 
   private pickAutoTarget(p: BrawlerState): BrawlerState | null {
-    const range = p.attackRange * 1.02
+    const range = p.attackRange * 1.15
     let best: BrawlerState | null = null
     let bestScore = Infinity
     for (const e of this.brawlers) {
@@ -893,6 +906,12 @@ export class GameState {
     target.hp -= dmg
     target.hitFlash = 1
     target.damage += dmg
+    target.lastHitT = 0
+
+    // taking damage also charges your super a bit
+    if (target.superCharge < 1) {
+      target.superCharge = Math.min(1, target.superCharge + dmg / (target.def.superNeed * 1.6))
+    }
 
     const source = sourceId >= 0 ? this.brawlers.find((x) => x.id === sourceId) : undefined
     if (source && source.team !== target.team) {
@@ -954,7 +973,7 @@ export class GameState {
         target.gems = 0
       }
       this.recalcTeamGems()
-      target.respawnT = 3
+      target.respawnT = 2.5
       if (killer) {
         this.pushEvent({
           kind: 'kill',
@@ -983,9 +1002,9 @@ export class GameState {
           return
         }
       }
-      target.respawnT = 3
+      target.respawnT = 2.5
     } else if (this.mode.id === 'heist') {
-      target.respawnT = 4
+      target.respawnT = 3
       if (killer) {
         this.pushEvent({
           kind: 'kill',

@@ -54,8 +54,8 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
   const pointerWorld = useRef<Vec | null>(null)
   const pausedRef = useRef(false)
   const finishedRef = useRef(false)
-  const touchFiringRef = useRef(false)
-  const touchRef = useRef(false)
+  const joyKnobRef = useRef<HTMLDivElement>(null)
+  const aimKnobRef = useRef<HTMLDivElement>(null)
   const [paused, setPaused] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [hud, setHud] = useState<HudState>({
@@ -67,7 +67,7 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
   const [events, setEvents] = useState<GameEvent[]>([])
   const [touch, setTouch] = useState(false)
   const [endedText, setEndedText] = useState<{ title: string; sub: string; won: boolean } | null>(null)
-  const [touchFiring, setTouchFiring] = useState(false)
+  const [fireHeld, setFireHeld] = useState(false)
   const hudRef = useRef(hud)
   hudRef.current = hud
 
@@ -123,11 +123,14 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
     input.onSuperPressed = () => g.queueSuper()
     input.onGadgetPressed = () => g.queueGadget()
     input.onEmotePressed = () => g.queueEmote('😤')
-    input.onTouchDown = () => {
-      touchRef.current = true
-      setTouch(true)
+    input.onAimRelease = (dir) => {
+      // screen-space release vector -> world direction
+      if (dir) {
+        g.fireOnce({ x: dir.x / renderer.scale, y: dir.y / renderer.scale })
+      } else {
+        g.fireOnce(null)
+      }
     }
-    input.onTouchUp = () => g.queueSuper()
     g.onEvent = () => setEvents([...g.events])
     g.onEnd = (r) => {
       if (finishedRef.current) return
@@ -158,10 +161,9 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
         const st = inputState.current
         const p = g.player
         if (p) {
-          const touchAim = touchFiringRef.current && touchRef.current
-          if (touchAim) {
-            // fire button held: auto-aim snap handled by the game state
-            if (Math.hypot(st.aim.x, st.aim.y) > 8) {
+          if (input.isAimStickActive()) {
+            // virtual aim stick: screen-space direction is good enough
+            if (Math.hypot(st.aim.x, st.aim.y) > 6) {
               g.setAim(st.aim.x, st.aim.y)
             }
             pointerWorld.current = null
@@ -216,7 +218,6 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
 
   const p = gameRef.current?.player ?? null
   const def = brawlerById(brawlerId)
-  const isTouch = touch
   const phase = hud.phase
 
   const superReady = hud.superCharge >= 1
@@ -342,59 +343,106 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
 
       {/* ------- bottom controls ------- */}
       <div className="hud-bottom">
-        {isTouch ? (
-          <>
-            <div className="joy-zone">
-              <div className="joy-base" />
-              <div
-                className="joy-knob"
-                style={{
-                  transform: `translate(${inputState.current.move.x * 34}px, ${inputState.current.move.y * 34}px)`,
-                }}
-              />
-            </div>
-            <div className="aim-zone">
-              <div className="joy-base aim-base" />
-              <div
-                className="aim-knob"
-                style={{
-                  transform: `translate(${clampVec(inputState.current.aim, 40).x}px, ${clampVec(inputState.current.aim, 40).y}px)`,
-                }}
-              />
-            </div>
-            <div
-              className={`fire-btn ${touchFiring ? 'active' : ''}`}
-              onPointerDown={(e) => {
-                e.preventDefault()
-                touchFiringRef.current = true
-                setTouchFiring(true)
-                gameRef.current && (gameRef.current.playerFiring = true)
-              }}
-              onPointerUp={(e) => {
-                e.preventDefault()
-                touchFiringRef.current = false
-                setTouchFiring(false)
-                gameRef.current && (gameRef.current.playerFiring = false)
-              }}
-              onPointerLeave={() => {
-                touchFiringRef.current = false
-                setTouchFiring(false)
-                gameRef.current && (gameRef.current.playerFiring = false)
-              }}
-            >
-              {touchFiring ? '🔥' : '✊'}
-            </div>
-          </>
-        ) : (
+        {/* move joystick — works with mouse AND touch */}
+        <div
+          className="joy-zone"
+          onPointerDown={(e) => {
+            e.preventDefault()
+            e.currentTarget.setPointerCapture(e.pointerId)
+            const r = e.currentTarget.getBoundingClientRect()
+            inputRef.current?.joyDown(e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2)
+            setTouch(true)
+          }}
+          onPointerMove={(e) => {
+            const r = e.currentTarget.getBoundingClientRect()
+            const dx = e.clientX - r.left - r.width / 2
+            const dy = e.clientY - r.top - r.height / 2
+            inputRef.current?.joyMove(dx, dy)
+            if (joyKnobRef.current) {
+              const k = clampVec({ x: dx, y: dy }, 34)
+              joyKnobRef.current.style.transform = `translate(${k.x}px, ${k.y}px)`
+            }
+          }}
+          onPointerUp={() => {
+            inputRef.current?.joyUp()
+            if (joyKnobRef.current) joyKnobRef.current.style.transform = 'translate(0px, 0px)'
+          }}
+          onPointerCancel={() => {
+            inputRef.current?.joyUp()
+            if (joyKnobRef.current) joyKnobRef.current.style.transform = 'translate(0px, 0px)'
+          }}
+        >
+          <div className="joy-base" />
+          <div className="joy-knob" ref={joyKnobRef} />
+          <span className="zone-label">MOVE</span>
+        </div>
+
+        {/* aim joystick: tap = auto-aim shot · drag & release = aimed shot · hold = spray */}
+        <div
+          className="aim-zone"
+          onPointerDown={(e) => {
+            e.preventDefault()
+            e.currentTarget.setPointerCapture(e.pointerId)
+            const r = e.currentTarget.getBoundingClientRect()
+            inputRef.current?.aimDown(e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2)
+            setTouch(true)
+          }}
+          onPointerMove={(e) => {
+            const r = e.currentTarget.getBoundingClientRect()
+            const dx = e.clientX - r.left - r.width / 2
+            const dy = e.clientY - r.top - r.height / 2
+            inputRef.current?.aimMove(dx, dy)
+            if (aimKnobRef.current) {
+              const a = clampVec({ x: dx, y: dy }, 40)
+              aimKnobRef.current.style.transform = `translate(${a.x}px, ${a.y}px)`
+            }
+          }}
+          onPointerUp={() => {
+            inputRef.current?.aimUp()
+            if (aimKnobRef.current) aimKnobRef.current.style.transform = 'translate(0px, 0px)'
+          }}
+          onPointerCancel={() => {
+            inputRef.current?.aimUp()
+            if (aimKnobRef.current) aimKnobRef.current.style.transform = 'translate(0px, 0px)'
+          }}
+        >
+          <div className="joy-base aim-base" />
+          <div className="aim-knob" ref={aimKnobRef} />
+          <span className="zone-label">AIM</span>
+        </div>
+
+        <div
+          className={`fire-btn ${fireHeld ? 'active' : ''}`}
+          onPointerDown={(e) => {
+            e.preventDefault()
+            e.currentTarget.setPointerCapture(e.pointerId)
+            inputRef.current?.setFireButton(true)
+            setFireHeld(true)
+            setTouch(true)
+          }}
+          onPointerUp={(e) => {
+            e.preventDefault()
+            inputRef.current?.setFireButton(false)
+            setFireHeld(false)
+          }}
+          onPointerLeave={() => {
+            inputRef.current?.setFireButton(false)
+            setFireHeld(false)
+          }}
+        >
+          {fireHeld ? '🔥' : '✊'}
+        </div>
+
+        {!touch && (
           <div className="kb-hints">
             <span><b>WASD</b> move</span>
             <span><b>MOUSE</b> aim</span>
             <span><b>CLICK</b> fire</span>
             <span><b>RIGHT-CLICK / E</b> super</span>
             <span><b>Q</b> gadget</span>
-            <span><b>ESC</b> pause</span>
           </div>
         )}
+
         <div className="ability-buttons">
           <button
             className={`ability-btn gadget-btn ${hud.gadgets > 0 ? '' : 'empty'}`}

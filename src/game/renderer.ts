@@ -17,6 +17,8 @@ export class Renderer {
   viewX = 0
   viewY = 0
   private shakeT = 0
+  private confetti: { x: number; y: number; vx: number; vy: number; rot: number; rotSpeed: number; color: string; size: number }[] = []
+  private confettiT = 0
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -313,6 +315,75 @@ export class Renderer {
 
     ctx.restore()
 
+    // ---- post-processing overlays (screen space) ----
+    const pl = g.player
+
+    // confetti on victory
+    if (g.phase === 'ended' && g.result?.won) {
+      this.confettiT -= dt
+      if (this.confettiT <= 0 && this.confetti.length < 160) {
+        this.confettiT = 0.03
+        const colors = ['#ffd23f', '#4ade80', '#4fc3ff', '#ff6b5e', '#c9a0ff', '#ffffff']
+        for (let i = 0; i < 3; i++) {
+          this.confetti.push({
+            x: Math.random() * this.cw,
+            y: -20,
+            vx: (Math.random() - 0.5) * 60,
+            vy: 90 + Math.random() * 140,
+            rot: Math.random() * Math.PI,
+            rotSpeed: (Math.random() - 0.5) * 8,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            size: 5 + Math.random() * 6,
+          })
+        }
+      }
+    }
+    for (let i = this.confetti.length - 1; i >= 0; i--) {
+      const c = this.confetti[i]
+      c.x += c.vx * dt
+      c.y += c.vy * dt
+      c.rot += c.rotSpeed * dt
+      c.vx += Math.sin(c.y * 0.02 + c.rot) * 30 * dt
+      if (c.y > this.ch + 30) {
+        this.confetti.splice(i, 1)
+        continue
+      }
+      ctx.save()
+      ctx.translate(c.x, c.y)
+      ctx.rotate(c.rot)
+      ctx.globalAlpha = 0.9
+      ctx.fillStyle = c.color
+      ctx.fillRect(-c.size / 2, -c.size / 4, c.size, c.size / 2)
+      ctx.restore()
+    }
+    ctx.globalAlpha = 1
+
+    // damage flash vignette
+    if (pl && !pl.dead && pl.hitFlash > 0) {
+      const a = pl.hitFlash * 0.4
+      const dmg = ctx.createRadialGradient(
+        this.cw / 2, this.ch / 2, Math.min(this.cw, this.ch) * 0.3,
+        this.cw / 2, this.ch / 2, Math.max(this.cw, this.ch) * 0.7
+      )
+      dmg.addColorStop(0, 'rgba(255,0,0,0)')
+      dmg.addColorStop(1, `rgba(255,40,30,${a})`)
+      ctx.fillStyle = dmg
+      ctx.fillRect(0, 0, this.cw, this.ch)
+    }
+
+    // low HP warning vignette
+    if (pl && !pl.dead && pl.hp / pl.maxHp < 0.35) {
+      const pulse = 0.5 + Math.sin(g.time * 4) * 0.5
+      const low = ctx.createRadialGradient(
+        this.cw / 2, this.ch / 2, Math.min(this.cw, this.ch) * 0.35,
+        this.cw / 2, this.ch / 2, Math.max(this.cw, this.ch) * 0.72
+      )
+      low.addColorStop(0, 'rgba(255,0,0,0)')
+      low.addColorStop(1, `rgba(220,20,10,${0.18 + pulse * 0.2})`)
+      ctx.fillStyle = low
+      ctx.fillRect(0, 0, this.cw, this.ch)
+    }
+
     // vignette
     const vg = ctx.createRadialGradient(
       this.cw / 2, this.ch / 2, Math.min(this.cw, this.ch) * 0.38,
@@ -537,6 +608,23 @@ export class Renderer {
       ctx.beginPath()
       ctx.ellipse(0, 4, 20, 12, 0, 0, Math.PI * 2)
       ctx.fill()
+    }
+    // health regen glow
+    if (b.lastHitT > 4.5 && b.hp < b.maxHp && b.hp > 0 && b.spawnProt <= 0) {
+      const pulse = 0.5 + Math.sin(g.time * 5) * 0.3
+      ctx.strokeStyle = `rgba(74,222,128,${0.5 + pulse * 0.35})`
+      ctx.lineWidth = 2.5
+      ctx.beginPath()
+      ctx.ellipse(0, 8, 15 + pulse * 2, 7 + pulse, 0, 0, Math.PI * 2)
+      ctx.stroke()
+      // rising sparkles
+      for (let i = 0; i < 3; i++) {
+        const ph = ((g.time * 1.4 + i * 0.33 + b.id * 0.7) % 1)
+        ctx.fillStyle = `rgba(110,255,170,${(1 - ph) * 0.8})`
+        ctx.beginPath()
+        ctx.arc(Math.sin((ph + i) * 6) * 8, -30 - ph * 26, 1.6, 0, Math.PI * 2)
+        ctx.fill()
+      }
     }
     // spawn beam (light pillar)
     if (b.spawnFx > 0) {

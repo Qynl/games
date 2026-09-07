@@ -603,10 +603,24 @@ body,
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 18px;
-  padding: 8px 24px 24px;
+  padding: 8px 24px 130px;
   max-width: 1100px;
   width: 100%;
   margin: 0 auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  align-content: start;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 210, 63, 0.5) rgba(255, 255, 255, 0.06);
+}
+.shop-grid::-webkit-scrollbar {
+  width: 10px;
+}
+.shop-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 210, 63, 0.45);
+  border-radius: 6px;
 }
 .shop-card {
   background: var(--panel);
@@ -1104,22 +1118,57 @@ body,
 }
 .joy-zone {
   position: absolute;
-  bottom: 90px;
-  left: 34px;
-  width: 130px;
-  height: 130px;
+  bottom: 96px;
+  left: 26px;
+  width: 140px;
+  height: 140px;
   pointer-events: auto;
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: 5;
+  cursor: pointer;
 }
 .joy-base {
-  width: 116px;
-  height: 116px;
+  width: 126px;
+  height: 126px;
   border-radius: 50%;
   border: 3px solid rgba(255, 255, 255, 0.35);
   background: rgba(255, 255, 255, 0.08);
   position: absolute;
+  pointer-events: none;
+}
+.aim-zone {
+  position: absolute;
+  bottom: 96px;
+  right: 26px;
+  width: 140px;
+  height: 140px;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: 5;
+  cursor: pointer;
+}
+.zone-label {
+  position: absolute;
+  bottom: -14px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: 'Lilita One', 'Nunito', sans-serif;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 .joy-knob {
   width: 52px;
@@ -1128,21 +1177,8 @@ body,
   background: rgba(255, 255, 255, 0.85);
   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
   position: absolute;
-}
-.aim-zone {
-  position: absolute;
-  bottom: 90px;
-  right: 34px;
-  width: 130px;
-  height: 130px;
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.aim-base {
-  background: rgba(255, 210, 63, 0.07);
-  border-color: rgba(255, 210, 63, 0.4);
+  pointer-events: none;
+  will-change: transform;
 }
 .aim-knob {
   width: 64px;
@@ -1152,13 +1188,20 @@ body,
   background: rgba(255, 210, 63, 0.35);
   position: absolute;
   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  will-change: transform;
+}
+.aim-base {
+  background: rgba(255, 210, 63, 0.07);
+  border-color: rgba(255, 210, 63, 0.4);
+  pointer-events: none;
 }
 .fire-btn {
   position: absolute;
-  bottom: 52px;
-  right: 96px;
-  width: 64px;
-  height: 64px;
+  bottom: 252px;
+  right: 46px;
+  width: 66px;
+  height: 66px;
   border-radius: 50%;
   background: linear-gradient(180deg, #ff6b5e, #c0392b);
   border: 3px solid rgba(255, 255, 255, 0.85);
@@ -1173,6 +1216,7 @@ body,
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
+  z-index: 5;
 }
 .fire-btn.active {
   transform: scale(0.94);
@@ -1489,5 +1533,26 @@ body,
   }
   .hud-hpbar {
     width: 110px;
+  }
+}
+
+/* ---- small screens: compact controls ---- */
+@media (max-width: 480px) {
+  .joy-zone, .aim-zone {
+    width: 112px;
+    height: 112px;
+    bottom: 84px;
+  }
+  .joy-zone { left: 10px; }
+  .aim-zone { right: 10px; }
+  .joy-base { width: 100px; height: 100px; }
+  .joy-knob { width: 44px; height: 44px; }
+  .aim-knob { width: 54px; height: 54px; }
+  .fire-btn {
+    width: 58px;
+    height: 58px;
+    bottom: 208px;
+    right: 20px;
+    font-size: 20px;
   }
 }

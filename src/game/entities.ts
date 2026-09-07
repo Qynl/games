@@ -64,6 +64,8 @@ export interface BrawlerState {
   healPulse: number
   blinkT: number
   spawnFx: number
+  lastHitT: number
+  regenPulse: number
 }
 
 let NEXT_ID = 1
@@ -134,6 +136,8 @@ export function createBrawler(
     healPulse: 0,
     blinkT: rand(1.5, 4),
     spawnFx: 0,
+    lastHitT: 99,
+    regenPulse: 0,
   }
 }
 
@@ -162,6 +166,16 @@ export function updateBrawler(
   b.blinkT -= dt
   if (b.blinkT < -0.13) b.blinkT = rand(1.8, 4.5)
   b.spawnFx = Math.max(0, b.spawnFx - dt)
+
+  // out-of-combat health regen
+  b.lastHitT += dt
+  if (!b.dead && b.spawnProt <= 0 && b.lastHitT > 4.5 && b.hp < b.maxHp && b.hp > 0) {
+    const amt = b.maxHp * 0.12 * dt
+    b.hp = Math.min(b.maxHp, b.hp + amt)
+    b.regenPulse += amt
+  } else {
+    b.regenPulse = Math.max(0, b.regenPulse - dt * 40)
+  }
 
   // reload
   if (b.ammo < b.def.ammoMax) {
