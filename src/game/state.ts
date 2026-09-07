@@ -180,8 +180,8 @@ export class GameState {
         this.safes.push({
           team: s.team,
           pos: v(s.pos.x * TILE, s.pos.y * TILE),
-          hp: 30000,
-          maxHp: 30000,
+          hp: 40000,
+          maxHp: 40000,
           dead: false,
           hitFlash: 0,
           shake: 0,

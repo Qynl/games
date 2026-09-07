@@ -1724,7 +1724,7 @@ body,
 /* bottom tabs — punchier, Brawl Stars feel */
 .bottom-tabs {
   gap: 8px;
-  padding: 8px 16px 12px;
+  padding: 8px 16px calc(12px + env(safe-area-inset-bottom, 0px));
   border-radius: 22px 22px 0 0;
   background: linear-gradient(180deg, rgba(20, 28, 46, 0.97), rgba(8, 12, 22, 0.97));
   box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.55);
@@ -1746,5 +1746,118 @@ body,
   }
   .detail-actions {
     justify-content: center;
+  }
+}
+
+/* ================= SCROLLABLE SCREENS ================= */
+.brawler-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 110px; /* keep content clear of the bottom tabs */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 210, 63, 0.5) rgba(255, 255, 255, 0.06);
+}
+.brawler-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.brawler-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 210, 63, 0.45);
+  border-radius: 6px;
+}
+.brawler-scroll .brawler-grid,
+.brawler-scroll .brawler-detail {
+  flex-shrink: 0;
+}
+.mode-layout {
+  overflow-y: auto;
+  padding-bottom: 110px;
+}
+
+/* ================= FULLSCREEN ================= */
+html:fullscreen,
+html:fullscreen body,
+html:fullscreen #root,
+html:fullscreen .app,
+.game-screen:fullscreen,
+.screen:fullscreen,
+.app:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--bg);
+}
+.fullscreen-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ================= COMPACT HUD (landscape phones / small screens) ================= */
+@media (max-height: 540px), (max-width: 480px) {
+  .hud-top {
+    padding: 6px 10px;
+  }
+  .hud-hpbar {
+    width: 110px;
+    height: 13px;
+  }
+  .hud-timer {
+    font-size: 17px;
+    padding: 1px 12px;
+  }
+  .hud-gems {
+    font-size: 13px;
+  }
+  .hud-safe-hud-bar,
+  .hud-safes .safe-hud-bar {
+    min-width: 0;
+  }
+  .safe-hud-track {
+    width: 90px;
+    height: 8px;
+  }
+  .event-feed {
+    top: 96px;
+    max-width: 60%;
+  }
+  .event-item {
+    font-size: 11px;
+    padding: 3px 10px;
+  }
+  .ability-btn {
+    width: 52px;
+    height: 52px;
+    font-size: 11px;
+  }
+  .super-btn {
+    width: 84px;
+    height: 56px;
+  }
+  .joy-zone, .aim-zone {
+    width: 104px;
+    height: 104px;
+    bottom: 12px;
+  }
+  .joy-zone { left: 8px; }
+  .aim-zone { right: 8px; }
+  .joy-base { width: 92px; height: 92px; }
+  .joy-knob { width: 42px; height: 42px; }
+  .aim-knob { width: 50px; height: 50px; }
+  .fire-btn {
+    width: 54px;
+    height: 54px;
+    font-size: 19px;
+    bottom: 14px;
+    right: 116px;
+  }
+  .zone-label {
+    display: none;
+  }
+  .gem-banner {
+    top: 46px;
+    font-size: 15px;
+    padding: 5px 14px;
   }
 }

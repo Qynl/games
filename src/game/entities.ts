@@ -224,9 +224,16 @@ export function updateBrawler(
   b.knockVy *= Math.exp(-5 * dt)
 
   b.pos.x += vx * dt
-  if (collideMap(g.map, b.pos, 12) || collideSafes(g.safes, b.pos)) b.pos.x -= vx * dt
+  if (collideMap(g.map, b.pos, 12)) b.pos.x -= vx * dt
   b.pos.y += vy * dt
-  if (collideMap(g.map, b.pos, 12) || collideSafes(g.safes, b.pos)) b.pos.y -= vy * dt
+  if (collideMap(g.map, b.pos, 12)) b.pos.y -= vy * dt
+
+  // push out of safes (heist vaults) — resolves even if spawned too close
+  const push = safePushout(g.safes, b.pos)
+  if (push) {
+    b.pos.x += push.x
+    b.pos.y += push.y
+  }
 
   b.pos.x = clamp(b.pos.x, 0.5 * TILE, g.map.w * TILE - 0.5 * TILE)
   b.pos.y = clamp(b.pos.y, 0.5 * TILE, g.map.h * TILE - 0.5 * TILE)
@@ -288,6 +295,33 @@ export function collideSafes(
     if (dist2(pos, s.pos) < Math.pow(SAFE_RADIUS + 11, 2)) return true
   }
   return false
+}
+
+// push-out vector so brawlers can never be trapped inside a safe's collision
+export function safePushout(
+  safes: { team: number; pos: Vec }[] | undefined,
+  pos: Vec
+): Vec | null {
+  if (!safes || safes.length === 0) return null
+  let px = 0
+  let py = 0
+  let n = 0
+  for (const s of safes) {
+    const dx = pos.x - s.pos.x
+    const dy = pos.y - s.pos.y
+    const d = Math.hypot(dx, dy)
+    const r = SAFE_RADIUS + 11
+    if (d < r) {
+      if (d < 0.001) {
+        py -= r
+      } else {
+        px += (dx / d) * (r - d)
+        py += (dy / d) * (r - d)
+      }
+      n++
+    }
+  }
+  return n > 0 ? v(px, py) : null
 }
 
 // ================= PROJECTILES =================

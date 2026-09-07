@@ -44,9 +44,11 @@ export class Renderer {
     const key = map.id
     if (this.mapCache && this.mapCacheKey === key) return
     const c = document.createElement('canvas')
-    c.width = map.w * TILE
-    c.height = map.h * TILE
+    // render at 2x so the map stays crisp when the camera zooms in
+    c.width = map.w * TILE * 2
+    c.height = map.h * TILE * 2
     const ctx = c.getContext('2d')!
+    ctx.scale(2, 2)
     drawMapTo(ctx, map)
     this.mapCache = c
     this.mapCacheKey = key
@@ -70,8 +72,12 @@ export class Renderer {
 
     const sx = (Math.random() - 0.5) * g.shake * 14
     const sy = (Math.random() - 0.5) * g.shake * 14
-    this.viewX = (target?.pos.x ?? map.w * TILE / 2) - this.cw / (2 * this.scale) + sx
-    this.viewY = (target?.pos.y ?? map.h * TILE / 2) - this.ch / (2 * this.scale) + sy
+    const wantX = (target?.pos.x ?? map.w * TILE / 2) - this.cw / (2 * this.scale)
+    const wantY = (target?.pos.y ?? map.h * TILE / 2) - this.ch / (2 * this.scale)
+    // smooth camera follow (no hard snapping)
+    const k = 1 - Math.exp(-dt * 8)
+    this.viewX = lerp(this.viewX, wantX, k) + sx
+    this.viewY = lerp(this.viewY, wantY, k) + sy
     this.viewX = clamp(this.viewX, -20, map.w * TILE - this.cw / this.scale + 20)
     this.viewY = clamp(this.viewY, -20, map.h * TILE - this.ch / this.scale + 20)
 
@@ -111,6 +117,23 @@ export class Renderer {
       lg2.addColorStop(1, 'rgba(255,75,62,0)')
       ctx.fillStyle = lg2
       ctx.fillRect(vx0, map.h * TILE - tintH, viewW, tintH)
+    }
+
+    // animated water shimmer (map cache is static; overlay adds motion)
+    const tx0 = Math.max(0, Math.floor(vx0 / TILE))
+    const ty0 = Math.max(0, Math.floor(vy0 / TILE))
+    const tx1 = Math.min(map.w - 1, Math.ceil((vx0 + viewW) / TILE))
+    const ty1 = Math.min(map.h - 1, Math.ceil((vy0 + viewH) / TILE))
+    for (let ty = ty0; ty <= ty1; ty++) {
+      for (let tx = tx0; tx <= tx1; tx++) {
+        if (tileAt(map, tx, ty) !== T_WATER) continue
+        const px = tx * TILE
+        const py = ty * TILE
+        const ph = (g.time * 1.3 + tx * 0.37 + ty * 0.61) % 1
+        ctx.fillStyle = `rgba(255,255,255,${0.10 + Math.sin(ph * Math.PI) * 0.14})`
+        ctx.fillRect(px + 4 + ph * 8, py + 6 + ph * 14, 12 - ph * 4, 2)
+        ctx.fillRect(px + 14 - ph * 8, py + 22 - ph * 10, 10 - ph * 3, 2)
+      }
     }
 
     // heist safes
@@ -327,6 +350,14 @@ export class Renderer {
       if (!autoAim) {
         const rx = clamp(aimWorld.x, p.pos.x - range, p.pos.x + range)
         const ry = clamp(aimWorld.y, p.pos.y - range, p.pos.y + range)
+        // aim line from brawler to reticle
+        ctx.strokeStyle = 'rgba(255,255,255,0.20)'
+        ctx.lineWidth = 3
+        ctx.lineCap = 'round'
+        ctx.beginPath()
+        ctx.moveTo(p.pos.x + Math.cos(p.aim) * 22, p.pos.y + Math.sin(p.aim) * 22 - 6)
+        ctx.lineTo(rx, ry - 6)
+        ctx.stroke()
         const pulse = 1 + Math.sin(g.time * 8) * 0.15
         ctx.strokeStyle = inRange ? 'rgba(255,255,255,0.9)' : 'rgba(255,90,90,0.9)'
         ctx.lineWidth = 2
@@ -1321,18 +1352,31 @@ function drawMapTo(ctx: CanvasRenderingContext2D, map: GameMap) {
   const h = map.h
   const W = w * TILE
   const H = h * TILE
-  // grass base with two-tone checker
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      ctx.fillStyle = (x + y) % 2 === 0 ? '#79c74f' : '#71be47'
-      ctx.fillRect(x * TILE, y * TILE, TILE, TILE)
-    }
-  }
-  // scattered grass tufts (deterministic-ish via hash)
   const hash = (n: number) => {
     const s = Math.sin(n * 127.1) * 43758.5453
     return s - Math.floor(s)
   }
+  // grass base: soft two-tone checker with mottled patches (breaks the grid)
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const px = x * TILE
+      const py = y * TILE
+      ctx.fillStyle = (x + y) % 2 === 0 ? '#7cc550' : '#73bd47'
+      ctx.fillRect(px, py, TILE, TILE)
+      // mottle blobs
+      const h1 = hash(x * 13.3 + y * 7.7)
+      const h2 = hash(x * 29.1 + y * 43.9)
+      ctx.fillStyle = h1 > 0.5 ? 'rgba(255,255,255,0.07)' : 'rgba(30,90,25,0.10)'
+      ctx.beginPath()
+      ctx.ellipse(px + 6 + h1 * 20, py + 6 + h2 * 20, 14 + h2 * 10, 8 + h1 * 8, h1 * 3, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = h2 > 0.5 ? 'rgba(20,80,20,0.08)' : 'rgba(255,255,255,0.05)'
+      ctx.beginPath()
+      ctx.ellipse(px + 26 - h2 * 18, py + 24 - h1 * 16, 12 + h1 * 9, 7 + h2 * 7, h2 * 3, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+  // scattered grass tufts (deterministic via hash)
   for (let i = 0; i < w * h * 2.2; i++) {
     const hx = hash(i)
     const hy = hash(i + 999)
@@ -1510,8 +1554,15 @@ function drawMapTo(ctx: CanvasRenderingContext2D, map: GameMap) {
   }
   ctx.stroke()
 
-  // map border
-  ctx.strokeStyle = 'rgba(20,40,16,0.85)'
-  ctx.lineWidth = 6
-  ctx.strokeRect(0, 0, W, H)
+  // map border: dark frame + soft inner shadow
+  ctx.strokeStyle = 'rgba(12,26,10,0.9)'
+  ctx.lineWidth = 12
+  ctx.strokeRect(6, 6, W - 12, H - 12)
+  const frame = ctx.createLinearGradient(0, 0, 0, H)
+  frame.addColorStop(0, 'rgba(0,0,0,0.28)')
+  frame.addColorStop(0.06, 'rgba(0,0,0,0)')
+  frame.addColorStop(0.94, 'rgba(0,0,0,0)')
+  frame.addColorStop(1, 'rgba(0,0,0,0.28)')
+  ctx.fillStyle = frame
+  ctx.fillRect(0, 0, W, H)
 }

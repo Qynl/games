@@ -73,6 +73,7 @@ export default function BrawlerScreen({ save, setSave, from, onBack, onEquipped 
         </div>
       </div>
 
+      <div className="brawler-scroll">
       <div className="brawler-grid">
         {BRAWLERS.map((b) => {
           const isUnlocked = save.unlocked.includes(b.id)
@@ -178,6 +179,7 @@ export default function BrawlerScreen({ save, setSave, from, onBack, onEquipped 
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   )

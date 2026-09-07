@@ -68,6 +68,21 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
   const [touch, setTouch] = useState(false)
   const [endedText, setEndedText] = useState<{ title: string; sub: string; won: boolean } | null>(null)
   const [firePressed, setFirePressed] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {})
+    } else {
+      document.documentElement.requestFullscreen().catch(() => {})
+    }
+  }
+
+  useEffect(() => {
+    const onFs = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onFs)
+    return () => document.removeEventListener('fullscreenchange', onFs)
+  }, [])
   const hudRef = useRef(hud)
   hudRef.current = hud
 
@@ -309,6 +324,13 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
         </div>
 
         <div className="hud-right">
+          <button
+            className="hud-btn fullscreen-btn"
+            onClick={toggleFullscreen}
+            title="Fullscreen"
+          >
+            {isFullscreen ? '🗗' : '⛶'}
+          </button>
           <button className="hud-btn pause-btn" onClick={() => togglePause(true)}>
             ⏸
           </button>

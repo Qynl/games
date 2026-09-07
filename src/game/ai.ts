@@ -130,24 +130,50 @@ export function updateAI(g: GameState, me: BrawlerState, ai: AIData, dt: number)
         return
       }
     }
-    // attack the safe
+    // attack the safe — but fight enemies that block the way
     if (enemySafe) {
-      const d = dist(me.pos, enemySafe.pos)
-      if (d < me.attackRange * 0.9 && hasLineOfSight(g.map, me.pos, enemySafe.pos)) {
-        const a = Math.atan2(enemySafe.pos.y - me.pos.y, enemySafe.pos.x - me.pos.x) + rand(-0.12, 0.12)
+      // engage nearby enemies first (they'll shred us otherwise)
+      let blocker: BrawlerState | null = null
+      let bd = Infinity
+      for (const e of enemies) {
+        const d = dist(me.pos, e.pos)
+        if (d < 3.2 * TILE && hasLineOfSight(g.map, me.pos, e.pos) && d < bd) {
+          bd = d
+          blocker = e
+        }
+      }
+      if (blocker && bd < me.attackRange * 1.05) {
+        const lead = v(blocker.pos.x + blocker.vel.x * 0.3, blocker.pos.y + blocker.vel.y * 0.3)
+        const a = Math.atan2(lead.y - me.pos.y, lead.x - me.pos.x) + rand(-0.12, 0.12)
         ai.aimAngle = a
         me.aim = a
         ai.shotTimer -= dt
         if (ai.shotTimer <= 0) {
           g.tryFire(me)
-          ai.shotTimer = rand(0.25, 0.5)
+          ai.shotTimer = rand(0.26, 0.55)
         }
-      } else if (d > 1.6 * TILE) {
-        moveToward(g, me, ai, enemySafe.pos, dt, def.speed)
+        if (bd < me.attackRange * 0.4) {
+          const away = norm(v(me.pos.x - blocker.pos.x, me.pos.y - blocker.pos.y))
+          moveToward(g, me, ai, v(me.pos.x + away.x * 3 * TILE, me.pos.y + away.y * 3 * TILE), dt, def.speed)
+        }
       } else {
-        const away = norm(v(me.pos.x - enemySafe.pos.x, me.pos.y - enemySafe.pos.y))
-        const desired = v(me.pos.x + away.x * 4 * TILE, me.pos.y + away.y * 4 * TILE)
-        moveToward(g, me, ai, desired, dt, def.speed)
+        const d = dist(me.pos, enemySafe.pos)
+        if (d < me.attackRange * 0.9 && hasLineOfSight(g.map, me.pos, enemySafe.pos)) {
+          const a = Math.atan2(enemySafe.pos.y - me.pos.y, enemySafe.pos.x - me.pos.x) + rand(-0.12, 0.12)
+          ai.aimAngle = a
+          me.aim = a
+          ai.shotTimer -= dt
+          if (ai.shotTimer <= 0) {
+            g.tryFire(me)
+            ai.shotTimer = rand(0.25, 0.5)
+          }
+        } else if (d > 1.6 * TILE) {
+          moveToward(g, me, ai, enemySafe.pos, dt, def.speed)
+        } else {
+          const away = norm(v(me.pos.x - enemySafe.pos.x, me.pos.y - enemySafe.pos.y))
+          const desired = v(me.pos.x + away.x * 4 * TILE, me.pos.y + away.y * 4 * TILE)
+          moveToward(g, me, ai, desired, dt, def.speed)
+        }
       }
       if (me.superCharge >= 1) {
         ai.superTimer -= dt
