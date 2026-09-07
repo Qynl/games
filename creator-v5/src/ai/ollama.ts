@@ -1,0 +1,1 @@
+export async function askOllama(prompt:string,model='qwen3:8b'):Promise<string|null>{try{const r=await fetch('/ollama/api/generate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({model,prompt,stream:false})});if(!r.ok)return null;const j=await r.json() as {response?:string};return j.response??null}catch{return null}}
