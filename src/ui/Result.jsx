@@ -1,7 +1,7 @@
 import React from 'react'
 import { xpForLevel } from '../game/core/Persistence.js'
 
-export default function Result ({ data, profile, onAgain, onLobby }) {
+export default function Result ({ data, profile, onAgain, onLobby, net }) {
   const won = data.winner === 'a'
   const st = data.stats || {}
   const acc = st.shots ? Math.round((st.hits / st.shots) * 100) : 0
@@ -71,6 +71,9 @@ export default function Result ({ data, profile, onAgain, onLobby }) {
             LEVEL UP → {profile.level}</div>}
           <div className="bar" style={{ marginTop: 10 }}><i style={{ width: (profile.xp / xpForLevel(profile.level)) * 100 + '%' }} /></div>
         </div>
+        {net && <div style={{ marginTop: 18, fontSize: 11, color: 'var(--dim)', letterSpacing: '.16em' }}>
+          BOTH PLAYERS PRESS PLAY AGAIN — THE NEXT DUEL STARTS WHEN YOU'RE BOTH IN
+        </div>}
         <div className="row" style={{ marginTop: 30 }}>
           <button className="btn pri" onClick={onAgain}>PLAY AGAIN</button>
           <button className="btn" onClick={onLobby}>BACK TO LOBBY</button>

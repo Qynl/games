@@ -34,6 +34,7 @@ export class Bot {
     this.aimYaw = 0
     this.aimPitch = 0
     this.stuckTimer = 0
+    this.hop = -1        // game-time slide-hop timer (never a wall-clock timeout)
   }
 
   pickTarget (game) {
@@ -81,6 +82,8 @@ export class Bot {
     const inp = f.input
     inp.forward = 0
     inp.right = 0
+    inp.jump = false
+    inp.crouch = false
     inp.jumpPressed = false
     inp.crouchPressed = false
 
@@ -158,9 +161,14 @@ export class Bot {
       inp.crouch = true
       inp.crouchPressed = true
       this.slideCd = 1.6 + Math.random() * 2
-      setTimeout(() => { if (this.f.input) { this.f.input.jump = true; this.f.input.jumpPressed = true } }, 260)
+      this.hop = 0.26
     }
     if (f.mv.sliding && f.mv.slideTime > 0.5) { inp.crouch = false }
+    // the slide-hop fires on game time, for exactly one frame
+    if (this.hop > 0) {
+      this.hop -= dt
+      if (this.hop <= 0) { inp.jump = true; inp.jumpPressed = true }
+    }
 
     // unstick
     if (f.mv.horizontalSpeed < 0.6 && f.mv.grounded) {

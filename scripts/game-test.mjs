@@ -352,6 +352,29 @@ for (const mode of MODES.filter((m) => m.id !== 'p2p')) {   // p2p needs a live 
   g.dispose()
 }
 
+// ── bot input flags must not get stuck ─────────────────────────────────────
+{
+  const g = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
+  g.load({ mapId: 'conduit', modeId: 'trio_bots', loadout: { primary: 'vex9', secondary: 'q1', melee: 'knife', utility: 'frag' }, skin: SKINS[0], botLevel: 'hard' })
+  g.input.fallback = true
+  const bots = g.bots.filter((b) => !b.dummy)
+  const on = bots.map(() => ({ jump: 0, crouch: 0 }))
+  let frames = 0
+  for (let i = 0; i < 20 * 120; i++) {
+    g.fixedStep(STEP)
+    frames++
+    bots.forEach((b, k) => {
+      if (b.f.input.jump) on[k].jump++
+      if (b.f.input.crouch) on[k].crouch++
+    })
+  }
+  const worstJump = Math.max(...on.map((o) => o.jump)) / frames
+  const worstCrouch = Math.max(...on.map((o) => o.crouch)) / frames
+  check('bots never hold jump down (no accidental auto-hop)', worstJump < 0.35, `worst ${(worstJump * 100).toFixed(0)}% of frames`)
+  check('bots never crouch-walk forever', worstCrouch < 0.35, `worst ${(worstCrouch * 100).toFixed(0)}% of frames`)
+  g.dispose()
+}
+
 // ── weapon state machine under abuse ───────────────────────────────────────
 {
   const g = new Game(canvas, { rendererFactory: rendererStub, settings: {} })

@@ -27,6 +27,7 @@ export default function App () {
   const [damageNums, setDamageNums] = useState([])
   const canvasRef = useRef(null)
   const gameRef = useRef(null)
+  const finishedRef = useRef(false)
 
   const save = useCallback((p) => {
     setProfile(p)
@@ -104,6 +105,9 @@ export default function App () {
   }, [profile.settings])
 
   const finishMatch = (g, data) => {
+    // one match pays out once, however many ways the engine finds to say it is over
+    if (finishedRef.current) return
+    finishedRef.current = true
     const p = structuredClone(profile)
     const st = data.stats || {}
     const reward = rewardMatch(p, {
@@ -125,6 +129,7 @@ export default function App () {
   }
 
   const startMatch = (loadout) => {
+    finishedRef.current = false
     setMatchCfg({ ...queue, loadout, key: Math.random() })
     setScreen('playing')
   }
@@ -213,7 +218,7 @@ export default function App () {
       )}
 
       {screen === 'result' && result && (
-        <Result data={result} profile={profile}
+        <Result data={result} profile={profile} net={!!(matchCfg?.net || netInfo?.net)}
           onAgain={() => { setResult(null); setScreen('loadout') }}
           onLobby={() => { setResult(null); closeNet(); setMatchCfg(null); setScreen('lobby') }} />
       )}
