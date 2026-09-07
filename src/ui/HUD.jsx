@@ -107,6 +107,15 @@ export default function HUD ({ hud, paused, needsLock, onResume, onQuit, showMv,
         <div className="momentum">MOMENTUM DAMAGE ×{hud.momentum.toFixed(2)}</div>
       )}
 
+      {/* ── netplay status ────────────────────────────────────────── */}
+      {hud.net && (
+        <div className="netind">
+          <b style={{ color: hud.net.state === 'open' ? 'var(--gr)' : 'var(--rd)' }}>●</b>
+          {hud.net.role === 'host' ? 'HOST' : 'GUEST'} · {hud.net.ping}ms
+          {hud.net.peer && <span> · VS {hud.net.peer}</span>}
+        </div>
+      )}
+
       {/* ── score ─────────────────────────────────────────────────── */}
       <div className="score">
         <span className="r">ROUND {hud.round?.round}</span>

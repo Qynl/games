@@ -13,11 +13,13 @@ import { MAP_BY_ID, MODES } from '../data/maps.js'
 import { WEAPON_MAP, DEFAULT_LOADOUT } from '../data/weapons.js'
 import { SKIN_MAP } from '../data/skins.js'
 import { rollName, rollPing } from '../data/names.js'
+import { MSG, FLAG } from '../net/Net.js'
 
 const STEP = 1 / 120
 const TEAM_COLORS = { a: 0x6ee7ff, b: 0xff8a3d }
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v)
+const shortAngle = (a, b) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d }
 const lerp = (a, b, t) => a + (b - a) * t
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -110,6 +112,7 @@ class Fighter {
     this.mv.grounded = true
     this.health = this.maxHealth
     this.alive = true
+    if (this.game?.netState) this.game.netState.sentKill = false
     this.spawnGuard = this.isDummy ? 0 : 0.9   // brief shield so nobody is spawn-killed
     this.haste = 0
     this.slow = 0
@@ -206,8 +209,12 @@ export class Game {
 
   // ── lifecycle ────────────────────────────────────────────────────────────
   load (config) {
-    const { mapId, modeId, loadout, skin, botLevel, teamBots } = config
+    const { mapId, modeId, loadout, skin, botLevel, teamBots, net, netRole, peerName } = config
     this.config = config
+    this.net = net || null
+    this.netRole = netRole || null
+    this.netState = net ? { hello: null, remoteHello: null, buf: [], slot: 0, lastHello: 0, sentKill: false } : null
+    this.netPing = 0
     this.map = MAP_BY_ID[mapId] || MAP_BY_ID.yard
     this.mode = MODES.find((m) => m.id === modeId) || MODES[0]
     this.skin = SKIN_MAP[skin] || SKIN_MAP.stock
@@ -216,7 +223,8 @@ export class Game {
     this.playerLoadout = loadout || { ...DEFAULT_LOADOUT }
 
     // player
-    this.player = new Fighter(this, { team: 'a', name: 'YOU', loadout: this.playerLoadout, skin: this.skin })
+    this.playerName = config.playerName || (this.netRole === 'host' ? 'HOST' : this.netRole === 'guest' ? 'GUEST' : 'YOU')
+    this.player = new Fighter(this, { team: 'a', name: this.net ? this.playerName : 'YOU', loadout: this.playerLoadout, skin: this.skin })
     this.fighters = [this.player]
     this.bots = []
 
@@ -236,8 +244,20 @@ export class Game {
       })
     }
 
-    const teamSize = this.mode.teamB
-    const botsNeeded = this.mode.bots
+    // ── netplay: the opponent is a real person, not a bot ──────────────────
+    if (this.net) {
+      const foe = new Fighter(this, {
+        team: 'b', name: peerName || 'GUEST', isBot: true, loadout: { ...DEFAULT_LOADOUT }, skin: SKIN_MAP.stock,
+      })
+      foe.isRemote = true
+      foe.model.visible = false
+      this.fighters.push(foe)
+      this.remote = foe
+      this.netSay(MSG.hello(this.playerName || 'HOST', this.playerLoadout, skin))
+    }
+
+    const teamSize = this.net ? 0 : this.mode.teamB
+    const botsNeeded = this.net ? 0 : this.mode.bots
     // enemy team: bots (or human-shaped bots in PvP modes we fill with bots anyway)
     for (let i = 0; i < teamSize; i++) {
       const f = new Fighter(this, {
@@ -248,7 +268,7 @@ export class Game {
       this.bots.push(new Bot(f, botLevel || 'normal'))
     }
     // friendly bots (1 + bot / 1 + 2 bots modes)
-    const friendlyBots = Math.max(0, this.mode.teamA - 1)
+    const friendlyBots = this.net ? 0 : Math.max(0, this.mode.teamA - 1)
     for (let i = 0; i < friendlyBots; i++) {
       const f = new Fighter(this, {
         team: 'a', name: rollName(), isBot: true,
@@ -433,6 +453,7 @@ export class Game {
   fixedStep (dt) {
     this.time += dt
     const live = this.match.phase === 'live'
+    if (this.net) this.stepNet(dt)
     if (this.killStreakT > 0) { this.killStreakT -= dt; if (this.killStreakT <= 0) this.killStreak = 0 }
     for (const f of this.fighters) if (f.spawnGuard > 0) f.spawnGuard -= dt
     for (let i = this.hitDirs.length - 1; i >= 0; i--) if ((this.hitDirs[i].t -= dt) <= 0) this.hitDirs.splice(i, 1)
@@ -445,11 +466,12 @@ export class Game {
     this.stepProjectiles(dt)
     this.stepPlaceables(dt)
     this.vfx.update(dt)
-    this.match.update(dt)
+    if (!this.net || this.netRole === 'host') this.match.update(dt)
     if (this.mode.id !== 'range') this.checkFallOut()
   }
 
   stepFighter (f, dt, live) {
+    if (f.isRemote) return          // network owns this one
     if (!f.alive) {
       f.respawnTimer -= dt
       if (f.respawnTimer <= 0 && (this.mode.id === 'range' || f.isDummy)) this.respawnFighter(f)
@@ -663,6 +685,7 @@ export class Game {
   spectateTarget () {
     const p = this.player
     if (p.alive) { this.spectate = null; return null }
+    if (this.net) return null      // spectating the enemy would be a wallhack
     if (this.killCam && this.killCam.t > 0 && this.killCam.target && this.killCam.target.alive && this.killCam.target !== p) {
       this.spectate = this.killCam.target
       return this.spectate
@@ -674,6 +697,199 @@ export class Game {
     }
     this.spectate = t
     return t
+  }
+
+
+  // ══ netplay ═══════════════════════════════════════════════════════════════
+  netSay (msg) { if (this.net && this.net.open) this.net.send(msg) }
+
+  stepNet (dt) {
+    const net = this.net
+    const st = this.netState
+    if (!net || !st) return
+    net.tick(dt)
+    this.netPing = net.ping
+
+    if (this.netRole === 'host' && !st.remoteHello) {
+      st.mapT = (st.mapT || 0) - dt
+      if (st.mapT <= 0) { st.mapT = 0.4; this.netSay(MSG.ready(this.config.mapId, this.config.modeId)) }
+    }
+
+    // keep saying hello until the other side answers (either peer may be first)
+    st.lastHello -= dt
+    if (st.lastHello <= 0) {
+      st.lastHello = 1
+      this.netSay(MSG.hello(this.playerName || (this.netRole === 'host' ? 'HOST' : 'GUEST'), this.playerLoadout, this.skin?.id))
+    }
+
+    for (const m of net.receive()) this.onNetMessage(m)
+
+    // push our own state 30×/s
+    st.snapT = (st.snapT || 0) - dt
+    if (st.snapT <= 0 && this.player) {
+      st.snapT = 1 / 30
+      const f = this.player
+      let flags = 0
+      if (f.mv.grounded) flags |= FLAG.grounded
+      if (f.mv.sliding) flags |= FLAG.sliding
+      if (f.mv.sprinting) flags |= FLAG.sprinting
+      if (f.mv.crouching) flags |= FLAG.crouching
+      if (f.alive) flags |= FLAG.alive
+      if (f.wantFire) flags |= FLAG.firing
+      if (f.weapon.reloading) flags |= FLAG.reloading
+      this.netSay(MSG.snapshot(performance.now(), f.mv, flags, f.health, f.slot, f.weapon.isMelee ? 0 : f.weapon.ammo))
+    }
+
+    // the host owns the clock: it broadcasts the round state
+    if (this.netRole === 'host' && this.match) {
+      st.matchT = (st.matchT || 0) - dt
+      if (st.matchT <= 0) {
+        st.matchT = 0.1
+        this.netSay(MSG.match(this.match.phase, this.match.round, this.match.scoreA, this.match.scoreB, this.match.timer))
+      }
+    }
+  }
+
+  onNetMessage (m) {
+    const st = this.netState
+    const r = this.remote
+    switch (m[0]) {
+      case 'l': {   // hello — name + loadout
+        if (st.remoteHello && st.remoteHello.name === m[1]) break
+        st.remoteHello = { name: m[1], loadout: m[2], skin: m[3] }
+        if (r) {
+          r.name = m[1]
+          r.loadout = { ...DEFAULT_LOADOUT, ...(m[2] || {}) }
+          r.skin = SKIN_MAP[m[3]] || SKIN_MAP.stock
+          if (r.model) { this.world.scene.remove(r.model); r.model.traverse?.((o) => { if (o.isMesh && o.geometry) o.geometry.dispose?.() }) }
+          r.model = buildFighterModel(TEAM_COLORS.b, true, WEAPON_MAP[r.loadout.primary])
+          this.world.scene.add(r.model)
+          for (const k of ['primary', 'secondary', 'melee']) r.weapons[k] = new Weapon(r.loadout[k], r.skin)
+          r.utility = new UtilitySlot(r.loadout.utility)
+        }
+        this.banner('CONNECTED — ' + m[1], 'good', 2)
+        break
+      }
+      case 's': {   // snapshot
+        if (!r) break
+        st.buf.push({
+          t: performance.now(),
+          p: [m[2], m[3], m[4]], v: [m[5], m[6], m[7]],
+          yaw: m[8], pitch: m[9], flags: m[10], hp: m[11], slot: m[12], ammo: m[13], spd: m[14],
+        })
+        if (st.buf.length > 40) st.buf.shift()
+        break
+      }
+      case 'd': {   // we got hit — we own our own health
+        if (!this.player || !this.player.alive) break
+        const from = this.remote
+        const before = this.player.health
+        this.player.spawnGuard = 0
+        this.player.health = Math.max(0, this.player.health - m[1])
+        from.stats.damage += m[1]
+        this.damageFlash = 1
+        this.rig.addShake(0.5)
+        this.audio.hurt()
+        if (from) this.addHitDir(from.mv.pos)
+        if (this.player.health <= 0) this.killFighter(this.player, from, !!m[2])
+        if (before !== this.player.health) this.emit('damage', { amount: -m[1], head: !!m[2], speed: 0 })
+        break
+      }
+      case 'k': {   // somebody died
+        if (!r) break
+        const killerIsMe = m[1] === this.player.name
+        const victimIsMe = m[2] === this.player.name
+        if (victimIsMe) this.killFighter(this.player, r, !!m[3])
+        else if (killerIsMe) { this.killFighter(r, this.player, !!m[3]) }
+        else this.killFighter(r, null, !!m[3])
+        break
+      }
+      case 'f': {   // their shot: tracer + sound so the fight reads both ways
+        const from = new THREE.Vector3(m[1], m[2], m[3])
+        const dir = new THREE.Vector3(m[4], m[5], m[6])
+        const hit = this.world.physics.raycast(from, dir, 200)
+        const end = hit ? hit.point : from.clone().addScaledVector(dir, 120)
+        this.vfx.tracer(from.clone(), end, 0xffd6a0, 0.02, 0.07)
+        const d = from.distanceTo(this.camera.position)
+        const def = WEAPON_MAP[m[7]]
+        if (def) this.audio.shot({
+          pitch: def.stats.pellets ? 0.7 : 1.05 - (def.stats.dmg ?? 20) / 400,
+          len: def.stats.pellets ? 0.28 : 0.14,
+          gain: Math.max(0.05, 0.42 - d / 90),
+          body: def.stats.pellets ? 110 : 200 - (def.stats.dmg ?? 20),
+        })
+        break
+      }
+      case 'm': {   // host-owned match state
+        if (this.netRole === 'host' || !this.match) break
+        const [phase, round, scoreA, scoreB, timer] = [m[1], m[2], m[3], m[4], m[5]]
+        if (phase === 'countdown' && this.match.phase !== 'countdown') {
+          this.match.round = round
+          this.match.startRound()
+        } else if (phase === 'live' && this.match.phase !== 'live') {
+          this.match.goLive()
+        } else if (phase === 'roundend' && this.match.phase !== 'roundend') {
+          this.match.endRound(scoreA > this.match.scoreA ? 'a' : scoreB > this.match.scoreB ? 'b' : null)
+        } else if (phase === 'matchend' && this.match.phase !== 'matchend') {
+          this.match.phase = 'matchend'
+          this.emit('matchend', { winner: scoreA > scoreB ? 'a' : 'b', scoreA, scoreB, stats: this.player.stats, board: [] })
+        }
+        this.match.scoreA = scoreA
+        this.match.scoreB = scoreB
+        this.match.timer = timer
+        this.match.round = round
+        break
+      }
+      case 'x':
+        this.banner('THE OTHER PLAYER LEFT', 'bad', 2.4)
+        this.emit('peerleft', {})
+        break
+      default: break
+    }
+  }
+
+  // Render the remote fighter a hair in the past and slide between samples,
+  // so a 30 Hz link still looks like a smooth 60+ fps player.
+  interpolateRemote () {
+    const st = this.netState
+    const r = this.remote
+    if (!st || !r || st.buf.length === 0) return
+    const now = performance.now()
+    const renderAt = now - 90
+    let a = st.buf[0], b = st.buf[0]
+    for (let i = 0; i < st.buf.length; i++) {
+      if (st.buf[i].t <= renderAt) a = st.buf[i]
+      if (st.buf[i].t >= renderAt) { b = st.buf[i]; break }
+    }
+    const span = b.t - a.t
+    let k = span > 0 ? (renderAt - a.t) / span : 1
+    let ex = 0
+    if (k > 1) { ex = Math.min(0.12, (now - b.t) / 1000); k = 1 }   // extrapolate briefly
+    const lerp3 = (i) => a.p[i] + (b.p[i] - a.p[i]) * k + (b.v[i] || 0) * ex
+    r.mv.pos.set(lerp3(0), lerp3(1), lerp3(2))
+    r.mv.vel.set(b.v[0], b.v[1], b.v[2])
+    r.mv.yaw = a.yaw + shortAngle(a.yaw, b.yaw) * k
+    r.mv.pitch = a.pitch + (b.pitch - a.pitch) * k
+    r.mv.grounded = !!(b.flags & FLAG.grounded)
+    r.mv.sliding = !!(b.flags & FLAG.sliding)
+    r.mv.crouching = !!(b.flags & FLAG.crouching)
+    r.mv.sprinting = !!(b.flags & FLAG.sprinting)
+    const wasAlive = r.alive
+    r.alive = !!(b.flags & FLAG.alive)
+    r.health = b.hp
+    r.slot = ['primary', 'secondary', 'melee'].includes(b.slot) ? b.slot : 'primary'
+    if (wasAlive && !r.alive) this.vfx.burst(new THREE.Vector3(r.mv.pos.x, r.mv.pos.y + 1, r.mv.pos.z), 20, 0xff4d6d, 6, 0.13, 0.9, 14)
+    // model
+    r.model.visible = r.alive
+    r.model.position.set(r.mv.pos.x, r.mv.pos.y, r.mv.pos.z)
+    r.model.rotation.y = r.mv.yaw + Math.PI
+    const squash = r.mv.sliding ? 0.55 : r.mv.crouching ? 0.72 : 1
+    r.model.scale.set(1, squash, 1)
+    // muzzle flash for their shots
+    if (b.flags & FLAG.firing) {
+      const mz = r.model.userData.muzzle
+      if (mz) { const p = new THREE.Vector3(); mz.getWorldPosition(p); this.vfx.muzzle(p, new THREE.Vector3(-Math.sin(r.mv.yaw), 0, -Math.cos(r.mv.yaw)), 0.8, 0xffd9a0) }
+    }
   }
 
   // ── aiming & shooting ────────────────────────────────────────────────────
@@ -771,6 +987,7 @@ export class Game {
       }
       const hit = this.raycastAll(f, origin, dir, s.range ?? 120)
       const dist = origin.distanceTo(hit.point)
+      if (this.net && isPlayer && (i === 0)) this.netSay(MSG.shot(muzzleWorld.x, muzzleWorld.y, muzzleWorld.z, dir.x, dir.y, dir.z, def.id))
       if (!s.silent) this.vfx.tracer(muzzleWorld, hit.point, f.team === 'a' ? 0xbfefff : 0xffd6a0, 0.02, s.pellets ? 0.05 : 0.075)
       if (hit.fighter) {
         const dmg = shot.dmg * mom * f.weapon.falloffMul(dist) * (hit.head ? s.head ?? 1.5 : 1)
@@ -799,6 +1016,16 @@ export class Game {
   }
 
   damageTarget (target, dmg, from, head, dir, isPlayer) {
+    // over the wire the shooter decides: you hit what you see, the owner applies it
+    if (this.net && target.isRemote && from === this.player) {
+      dmg = Math.round(dmg)
+      this.netSay(MSG.damage(dmg, head, Math.max(0, target.health - dmg)))
+      this.hitmarker = 0.22
+      this.lastHitWasHead = head
+      if (head) this.audio.headshot(); else this.audio.hit()
+      this.emit('damage', { amount: dmg, head, speed: from.mv.horizontalSpeed })
+      return
+    }
     const applied = target.applyDamage(dmg, from, head, dir)
     if (from && applied > 0) from.stats.hits = (from.stats.hits || 0) + 1
     if (isPlayer) {
@@ -826,6 +1053,10 @@ export class Game {
     }
     victim.credit = []
     victim.alive = false
+    if (this.net && victim === this.player && !this.netState.sentKill) {
+      this.netState.sentKill = true
+      this.netSay(MSG.kill(killer ? killer.name : 'THE VOID', victim.name, head, killer ? killer.weapon.def.name : null))
+    }
     victim.stats.deaths++
     victim.model.visible = false
     victim.respawnTimer = 999
@@ -1078,6 +1309,7 @@ export class Game {
   spawnAll () {
     let ia = 0, ib = 0
     for (const f of this.fighters) {
+      if (f.isRemote) continue                     // the network places this one
       if (f.isDummy && f.home) { f.respawn(f.home.clone(), f.homeYaw); continue }
       const sp = f.team === 'a' ? this.spawnPointFor('a', ia++) : this.spawnPointFor('b', ib++)
       f.respawn(new THREE.Vector3(sp[0], sp[1] + 0.2, sp[2]), sp[3] ?? 0)
@@ -1106,6 +1338,7 @@ export class Game {
   }
 
   respawnFighter (f) {
+    if (f.isRemote) return
     // dummies always go back to their own spot on the firing line
     if (f.isDummy && f.home) { f.respawn(f.home.clone(), f.homeYaw); return }
     const team = f.team
@@ -1138,6 +1371,7 @@ export class Game {
   checkFallOut () {
     const ky = this.map.killY ?? -25
     for (const f of this.fighters) {
+      if (f.isRemote) continue
       if (f.alive && f.mv.pos.y < ky) {
         this.killFighter(f, f.lastAttacker, false)
         if (f === this.player) this.emit('fell', {})
@@ -1233,6 +1467,7 @@ export class Game {
     }, spec ? 0 : f.weapon.ads, spec ? 0 : f.weapon.def.stats.adsFov)
 
     for (let i = this.banners.length - 1; i >= 0; i--) if ((this.banners[i].t -= dt) <= 0) this.banners.splice(i, 1)
+    if (this.net) this.interpolateRemote()
     this.updatePlates(dt)
 
     if (this.vmRoot) this.vmRoot.visible = f.alive && !spec
@@ -1302,7 +1537,8 @@ export class Game {
       spawnGuard: Math.max(0, f.spawnGuard),
       streak: this.killStreak,
       matchPoint: this.match.scoreA >= FIRST_TO - 1 || this.match.scoreB >= FIRST_TO - 1,
-      ping: 0,
+      ping: this.net ? this.netPing : 0,
+      net: this.net ? { role: this.netRole, state: this.net.state, ping: this.netPing, peer: this.netState?.remoteHello?.name || null } : null,
       scoreboard: this.scoreboard,
       board: this.scoreboard ? this.fighters.map((x) => ({
         name: x.name, team: x.team, you: x === f, dummy: !!x.isDummy,

@@ -414,4 +414,5 @@ export const MODES = [
   { id: 'duo_bots', name: '1 + BOT v 2 BOTS', teamA: 2, teamB: 2, bots: 3, desc: 'You and a bot versus two.' },
   { id: 'trio_bots', name: '1 + 2 BOTS v 3 BOTS', teamA: 3, teamB: 3, bots: 5, desc: 'Full lobby, five bots.' },
   { id: 'range', name: 'SHOOTING RANGE', teamA: 1, teamB: 0, bots: 0, desc: 'Try every loadout. No pressure.' },
+  { id: 'p2p', name: 'ONLINE DUEL', teamA: 1, teamB: 0, bots: 0, desc: 'Peer to peer. You and one other player, no server.' },
 ]

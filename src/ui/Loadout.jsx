@@ -36,7 +36,7 @@ function WeaponCard ({ w, owned, equipped, onPick, onBuy, qyns }) {
   )
 }
 
-export default function Loadout ({ profile, onStart, onBack, mapId, mode, save }) {
+export default function Loadout ({ profile, onStart, onBack, mapId, mode, save, peerName }) {
   const [step, setStep] = useState(0)
   const [loadout, setLoadout] = useState({ ...profile.loadout })
   const [phase, setPhase] = useState('pick')   // pick | waiting | go
@@ -107,9 +107,9 @@ export default function Loadout ({ profile, onStart, onBack, mapId, mode, save }
       <div key={i} className={`prow ${p.team === 'a' ? 'a' : 'b'} ${mine ? 'you' : ''} ${ready.includes(i + 1) || mine ? 'rdy' : ''}`}>
         <span className="pdot" />
         <span className="pnm">{mine ? 'YOU' : p.name}</span>
-        <span className="pwp">{mine ? (WEAPON_MAP[loadout.primary] || {}).name : p.weapon?.name}</span>
-        <span className="ppg">{mine ? 'HOST' : p.ping + 'ms'}</span>
-        <span className="prd">{ready.includes(i + 1) || mine ? '✓ READY' : 'CHOOSING…'}</span>
+        <span className="pwp">{mine ? (WEAPON_MAP[loadout.primary] || {}).name : p.online ? 'LINKED' : p.weapon?.name}</span>
+        <span className="ppg">{mine ? 'HOST' : p.online ? 'P2P' : p.ping + 'ms'}</span>
+        <span className="prd">{ready.includes(i + 1) || mine ? '✓ READY' : p.online ? 'CONNECTED' : 'CHOOSING…'}</span>
       </div>
     )
     return (

@@ -9,6 +9,7 @@ import Armory from './ui/Armory.jsx'
 import Skins from './ui/Skins.jsx'
 import Settings from './ui/Settings.jsx'
 import Result from './ui/Result.jsx'
+import Netplay from './ui/Netplay.jsx'
 import HUD from './ui/HUD.jsx'
 
 export default function App () {
@@ -22,6 +23,7 @@ export default function App () {
   const [result, setResult] = useState(null)
   const [toastMsg, setToast] = useState(null)
   const [rangePicker, setRangePicker] = useState(false)
+  const [netInfo, setNetInfo] = useState(null)   // { net, role, mapId, name }
   const [damageNums, setDamageNums] = useState([])
   const canvasRef = useRef(null)
   const gameRef = useRef(null)
@@ -49,6 +51,8 @@ export default function App () {
           const id = Math.random().toString(36).slice(2)
           setDamageNums((d) => [...d.slice(-6), { id, ...data }])
           setTimeout(() => setDamageNums((d) => d.filter((x) => x.id !== id)), 900)
+        } else if (type === 'peerleft') {
+          toast('The other player left the duel.', true)
         } else if (type === 'roundend') {
           g.lastRoundWin = data.winner === 'a' ? 'ROUND WON' : data.winner === 'b' ? 'ROUND LOST' : 'DRAW'
         }
@@ -60,6 +64,10 @@ export default function App () {
       loadout: matchCfg.loadout || profile.loadout,
       skin: profile.skin,
       botLevel: matchCfg.bots || profile.settings.botLevel,
+      net: matchCfg.net || null,
+      netRole: matchCfg.netRole || null,
+      peerName: matchCfg.peerName,
+      playerName: matchCfg.name,
     })
     g.audio.resume()
     g.start()
@@ -121,6 +129,9 @@ export default function App () {
   }
 
   const quitMatch = () => {
+    const net = matchCfg?.net
+    if (net) { net.send(['x']); net.close() }
+    setNetInfo(null)
     setMatchCfg(null)
     setScreen('lobby')
   }
@@ -162,11 +173,22 @@ export default function App () {
       {screen === 'lobby' && (
         <Lobby profile={profile}
           onQueue={(q) => { setQueue(q); setScreen('loadout') }}
+          onOnline={() => setScreen('netplay')}
           onBack={() => setScreen('title')} />
       )}
 
+      {screen === 'netplay' && (
+        <Netplay profile={profile}
+          onConnected={(net, cfg) => {
+            setNetInfo({ net, ...cfg })
+            setQueue({ modeId: 'p2p', mapId: cfg.mapId, net, netRole: cfg.role, peerName: cfg.name })
+            setScreen('loadout')
+          }}
+          onBack={() => setScreen('lobby')} />
+      )}
+
       {screen === 'loadout' && queue && (
-        <Loadout profile={profile} save={save} mapId={queue.mapId}
+        <Loadout profile={profile} save={save} peerName={queue.peerName} mapId={queue.mapId}
           mode={MODES.find((m) => m.id === queue.modeId)}
           onStart={startMatch} onBack={() => setScreen('lobby')} />
       )}

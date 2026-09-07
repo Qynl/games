@@ -390,11 +390,12 @@ var MODES = [
   { id: "solo_bots", name: "1 v BOTS", teamA: 1, teamB: 1, bots: 1, desc: "You against one bot. Warm up." },
   { id: "duo_bots", name: "1 + BOT v 2 BOTS", teamA: 2, teamB: 2, bots: 3, desc: "You and a bot versus two." },
   { id: "trio_bots", name: "1 + 2 BOTS v 3 BOTS", teamA: 3, teamB: 3, bots: 5, desc: "Full lobby, five bots." },
-  { id: "range", name: "SHOOTING RANGE", teamA: 1, teamB: 0, bots: 0, desc: "Try every loadout. No pressure." }
+  { id: "range", name: "SHOOTING RANGE", teamA: 1, teamB: 0, bots: 0, desc: "Try every loadout. No pressure." },
+  { id: "p2p", name: "ONLINE DUEL", teamA: 1, teamB: 0, bots: 0, desc: "Peer to peer. You and one other player, no server." }
 ];
 
 // src/ui/Lobby.jsx
-function Lobby({ profile, onQueue, onBack }) {
+function Lobby({ profile, onQueue, onOnline, onBack }) {
   const [modeId, setModeId] = useState2("1v1");
   const [mapId, setMapId] = useState2("yard");
   const [bots, setBots] = useState2(profile.settings.botLevel || "normal");
@@ -405,7 +406,7 @@ function Lobby({ profile, onQueue, onBack }) {
     setModeId(m.id);
     if (m.id === "range") setMapId("range");
     else if (mapId === "range" || !MAPS.find((x) => x.id === mapId)?.modes.includes(m.id === "range" ? "range" : "1v1")) setMapId("yard");
-  } }, /* @__PURE__ */ React2.createElement("div", { className: "nm" }, m.name), /* @__PURE__ */ React2.createElement("div", { className: "ds" }, m.desc), /* @__PURE__ */ React2.createElement("div", { className: "mt" }, /* @__PURE__ */ React2.createElement("span", null, m.bots > 0 ? `${m.bots} BOTS` : "PVP"), /* @__PURE__ */ React2.createElement("span", { style: { color: "var(--cy)" } }, m.teamA, "v", m.teamB))))), modeId !== "range" && /* @__PURE__ */ React2.createElement(React2.Fragment, null, /* @__PURE__ */ React2.createElement("div", { className: "h", style: { marginTop: 26 } }, "MAP"), /* @__PURE__ */ React2.createElement("div", { className: "grid", style: { gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))" } }, MAPS.filter((m) => m.modes.includes("1v1") || m.modes.includes("2v2")).map((m) => /* @__PURE__ */ React2.createElement("div", { key: m.id, className: `card ${mapId === m.id ? "on" : ""}`, onClick: () => setMapId(m.id) }, /* @__PURE__ */ React2.createElement("div", { className: "nm" }, m.name, " ", /* @__PURE__ */ React2.createElement("span", { style: { color: "var(--dim)", fontSize: 10 } }, m.sub)), /* @__PURE__ */ React2.createElement("div", { className: "ds" }, m.desc), /* @__PURE__ */ React2.createElement("div", { className: "mt" }, /* @__PURE__ */ React2.createElement("span", null, m.brushes.length, " BRUSHES"), /* @__PURE__ */ React2.createElement("span", { style: { color: "var(--cy)" } }, "SELECT"))))), /* @__PURE__ */ React2.createElement("div", { className: "h", style: { marginTop: 26 } }, "BOT DIFFICULTY"), /* @__PURE__ */ React2.createElement("div", { className: "row" }, ["easy", "normal", "hard", "qyn"].map((d) => /* @__PURE__ */ React2.createElement("button", { key: d, className: `btn sm ${bots === d ? "pri" : "ghost"}`, onClick: () => setBots(d) }, d.toUpperCase())))), /* @__PURE__ */ React2.createElement("div", { style: { marginTop: 34, display: "flex", gap: 14, alignItems: "center" } }, /* @__PURE__ */ React2.createElement("button", { className: "btn pri", style: { padding: "15px 40px", fontSize: 13 }, onClick: () => onQueue({ modeId, mapId, bots }) }, modeId === "range" ? "ENTER RANGE \u25B6" : "QUEUE \u25B6"), /* @__PURE__ */ React2.createElement("div", { className: "hint" }, modeId === "range" ? "Free roam. Every weapon unlocked to try. Dummies respawn forever." : `${mode.name} on ${map?.name} \xB7 first to 5 rounds \xB7 150 HP \xB7 instant reset.`))));
+  } }, /* @__PURE__ */ React2.createElement("div", { className: "nm" }, m.name), /* @__PURE__ */ React2.createElement("div", { className: "ds" }, m.desc), /* @__PURE__ */ React2.createElement("div", { className: "mt" }, /* @__PURE__ */ React2.createElement("span", null, m.bots > 0 ? `${m.bots} BOTS` : "PVP"), /* @__PURE__ */ React2.createElement("span", { style: { color: "var(--cy)" } }, m.teamA, "v", m.teamB))))), modeId !== "range" && /* @__PURE__ */ React2.createElement(React2.Fragment, null, /* @__PURE__ */ React2.createElement("div", { className: "h", style: { marginTop: 26 } }, "MAP"), /* @__PURE__ */ React2.createElement("div", { className: "grid", style: { gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))" } }, MAPS.filter((m) => m.modes.includes("1v1") || m.modes.includes("2v2")).map((m) => /* @__PURE__ */ React2.createElement("div", { key: m.id, className: `card ${mapId === m.id ? "on" : ""}`, onClick: () => setMapId(m.id) }, /* @__PURE__ */ React2.createElement("div", { className: "nm" }, m.name, " ", /* @__PURE__ */ React2.createElement("span", { style: { color: "var(--dim)", fontSize: 10 } }, m.sub)), /* @__PURE__ */ React2.createElement("div", { className: "ds" }, m.desc), /* @__PURE__ */ React2.createElement("div", { className: "mt" }, /* @__PURE__ */ React2.createElement("span", null, m.brushes.length, " BRUSHES"), /* @__PURE__ */ React2.createElement("span", { style: { color: "var(--cy)" } }, "SELECT"))))), /* @__PURE__ */ React2.createElement("div", { className: "h", style: { marginTop: 26 } }, "BOT DIFFICULTY"), /* @__PURE__ */ React2.createElement("div", { className: "row" }, ["easy", "normal", "hard", "qyn"].map((d) => /* @__PURE__ */ React2.createElement("button", { key: d, className: `btn sm ${bots === d ? "pri" : "ghost"}`, onClick: () => setBots(d) }, d.toUpperCase())))), /* @__PURE__ */ React2.createElement("div", { style: { marginTop: 34, display: "flex", gap: 14, alignItems: "center" } }, /* @__PURE__ */ React2.createElement("button", { className: "btn pri", style: { padding: "15px 40px", fontSize: 13 }, onClick: () => onQueue({ modeId, mapId, bots }) }, modeId === "range" ? "ENTER RANGE \u25B6" : "QUEUE \u25B6"), /* @__PURE__ */ React2.createElement("div", { className: "hint" }, modeId === "range" ? "Free roam. Every weapon unlocked to try. Dummies respawn forever." : `${mode.name} on ${map?.name} \xB7 first to 5 rounds \xB7 150 HP \xB7 instant reset.`)), /* @__PURE__ */ React2.createElement("div", { style: { marginTop: 16, display: "flex", gap: 14, alignItems: "center" } }, /* @__PURE__ */ React2.createElement("button", { className: "btn", style: { padding: "13px 28px", fontSize: 12 }, onClick: onOnline }, "ONLINE DUEL \u25B6"), /* @__PURE__ */ React2.createElement("div", { className: "hint" }, "Real 1 v 1 over WebRTC. You and a friend swap two codes \u2014 no server, no account."))));
 }
 
 // src/ui/Armory.jsx
@@ -1857,7 +1858,7 @@ function HUD({ hud, paused, needsLock, onResume, onQuit, showMv, mapName, mode }
   const pct = Math.min(100, spd / 18 * 100);
   const low = hud.hp / hud.maxHp < 0.34;
   const chains = hud.chains?.done || {};
-  return /* @__PURE__ */ React7.createElement("div", { className: "hud" }, /* @__PURE__ */ React7.createElement("div", { className: "vig" }), /* @__PURE__ */ React7.createElement("div", { className: "dmg", style: { opacity: hud.damageFlash * 0.9 } }), low && hud.alive && /* @__PURE__ */ React7.createElement("div", { className: "lowhp", style: { opacity: 0.5 + Math.sin(Date.now() / 260) * 0.25 } }), /* @__PURE__ */ React7.createElement("div", { className: "flash", style: { opacity: Math.min(0.92, (hud.flashTime || 0) * 0.6) } }), /* @__PURE__ */ React7.createElement("div", { className: "center cross", style: { opacity: hud.ads > 0.9 ? 0 : 1 } }, /* @__PURE__ */ React7.createElement("i", { className: "d", style: { width: 2 + (hud.reloading ? 0 : 1) } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21, top: 21 - gap - 4, width: 2, height: 5 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21, top: 21 + gap, width: 2, height: 5 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21 - gap - 4, top: 21, width: 5, height: 2 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21 + gap, top: 21, width: 5, height: 2 } }), /* @__PURE__ */ React7.createElement("div", { className: `hm ${hud.hitmarker > 0 ? "on" : ""} ${hud.hitmarker > 0 && hud.headshot ? "hs" : ""}` }, /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null))), /* @__PURE__ */ React7.createElement("div", { className: "center dmgring" }, (hud.hitDirs || []).map((h) => /* @__PURE__ */ React7.createElement("div", { key: h.id, className: "dmga", style: { transform: `rotate(${h.ang * 57.2958}deg)`, opacity: Math.min(1, h.t / 0.9) } }, /* @__PURE__ */ React7.createElement("i", null)))), /* @__PURE__ */ React7.createElement("div", { className: "banners" }, (hud.banners || []).map((b) => /* @__PURE__ */ React7.createElement("div", { key: b.id, className: `bann ${b.kind || "info"}`, style: { opacity: Math.min(1, b.t / 0.45) } }, b.text))), showMv && /* @__PURE__ */ React7.createElement("div", { className: "panel mv" }, /* @__PURE__ */ React7.createElement("div", { className: "t" }, "MOVEMENT TELEMETRY"), /* @__PURE__ */ React7.createElement("div", { className: "big" }, f1(spd), /* @__PURE__ */ React7.createElement("small", null, "M/S"), /* @__PURE__ */ React7.createElement("span", { style: { float: "right", fontSize: 12, color: "var(--dim)" } }, "TOP ", f1(hud.topSpeed || 0))), /* @__PURE__ */ React7.createElement("div", { className: "spdbar" }, /* @__PURE__ */ React7.createElement("i", { style: { width: pct + "%" } }), /* @__PURE__ */ React7.createElement("u", { style: { left: "56%" } })), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "VELOCITY XZ"), /* @__PURE__ */ React7.createElement("b", null, f1(Math.hypot(hud.vel?.x || 0, hud.vel?.z || 0)))), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "VELOCITY Y"), /* @__PURE__ */ React7.createElement("b", null, f1(hud.vert || 0))), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "STATE"), /* @__PURE__ */ React7.createElement("b", { className: "on" }, hud.grounded ? hud.sliding ? "SLIDING" : "GROUND" : "AIR")), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "SLOPE"), /* @__PURE__ */ React7.createElement("b", null, (Math.acos(Math.min(1, hud.slope || 1)) * 57.3).toFixed(0), "\xB0")), /* @__PURE__ */ React7.createElement("div", { className: "pills" }, /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.sprinting ? "on" : ""}` }, "SPRINT"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.sliding ? "on" : ""}` }, "SLIDE"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.crouching ? "on" : ""}` }, "CROUCH"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${!hud.grounded ? "on" : ""}` }, "AIR"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.haste ? "on" : ""}` }, "HASTE")), /* @__PURE__ */ React7.createElement("div", { className: "t", style: { marginTop: 10 } }, "CHAINS ", hud.chains?.count || 0, "/", CHAINS.length), /* @__PURE__ */ React7.createElement("div", { className: "chainrow" }, CHAINS.map((c) => /* @__PURE__ */ React7.createElement("i", { key: c.id, className: chains[c.id] ? "on" : "", title: c.name }))), /* @__PURE__ */ React7.createElement("div", { style: { marginTop: 6, fontSize: 9.5, color: "var(--dim2)", lineHeight: 1.5, minHeight: 26 } }, CHAINS.filter((c) => !chains[c.id])[0]?.name || "ALL CHAINS CLEAN")), /* @__PURE__ */ React7.createElement("div", { className: "panel hp" }, hud.spawnGuard > 0 && /* @__PURE__ */ React7.createElement("div", { className: "shield" }, "SPAWN SHIELD ", hud.spawnGuard.toFixed(1), "s"), /* @__PURE__ */ React7.createElement("div", { className: "n", style: { color: low ? "var(--rd)" : "#fff" } }, hud.hp, /* @__PURE__ */ React7.createElement("small", null, " / ", hud.maxHp, " HP")), /* @__PURE__ */ React7.createElement("div", { className: `hpbar ${low ? "low" : ""}` }, /* @__PURE__ */ React7.createElement("i", { style: { width: hud.hp / hud.maxHp * 100 + "%" } })), /* @__PURE__ */ React7.createElement("div", { style: { marginTop: 6, fontSize: 10, color: "var(--dim)", letterSpacing: ".1em" } }, mapName, " \xB7 ", String(mode).replace("_", " "))), /* @__PURE__ */ React7.createElement("div", { className: "panel ammo" }, /* @__PURE__ */ React7.createElement("div", { className: "w" }, hud.weapon), /* @__PURE__ */ React7.createElement("div", { className: "n" }, hud.ammo, /* @__PURE__ */ React7.createElement("span", null, " / ", hud.reserve)), hud.reloading && /* @__PURE__ */ React7.createElement("div", { className: "reload", style: { position: "static", marginTop: 6, width: "100%" } }, /* @__PURE__ */ React7.createElement("i", { style: { width: hud.reloadProgress * 100 + "%" } })), hud.ammo !== "\u221E" && hud.ammo === 0 && !hud.reloading && /* @__PURE__ */ React7.createElement("div", { style: { color: "var(--rd)", fontSize: 11, letterSpacing: ".2em" } }, "PRESS R")), /* @__PURE__ */ React7.createElement("div", { className: "panel util" }, "[F] ", hud.utility?.name, " ", /* @__PURE__ */ React7.createElement("b", null, "\xD7", hud.utility?.uses)), spd > 5 && /* @__PURE__ */ React7.createElement("div", { className: "momentum" }, "MOMENTUM DAMAGE \xD7", hud.momentum.toFixed(2)), /* @__PURE__ */ React7.createElement("div", { className: "score" }, /* @__PURE__ */ React7.createElement("span", { className: "r" }, "ROUND ", hud.round?.round), /* @__PURE__ */ React7.createElement("span", { className: "a" }, hud.round?.scoreA), /* @__PURE__ */ React7.createElement("span", { style: { color: "var(--dim)" } }, ":"), /* @__PURE__ */ React7.createElement("span", { className: "b" }, hud.round?.scoreB), /* @__PURE__ */ React7.createElement("span", { className: "r", style: hud.matchPoint ? { color: "var(--gd)", fontWeight: 700 } : void 0 }, hud.matchPoint ? "MATCH POINT" : "FIRST TO 5")), /* @__PURE__ */ React7.createElement("div", { className: "kf" }, (hud.killfeed || []).slice(-5).map((k) => /* @__PURE__ */ React7.createElement("div", { key: k.id, className: `kfi ${k.mine ? "mine" : ""}` }, /* @__PURE__ */ React7.createElement("b", { style: { color: k.mine ? "var(--cy)" : "var(--txt)" } }, k.killer), /* @__PURE__ */ React7.createElement("span", { style: { color: "var(--dim)" } }, " ", k.head ? "\u2316" : "\u203A", " "), /* @__PURE__ */ React7.createElement("b", null, k.victim), k.weapon && /* @__PURE__ */ React7.createElement("i", { style: { color: "var(--dim2)", fontStyle: "normal", marginLeft: 6 } }, k.weapon)))), hud.round?.phase === "countdown" && /* @__PURE__ */ React7.createElement("div", { className: "banner", style: { color: "var(--cy)" } }, "ROUND ", hud.round.round, /* @__PURE__ */ React7.createElement("small", null, Math.ceil(hud.round.timer))), !hud.alive && hud.round?.phase === "live" && /* @__PURE__ */ React7.createElement("div", { className: "banner lose", style: { fontSize: 22 } }, "ELIMINATED", /* @__PURE__ */ React7.createElement("small", null, hud.spectating ? `SPECTATING \u2014 ${hud.spectating} \xB7 ${Math.ceil(hud.respawnTimer || 0)}s` : `${Math.ceil(hud.respawnTimer || 0)}s`)), hud.round?.phase === "roundend" && /* @__PURE__ */ React7.createElement("div", { className: `banner ${hud.round.scoreA > hud.round.scoreB ? "win" : "lose"}` }, hud.lastWin ? "ROUND WON" : hud.lastWin === false ? "ROUND LOST" : "ROUND OVER", /* @__PURE__ */ React7.createElement("small", null, hud.round.scoreA, " \u2014 ", hud.round.scoreB)), hud.scoreboard && hud.board && /* @__PURE__ */ React7.createElement("div", { className: "board" }, /* @__PURE__ */ React7.createElement("div", { className: "bh" }, /* @__PURE__ */ React7.createElement("span", null, mapName, " \xB7 ", String(mode).replace("_", " "), " \xB7 ", hud.ping, "ms"), /* @__PURE__ */ React7.createElement("span", { className: "cy" }, hud.round?.scoreA, " \u2014 ", hud.round?.scoreB), /* @__PURE__ */ React7.createElement("span", null, "FIRST TO 5 \xB7 ROUND ", hud.round?.round)), ["a", "b"].map((t) => /* @__PURE__ */ React7.createElement("div", { key: t, className: `bteam ${t}` }, /* @__PURE__ */ React7.createElement("div", { className: "bt" }, t === "a" ? "YOUR TEAM" : "ENEMY"), hud.board.filter((r) => r.team === t).sort((x, y) => y.kills - x.kills).map((r) => /* @__PURE__ */ React7.createElement("div", { key: r.name, className: `br ${r.you ? "you" : ""} ${r.alive ? "" : "dead"}` }, /* @__PURE__ */ React7.createElement("span", { className: "bn" }, r.name, /* @__PURE__ */ React7.createElement("i", { className: "bw" }, r.weapon)), /* @__PURE__ */ React7.createElement("span", { className: "bk" }, r.kills), /* @__PURE__ */ React7.createElement("span", { className: "bd" }, r.deaths), /* @__PURE__ */ React7.createElement("span", { className: "ba" }, r.assists), /* @__PURE__ */ React7.createElement("span", { className: "bm" }, r.damage))))), /* @__PURE__ */ React7.createElement("div", { className: "bf" }, /* @__PURE__ */ React7.createElement("span", null, "NAME"), /* @__PURE__ */ React7.createElement("span", null, "K"), /* @__PURE__ */ React7.createElement("span", null, "D"), /* @__PURE__ */ React7.createElement("span", null, "A"), /* @__PURE__ */ React7.createElement("span", null, "DMG"))), paused && /* @__PURE__ */ React7.createElement("div", { className: "pause" }, /* @__PURE__ */ React7.createElement("h2", null, needsLock ? "CLICK TO PLAY" : "PAUSED"), needsLock && /* @__PURE__ */ React7.createElement("div", { className: "hint", style: { textAlign: "center", maxWidth: 460, marginBottom: 10 } }, "Click the arena to capture your mouse. Mouse look, shooting and movement all live behind the pointer lock \u2014 press ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "ESC"), " to release it."), /* @__PURE__ */ React7.createElement("div", { className: "hint", style: { textAlign: "center", maxWidth: 460, marginBottom: 10 } }, /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "W"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "A"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "S"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "D"), " move \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "SHIFT"), " sprint \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "CTRL"), " slide/crouch \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "SPACE"), " jump \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "RMB"), " aim \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "F"), " utility \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "1"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "2"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "3"), " weapons \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "R"), " reload"), /* @__PURE__ */ React7.createElement("div", { className: "row" }, /* @__PURE__ */ React7.createElement("button", { className: "btn pri", onClick: onResume }, needsLock ? "CLICK TO PLAY" : "RESUME"), /* @__PURE__ */ React7.createElement("button", { className: "btn", onClick: onQuit }, "LEAVE MATCH"))));
+  return /* @__PURE__ */ React7.createElement("div", { className: "hud" }, /* @__PURE__ */ React7.createElement("div", { className: "vig" }), /* @__PURE__ */ React7.createElement("div", { className: "dmg", style: { opacity: hud.damageFlash * 0.9 } }), low && hud.alive && /* @__PURE__ */ React7.createElement("div", { className: "lowhp", style: { opacity: 0.5 + Math.sin(Date.now() / 260) * 0.25 } }), /* @__PURE__ */ React7.createElement("div", { className: "flash", style: { opacity: Math.min(0.92, (hud.flashTime || 0) * 0.6) } }), /* @__PURE__ */ React7.createElement("div", { className: "center cross", style: { opacity: hud.ads > 0.9 ? 0 : 1 } }, /* @__PURE__ */ React7.createElement("i", { className: "d", style: { width: 2 + (hud.reloading ? 0 : 1) } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21, top: 21 - gap - 4, width: 2, height: 5 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21, top: 21 + gap, width: 2, height: 5 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21 - gap - 4, top: 21, width: 5, height: 2 } }), /* @__PURE__ */ React7.createElement("i", { style: { left: 21 + gap, top: 21, width: 5, height: 2 } }), /* @__PURE__ */ React7.createElement("div", { className: `hm ${hud.hitmarker > 0 ? "on" : ""} ${hud.hitmarker > 0 && hud.headshot ? "hs" : ""}` }, /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null), /* @__PURE__ */ React7.createElement("i", null))), /* @__PURE__ */ React7.createElement("div", { className: "center dmgring" }, (hud.hitDirs || []).map((h) => /* @__PURE__ */ React7.createElement("div", { key: h.id, className: "dmga", style: { transform: `rotate(${h.ang * 57.2958}deg)`, opacity: Math.min(1, h.t / 0.9) } }, /* @__PURE__ */ React7.createElement("i", null)))), /* @__PURE__ */ React7.createElement("div", { className: "banners" }, (hud.banners || []).map((b) => /* @__PURE__ */ React7.createElement("div", { key: b.id, className: `bann ${b.kind || "info"}`, style: { opacity: Math.min(1, b.t / 0.45) } }, b.text))), showMv && /* @__PURE__ */ React7.createElement("div", { className: "panel mv" }, /* @__PURE__ */ React7.createElement("div", { className: "t" }, "MOVEMENT TELEMETRY"), /* @__PURE__ */ React7.createElement("div", { className: "big" }, f1(spd), /* @__PURE__ */ React7.createElement("small", null, "M/S"), /* @__PURE__ */ React7.createElement("span", { style: { float: "right", fontSize: 12, color: "var(--dim)" } }, "TOP ", f1(hud.topSpeed || 0))), /* @__PURE__ */ React7.createElement("div", { className: "spdbar" }, /* @__PURE__ */ React7.createElement("i", { style: { width: pct + "%" } }), /* @__PURE__ */ React7.createElement("u", { style: { left: "56%" } })), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "VELOCITY XZ"), /* @__PURE__ */ React7.createElement("b", null, f1(Math.hypot(hud.vel?.x || 0, hud.vel?.z || 0)))), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "VELOCITY Y"), /* @__PURE__ */ React7.createElement("b", null, f1(hud.vert || 0))), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "STATE"), /* @__PURE__ */ React7.createElement("b", { className: "on" }, hud.grounded ? hud.sliding ? "SLIDING" : "GROUND" : "AIR")), /* @__PURE__ */ React7.createElement("div", { className: "l" }, /* @__PURE__ */ React7.createElement("span", null, "SLOPE"), /* @__PURE__ */ React7.createElement("b", null, (Math.acos(Math.min(1, hud.slope || 1)) * 57.3).toFixed(0), "\xB0")), /* @__PURE__ */ React7.createElement("div", { className: "pills" }, /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.sprinting ? "on" : ""}` }, "SPRINT"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.sliding ? "on" : ""}` }, "SLIDE"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.crouching ? "on" : ""}` }, "CROUCH"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${!hud.grounded ? "on" : ""}` }, "AIR"), /* @__PURE__ */ React7.createElement("span", { className: `pill ${hud.haste ? "on" : ""}` }, "HASTE")), /* @__PURE__ */ React7.createElement("div", { className: "t", style: { marginTop: 10 } }, "CHAINS ", hud.chains?.count || 0, "/", CHAINS.length), /* @__PURE__ */ React7.createElement("div", { className: "chainrow" }, CHAINS.map((c) => /* @__PURE__ */ React7.createElement("i", { key: c.id, className: chains[c.id] ? "on" : "", title: c.name }))), /* @__PURE__ */ React7.createElement("div", { style: { marginTop: 6, fontSize: 9.5, color: "var(--dim2)", lineHeight: 1.5, minHeight: 26 } }, CHAINS.filter((c) => !chains[c.id])[0]?.name || "ALL CHAINS CLEAN")), /* @__PURE__ */ React7.createElement("div", { className: "panel hp" }, hud.spawnGuard > 0 && /* @__PURE__ */ React7.createElement("div", { className: "shield" }, "SPAWN SHIELD ", hud.spawnGuard.toFixed(1), "s"), /* @__PURE__ */ React7.createElement("div", { className: "n", style: { color: low ? "var(--rd)" : "#fff" } }, hud.hp, /* @__PURE__ */ React7.createElement("small", null, " / ", hud.maxHp, " HP")), /* @__PURE__ */ React7.createElement("div", { className: `hpbar ${low ? "low" : ""}` }, /* @__PURE__ */ React7.createElement("i", { style: { width: hud.hp / hud.maxHp * 100 + "%" } })), /* @__PURE__ */ React7.createElement("div", { style: { marginTop: 6, fontSize: 10, color: "var(--dim)", letterSpacing: ".1em" } }, mapName, " \xB7 ", String(mode).replace("_", " "))), /* @__PURE__ */ React7.createElement("div", { className: "panel ammo" }, /* @__PURE__ */ React7.createElement("div", { className: "w" }, hud.weapon), /* @__PURE__ */ React7.createElement("div", { className: "n" }, hud.ammo, /* @__PURE__ */ React7.createElement("span", null, " / ", hud.reserve)), hud.reloading && /* @__PURE__ */ React7.createElement("div", { className: "reload", style: { position: "static", marginTop: 6, width: "100%" } }, /* @__PURE__ */ React7.createElement("i", { style: { width: hud.reloadProgress * 100 + "%" } })), hud.ammo !== "\u221E" && hud.ammo === 0 && !hud.reloading && /* @__PURE__ */ React7.createElement("div", { style: { color: "var(--rd)", fontSize: 11, letterSpacing: ".2em" } }, "PRESS R")), /* @__PURE__ */ React7.createElement("div", { className: "panel util" }, "[F] ", hud.utility?.name, " ", /* @__PURE__ */ React7.createElement("b", null, "\xD7", hud.utility?.uses)), spd > 5 && /* @__PURE__ */ React7.createElement("div", { className: "momentum" }, "MOMENTUM DAMAGE \xD7", hud.momentum.toFixed(2)), hud.net && /* @__PURE__ */ React7.createElement("div", { className: "netind" }, /* @__PURE__ */ React7.createElement("b", { style: { color: hud.net.state === "open" ? "var(--gr)" : "var(--rd)" } }, "\u25CF"), hud.net.role === "host" ? "HOST" : "GUEST", " \xB7 ", hud.net.ping, "ms", hud.net.peer && /* @__PURE__ */ React7.createElement("span", null, " \xB7 VS ", hud.net.peer)), /* @__PURE__ */ React7.createElement("div", { className: "score" }, /* @__PURE__ */ React7.createElement("span", { className: "r" }, "ROUND ", hud.round?.round), /* @__PURE__ */ React7.createElement("span", { className: "a" }, hud.round?.scoreA), /* @__PURE__ */ React7.createElement("span", { style: { color: "var(--dim)" } }, ":"), /* @__PURE__ */ React7.createElement("span", { className: "b" }, hud.round?.scoreB), /* @__PURE__ */ React7.createElement("span", { className: "r", style: hud.matchPoint ? { color: "var(--gd)", fontWeight: 700 } : void 0 }, hud.matchPoint ? "MATCH POINT" : "FIRST TO 5")), /* @__PURE__ */ React7.createElement("div", { className: "kf" }, (hud.killfeed || []).slice(-5).map((k) => /* @__PURE__ */ React7.createElement("div", { key: k.id, className: `kfi ${k.mine ? "mine" : ""}` }, /* @__PURE__ */ React7.createElement("b", { style: { color: k.mine ? "var(--cy)" : "var(--txt)" } }, k.killer), /* @__PURE__ */ React7.createElement("span", { style: { color: "var(--dim)" } }, " ", k.head ? "\u2316" : "\u203A", " "), /* @__PURE__ */ React7.createElement("b", null, k.victim), k.weapon && /* @__PURE__ */ React7.createElement("i", { style: { color: "var(--dim2)", fontStyle: "normal", marginLeft: 6 } }, k.weapon)))), hud.round?.phase === "countdown" && /* @__PURE__ */ React7.createElement("div", { className: "banner", style: { color: "var(--cy)" } }, "ROUND ", hud.round.round, /* @__PURE__ */ React7.createElement("small", null, Math.ceil(hud.round.timer))), !hud.alive && hud.round?.phase === "live" && /* @__PURE__ */ React7.createElement("div", { className: "banner lose", style: { fontSize: 22 } }, "ELIMINATED", /* @__PURE__ */ React7.createElement("small", null, hud.spectating ? `SPECTATING \u2014 ${hud.spectating} \xB7 ${Math.ceil(hud.respawnTimer || 0)}s` : `${Math.ceil(hud.respawnTimer || 0)}s`)), hud.round?.phase === "roundend" && /* @__PURE__ */ React7.createElement("div", { className: `banner ${hud.round.scoreA > hud.round.scoreB ? "win" : "lose"}` }, hud.lastWin ? "ROUND WON" : hud.lastWin === false ? "ROUND LOST" : "ROUND OVER", /* @__PURE__ */ React7.createElement("small", null, hud.round.scoreA, " \u2014 ", hud.round.scoreB)), hud.scoreboard && hud.board && /* @__PURE__ */ React7.createElement("div", { className: "board" }, /* @__PURE__ */ React7.createElement("div", { className: "bh" }, /* @__PURE__ */ React7.createElement("span", null, mapName, " \xB7 ", String(mode).replace("_", " "), " \xB7 ", hud.ping, "ms"), /* @__PURE__ */ React7.createElement("span", { className: "cy" }, hud.round?.scoreA, " \u2014 ", hud.round?.scoreB), /* @__PURE__ */ React7.createElement("span", null, "FIRST TO 5 \xB7 ROUND ", hud.round?.round)), ["a", "b"].map((t) => /* @__PURE__ */ React7.createElement("div", { key: t, className: `bteam ${t}` }, /* @__PURE__ */ React7.createElement("div", { className: "bt" }, t === "a" ? "YOUR TEAM" : "ENEMY"), hud.board.filter((r) => r.team === t).sort((x, y) => y.kills - x.kills).map((r) => /* @__PURE__ */ React7.createElement("div", { key: r.name, className: `br ${r.you ? "you" : ""} ${r.alive ? "" : "dead"}` }, /* @__PURE__ */ React7.createElement("span", { className: "bn" }, r.name, /* @__PURE__ */ React7.createElement("i", { className: "bw" }, r.weapon)), /* @__PURE__ */ React7.createElement("span", { className: "bk" }, r.kills), /* @__PURE__ */ React7.createElement("span", { className: "bd" }, r.deaths), /* @__PURE__ */ React7.createElement("span", { className: "ba" }, r.assists), /* @__PURE__ */ React7.createElement("span", { className: "bm" }, r.damage))))), /* @__PURE__ */ React7.createElement("div", { className: "bf" }, /* @__PURE__ */ React7.createElement("span", null, "NAME"), /* @__PURE__ */ React7.createElement("span", null, "K"), /* @__PURE__ */ React7.createElement("span", null, "D"), /* @__PURE__ */ React7.createElement("span", null, "A"), /* @__PURE__ */ React7.createElement("span", null, "DMG"))), paused && /* @__PURE__ */ React7.createElement("div", { className: "pause" }, /* @__PURE__ */ React7.createElement("h2", null, needsLock ? "CLICK TO PLAY" : "PAUSED"), needsLock && /* @__PURE__ */ React7.createElement("div", { className: "hint", style: { textAlign: "center", maxWidth: 460, marginBottom: 10 } }, "Click the arena to capture your mouse. Mouse look, shooting and movement all live behind the pointer lock \u2014 press ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "ESC"), " to release it."), /* @__PURE__ */ React7.createElement("div", { className: "hint", style: { textAlign: "center", maxWidth: 460, marginBottom: 10 } }, /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "W"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "A"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "S"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "D"), " move \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "SHIFT"), " sprint \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "CTRL"), " slide/crouch \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "SPACE"), " jump \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "RMB"), " aim \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "F"), " utility \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "1"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "2"), /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "3"), " weapons \xB7 ", /* @__PURE__ */ React7.createElement("span", { className: "kbd" }, "R"), " reload"), /* @__PURE__ */ React7.createElement("div", { className: "row" }, /* @__PURE__ */ React7.createElement("button", { className: "btn pri", onClick: onResume }, needsLock ? "CLICK TO PLAY" : "RESUME"), /* @__PURE__ */ React7.createElement("button", { className: "btn", onClick: onQuit }, "LEAVE MATCH"))));
 }
 
 // src/ui/Loadout.jsx
@@ -1897,7 +1898,7 @@ function WeaponCard({ w, owned, equipped, onPick, onBuy, qyns }) {
   const r = RARITY[w.rarity];
   return /* @__PURE__ */ React8.createElement("div", { className: `card ${equipped ? "on" : ""} ${owned ? "" : "locked"}`, onClick: () => owned ? onPick(w) : onBuy(w) }, /* @__PURE__ */ React8.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 } }, /* @__PURE__ */ React8.createElement("div", { className: "nm", style: { color: r.color } }, w.name), /* @__PURE__ */ React8.createElement("span", { className: "tag", style: { color: r.color } }, r.label)), /* @__PURE__ */ React8.createElement("div", { className: "ds" }, w.desc), /* @__PURE__ */ React8.createElement("div", { className: "stats4" }, w.slot !== "utility" && /* @__PURE__ */ React8.createElement(React8.Fragment, null, /* @__PURE__ */ React8.createElement("div", null, /* @__PURE__ */ React8.createElement("span", null, "DMG"), /* @__PURE__ */ React8.createElement("b", null, w.stats.dmg)), /* @__PURE__ */ React8.createElement("div", null, /* @__PURE__ */ React8.createElement("span", null, "RPM"), /* @__PURE__ */ React8.createElement("b", null, w.stats.rpm)), /* @__PURE__ */ React8.createElement("div", null, /* @__PURE__ */ React8.createElement("span", null, "MAG"), /* @__PURE__ */ React8.createElement("b", null, w.stats.mag ?? "\u2014")), /* @__PURE__ */ React8.createElement("div", null, /* @__PURE__ */ React8.createElement("span", null, "SPD"), /* @__PURE__ */ React8.createElement("b", null, ((w.stats.speed ?? 1) * 100).toFixed(0), "%"))), w.slot === "utility" && /* @__PURE__ */ React8.createElement(React8.Fragment, null, /* @__PURE__ */ React8.createElement("div", null, /* @__PURE__ */ React8.createElement("span", null, "TYPE"), /* @__PURE__ */ React8.createElement("b", { style: { fontSize: 10 } }, String(w.stats.type).toUpperCase())), /* @__PURE__ */ React8.createElement("div", null, /* @__PURE__ */ React8.createElement("span", null, "USES"), /* @__PURE__ */ React8.createElement("b", null, w.stats.count)), /* @__PURE__ */ React8.createElement("div", null, /* @__PURE__ */ React8.createElement("span", null, "RAD"), /* @__PURE__ */ React8.createElement("b", null, w.stats.radius ?? "\u2014")), /* @__PURE__ */ React8.createElement("div", null, /* @__PURE__ */ React8.createElement("span", null, "DMG"), /* @__PURE__ */ React8.createElement("b", null, w.stats.dmg ?? "\u2014")))), /* @__PURE__ */ React8.createElement("div", { className: "mt" }, owned ? /* @__PURE__ */ React8.createElement("span", { className: "price own" }, equipped ? "EQUIPPED" : "OWNED") : /* @__PURE__ */ React8.createElement("span", { className: "price" }, w.qyns, " \u25C8 ", qyns < w.qyns ? "(NEED MORE)" : ""), /* @__PURE__ */ React8.createElement("span", null, w.slot.toUpperCase())));
 }
-function Loadout({ profile, onStart, onBack, mapId, mode, save }) {
+function Loadout({ profile, onStart, onBack, mapId, mode, save, peerName }) {
   const [step, setStep] = useState4(0);
   const [loadout, setLoadout] = useState4({ ...profile.loadout });
   const [phase, setPhase] = useState4("pick");
@@ -1964,7 +1965,7 @@ function Loadout({ profile, onStart, onBack, mapId, mode, save }) {
     save(p);
   };
   if (phase !== "pick") {
-    const row = (p, i, mine) => /* @__PURE__ */ React8.createElement("div", { key: i, className: `prow ${p.team === "a" ? "a" : "b"} ${mine ? "you" : ""} ${ready.includes(i + 1) || mine ? "rdy" : ""}` }, /* @__PURE__ */ React8.createElement("span", { className: "pdot" }), /* @__PURE__ */ React8.createElement("span", { className: "pnm" }, mine ? "YOU" : p.name), /* @__PURE__ */ React8.createElement("span", { className: "pwp" }, mine ? (WEAPON_MAP[loadout.primary] || {}).name : p.weapon?.name), /* @__PURE__ */ React8.createElement("span", { className: "ppg" }, mine ? "HOST" : p.ping + "ms"), /* @__PURE__ */ React8.createElement("span", { className: "prd" }, ready.includes(i + 1) || mine ? "\u2713 READY" : "CHOOSING\u2026"));
+    const row = (p, i, mine) => /* @__PURE__ */ React8.createElement("div", { key: i, className: `prow ${p.team === "a" ? "a" : "b"} ${mine ? "you" : ""} ${ready.includes(i + 1) || mine ? "rdy" : ""}` }, /* @__PURE__ */ React8.createElement("span", { className: "pdot" }), /* @__PURE__ */ React8.createElement("span", { className: "pnm" }, mine ? "YOU" : p.name), /* @__PURE__ */ React8.createElement("span", { className: "pwp" }, mine ? (WEAPON_MAP[loadout.primary] || {}).name : p.online ? "LINKED" : p.weapon?.name), /* @__PURE__ */ React8.createElement("span", { className: "ppg" }, mine ? "HOST" : p.online ? "P2P" : p.ping + "ms"), /* @__PURE__ */ React8.createElement("span", { className: "prd" }, ready.includes(i + 1) || mine ? "\u2713 READY" : p.online ? "CONNECTED" : "CHOOSING\u2026"));
     return /* @__PURE__ */ React8.createElement("div", { className: "screen" }, /* @__PURE__ */ React8.createElement("div", { className: "hero", style: { maxWidth: 760 } }, /* @__PURE__ */ React8.createElement("h1", { style: { fontSize: "clamp(34px,6vw,64px)" } }, phase === "go" ? "MATCH START" : "LOCKING IN"), /* @__PURE__ */ React8.createElement("p", null, map?.name, " \xB7 ", mode.name, " \xB7 FIRST TO 5 \xB7 150 HP"), /* @__PURE__ */ React8.createElement("div", { style: { display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap", justifyContent: "center" } }, SLOTS.map((s) => /* @__PURE__ */ React8.createElement("div", { key: s.id, className: "chip", style: { flexDirection: "column", alignItems: "flex-start", gap: 3 } }, /* @__PURE__ */ React8.createElement("span", { style: { fontSize: 8.5, letterSpacing: ".2em", color: "var(--dim)" } }, s.name), /* @__PURE__ */ React8.createElement("b", { style: { color: "var(--cy)" } }, (WEAPON_MAP[loadout[s.id]] || {}).name)))), /* @__PURE__ */ React8.createElement("div", { className: "pboard" }, /* @__PURE__ */ React8.createElement("div", { className: "pteam" }, /* @__PURE__ */ React8.createElement("div", { className: "pth a" }, "YOUR TEAM"), row({ name: "YOU", team: "a" }, 0, true), roster.mates.map((p, i) => row(p, i + 1))), /* @__PURE__ */ React8.createElement("div", { className: "pteam" }, /* @__PURE__ */ React8.createElement("div", { className: "pth b" }, "ENEMY TEAM"), roster.foes.map((p, i) => row(p, i + 1 + roster.mates.length))))));
   }
   return /* @__PURE__ */ React8.createElement("div", { className: "screen" }, /* @__PURE__ */ React8.createElement("div", { className: "topbar" }, /* @__PURE__ */ React8.createElement("div", { className: "logo" }, "QynGun", /* @__PURE__ */ React8.createElement("small", null, "LOADOUT")), /* @__PURE__ */ React8.createElement("div", { className: "nav" }, SLOTS.map((s, i) => /* @__PURE__ */ React8.createElement("button", { key: s.id, className: i === step ? "on" : "", onClick: () => i <= step && setStep(i) }, i + 1, ". ", s.name))), /* @__PURE__ */ React8.createElement("div", { className: "wallet" }, /* @__PURE__ */ React8.createElement("div", { className: "chip" }, /* @__PURE__ */ React8.createElement("b", null, profile.qyns), " \u25C8 QYNS"), /* @__PURE__ */ React8.createElement("button", { className: "btn sm ghost", onClick: onBack }, "BACK"))), /* @__PURE__ */ React8.createElement("div", { className: "content" }, /* @__PURE__ */ React8.createElement("div", { className: "h" }, slot.name, " \u2014 ", slot.hint), /* @__PURE__ */ React8.createElement("div", { className: "grid", style: { gridTemplateColumns: "repeat(auto-fill,minmax(238px,1fr))" } }, bySlot(slot.id).map((w) => /* @__PURE__ */ React8.createElement(
@@ -1981,8 +1982,394 @@ function Loadout({ profile, onStart, onBack, mapId, mode, save }) {
   ))), /* @__PURE__ */ React8.createElement("div", { style: { marginTop: 22, display: "flex", gap: 12, alignItems: "center" } }, step > 0 && /* @__PURE__ */ React8.createElement("button", { className: "btn ghost", onClick: () => setStep(step - 1) }, "\u25C0 ", SLOTS[step - 1].name), /* @__PURE__ */ React8.createElement("div", { className: "hint", style: { flex: 1 } }, "Slot ", step + 1, " of ", SLOTS.length, " \u2014 pick your ", /* @__PURE__ */ React8.createElement("b", { style: { color: "var(--cy)" } }, slot.name), ". Keys buy the rest in the Armory."), step === SLOTS.length - 1 ? /* @__PURE__ */ React8.createElement("button", { className: "btn pri", onClick: readyUp }, "START MATCH \u25B6") : /* @__PURE__ */ React8.createElement("button", { className: "btn pri", onClick: () => setStep(step + 1) }, "NEXT \u25B6"))));
 }
 
+// src/ui/Netplay.jsx
+import React9, { useState as useState5, useEffect as useEffect2, useRef } from "react";
+
+// src/game/net/Net.js
+var ICE = { iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:global.stun.twilio.com:3478"] }] };
+var NAT_HINT = "Could not reach the other player. WebRTC punches through most home routers, but some networks block it (symmetric NAT, mobile data, strict VPNs). Try the same Wi-Fi, a different network, or turn off a VPN.";
+var NET_OK = typeof window !== "undefined" && !!window.RTCPeerConnection;
+var B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+function toB64url(bytes) {
+  let out = "";
+  for (let i = 0; i < bytes.length; i += 3) {
+    const a = bytes[i], b = bytes[i + 1], c = bytes[i + 2];
+    out += B64[a >> 2];
+    out += B64[(a & 3) << 4 | (b ?? 0) >> 4];
+    if (b === void 0) break;
+    out += B64[(b & 15) << 2 | (c ?? 0) >> 6];
+    if (c === void 0) break;
+    out += B64[c & 63];
+  }
+  return out;
+}
+function fromB64url(s) {
+  const bytes = [];
+  let buf = 0, bits = 0;
+  for (const ch of s) {
+    const v = B64.indexOf(ch);
+    if (v < 0) continue;
+    buf = buf << 6 | v;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes.push(buf >> bits & 255);
+    }
+  }
+  return new Uint8Array(bytes);
+}
+async function pack(text) {
+  const raw = new TextEncoder().encode(text);
+  if (typeof CompressionStream !== "undefined") {
+    try {
+      const cs = new CompressionStream("deflate-raw");
+      const buf = await new Response(new Blob([raw]).stream().pipeThrough(cs)).arrayBuffer();
+      return "z" + toB64url(new Uint8Array(buf));
+    } catch (e) {
+    }
+  }
+  return "p" + toB64url(raw);
+}
+async function unpack(code) {
+  const body = code.trim().replace(/^QYN\d\./, "");
+  const bytes = fromB64url(body.slice(1));
+  if (body[0] === "z") {
+    if (typeof DecompressionStream === "undefined") throw new Error("This browser cannot read compressed codes \u2014 ask for a plain one.");
+    const ds = new DecompressionStream("deflate-raw");
+    const buf = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer();
+    return new TextDecoder().decode(buf);
+  }
+  return new TextDecoder().decode(bytes);
+}
+var Net = class {
+  constructor() {
+    this.role = null;
+    this.pc = null;
+    this.chan = null;
+    this.state = "idle";
+    this.inbox = [];
+    this.onState = () => {
+    };
+    this.ping = 0;
+    this._pingT = 0;
+    this._lastRecv = 0;
+    this._deadline = 0;
+    this.error = null;
+  }
+  get open() {
+    return this.state === "open" && this.chan && this.chan.readyState === "open";
+  }
+  setState(s, err) {
+    this.state = s;
+    this.error = err || null;
+    if (s === "offering" || s === "answering" || s === "connecting") this._armWatchdog();
+    this.onState(s, this.error);
+  }
+  // If the two browsers can't punch through NAT there is nobody to tell us,
+  // so give up with an honest message instead of spinning forever.
+  _armWatchdog() {
+    if (this._deadline && this._deadline !== -1) return;
+    this._deadline = -1;
+    setTimeout(() => {
+      if (this.state === "open" || this.state === "closed") {
+        this._deadline = 0;
+        return;
+      }
+      this.setState("error", NAT_HINT);
+    }, 25e3);
+  }
+  _attach(pc, chan) {
+    this.pc = pc;
+    this.chan = chan;
+    pc.oniceconnectionstatechange = () => {
+      const s = pc.iceConnectionState;
+      if (s === "failed") this.setState("error", NAT_HINT);
+      else if (s === "disconnected" && this.state === "open") this.setState("connecting", "Link unstable \u2014 trying to recover\u2026");
+      else if (s === "connected" && this.state === "connecting") {
+        this.error = null;
+        this.setState("connecting");
+      } else if (s === "closed") this.setState("closed");
+    };
+    chan.onopen = () => {
+      this._lastRecv = performance.now();
+      this._pingT = 0;
+      this._deadline = 0;
+      this.setState("open");
+    };
+    chan.onclose = () => this.setState("closed");
+    chan.onmessage = (e) => {
+      this._lastRecv = performance.now();
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg[0] === "p") this.send(["q", msg[1]]);
+        else if (msg[0] === "q") this.ping = Math.max(0, Math.round(performance.now() - msg[1]));
+        else this.inbox.push(msg);
+      } catch (err) {
+      }
+      if (this.inbox.length > 400) this.inbox.splice(0, 200);
+    };
+  }
+  // Wait for ICE to finish so the code contains every candidate we have.
+  _gathered(pc) {
+    return new Promise((resolve) => {
+      if (pc.iceGatheringState === "complete") return resolve();
+      let done = false;
+      const fin = () => {
+        if (!done) {
+          done = true;
+          resolve();
+        }
+      };
+      pc.onicegatheringstatechange = () => {
+        if (pc.iceGatheringState === "complete") fin();
+      };
+      setTimeout(fin, 4e3);
+    });
+  }
+  async host() {
+    if (!NET_OK) throw new Error("WebRTC is not available in this browser.");
+    this.role = "host";
+    this.setState("offering");
+    const pc = new RTCPeerConnection(ICE);
+    const chan = pc.createDataChannel("qyngun", { ordered: false, maxRetransmits: 0 });
+    this._attach(pc, chan);
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await this._gathered(pc);
+    return "QYN1." + await pack(JSON.stringify(pc.localDescription));
+  }
+  async join(code) {
+    if (!NET_OK) throw new Error("WebRTC is not available in this browser.");
+    this.role = "guest";
+    this.setState("answering");
+    const desc = JSON.parse(await unpack(code));
+    const pc = new RTCPeerConnection(ICE);
+    let chan = null;
+    pc.ondatachannel = (e) => {
+      chan = e.channel;
+      this._attach(pc, chan);
+    };
+    await pc.setRemoteDescription(desc);
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    await this._gathered(pc);
+    return "QYN2." + await pack(JSON.stringify(pc.localDescription));
+  }
+  async accept(code) {
+    const desc = JSON.parse(await unpack(code));
+    await this.pc.setRemoteDescription(desc);
+    this.setState("connecting");
+  }
+  send(msg) {
+    if (!this.open) return false;
+    try {
+      this.chan.send(JSON.stringify(msg));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  // Drain everything received since the last call.
+  receive() {
+    const out = this.inbox;
+    this.inbox = [];
+    return out;
+  }
+  tick(dt) {
+    if (!this.open) return;
+    this._pingT -= dt;
+    if (this._pingT <= 0) {
+      this._pingT = 1;
+      this.send(["p", performance.now()]);
+    }
+    if (this._lastRecv && performance.now() - this._lastRecv > 9e3) this.setState("error", "The other player stopped responding.");
+  }
+  close() {
+    try {
+      this.chan?.close();
+    } catch (e) {
+    }
+    try {
+      this.pc?.close();
+    } catch (e) {
+    }
+    this.setState("closed");
+  }
+};
+var MSG = {
+  // 0:t 1..3 pos 4..6 vel 7 yaw 8 pitch 9 flags 10 hp 11 slot 12 ammo 13 speed
+  snapshot: (t, mv, flags, hp, slot, ammo) => [
+    "s",
+    +t.toFixed(3),
+    +mv.pos.x.toFixed(2),
+    +mv.pos.y.toFixed(2),
+    +mv.pos.z.toFixed(2),
+    +mv.vel.x.toFixed(2),
+    +mv.vel.y.toFixed(2),
+    +mv.vel.z.toFixed(2),
+    +mv.yaw.toFixed(3),
+    +mv.pitch.toFixed(3),
+    flags,
+    Math.round(hp),
+    slot,
+    ammo | 0,
+    +mv.horizontalSpeed.toFixed(2)
+  ],
+  damage: (amount, head, hpLeft) => ["d", Math.round(amount), head ? 1 : 0, Math.round(hpLeft)],
+  kill: (killer, victim, head, weapon) => ["k", killer, victim, head ? 1 : 0, weapon],
+  shot: (x, y, z, dx, dy, dz, weapon) => ["f", +x.toFixed(2), +y.toFixed(2), +z.toFixed(2), +dx.toFixed(3), +dy.toFixed(3), +dz.toFixed(3), weapon],
+  hit: (x, y, z) => ["i", +x.toFixed(2), +y.toFixed(2), +z.toFixed(2)],
+  match: (phase, round, scoreA, scoreB, timer) => ["m", phase, round, scoreA, scoreB, +timer.toFixed(2)],
+  hello: (name, loadout, skin) => ["l", name, loadout, skin],
+  ready: (mapId, modeId) => ["y", mapId, modeId],
+  spawn: (index) => ["r", index],
+  bye: () => ["x"]
+};
+var FLAG = { grounded: 1, sliding: 2, sprinting: 4, crouching: 8, alive: 16, firing: 32, reloading: 64 };
+
+// src/ui/Netplay.jsx
+function Netplay({ profile, onConnected, onBack }) {
+  const [role, setRole] = useState5(null);
+  const [step, setStep] = useState5(0);
+  const [code, setCode] = useState5("");
+  const [input, setInput] = useState5("");
+  const [status, setStatus] = useState5("");
+  const [bad, setBad] = useState5(false);
+  const [mapId, setMapId] = useState5("vertex");
+  const [name, setName] = useState5(profile.name || "");
+  const netRef = useRef(null);
+  useEffect2(() => () => {
+    netRef.current?.close();
+    netRef.current = null;
+  }, []);
+  const say = (m, isBad) => {
+    setStatus(m);
+    setBad(!!isBad);
+  };
+  const makeNet = () => {
+    if (!NET_OK) {
+      say("WebRTC is not available in this browser. Try Chrome, Edge, Firefox or Safari.", true);
+      return null;
+    }
+    const n = new Net();
+    n.onState = (s, err) => {
+      if (s === "open") {
+        setStep(3);
+        if (n.role === "host") {
+          say("CONNECTED \u2014 entering the lobby\u2026");
+          setTimeout(() => onConnected(n, { role: "host", mapId, name: name.trim() || "HOST" }), 400);
+        } else {
+          say("CONNECTED \u2014 waiting for the host to pick the arena\u2026");
+          const iv = setInterval(() => {
+            for (const m of n.receive()) {
+              if (m[0] === "y") {
+                clearInterval.done = true;
+                clearInterval(iv);
+                const mid = MAPS.some((mm) => mm.id === m[1]) ? m[1] : mapId;
+                setMapId(mid);
+                say("Arena locked in: " + (MAPS.find((mm) => mm.id === mid)?.name || mid));
+                setTimeout(() => onConnected(n, { role: "guest", mapId: mid, name: name.trim() || "GUEST" }), 400);
+              }
+            }
+          }, 120);
+          setTimeout(() => {
+            if (!clearInterval.done) {
+              clearInterval(iv);
+              clearInterval.done = true;
+              say("No arena word from the host \u2014 loading yours.", true);
+              setTimeout(() => onConnected(n, { role: "guest", mapId, name: name.trim() || "GUEST" }), 500);
+            }
+          }, 15e3);
+        }
+      } else if (s === "error") say(err || "Connection failed.", true);
+      else if (s === "closed") say("Connection closed.");
+    };
+    netRef.current = n;
+    return n;
+  };
+  const create = async () => {
+    const n = makeNet();
+    if (!n) return;
+    say("Building your invite code\u2026");
+    try {
+      const c = await n.host();
+      setCode(c);
+      setStep(1);
+      say("Send this code to your friend, then paste theirs below.");
+    } catch (e) {
+      say(e.message || "Could not create the room.", true);
+    }
+  };
+  const join = async () => {
+    if (!input.trim()) return say("Paste the host code first.", true);
+    const n = makeNet();
+    if (!n) return;
+    say("Reading the invite\u2026");
+    try {
+      const c = await n.join(input.trim());
+      setCode(c);
+      setStep(2);
+      say("Send this code back to the host. Waiting for them to accept\u2026");
+    } catch (e) {
+      say(e.message || "That code did not parse.", true);
+    }
+  };
+  const accept = async () => {
+    if (!input.trim() || !netRef.current) return say("Paste their answer code first.", true);
+    say("Connecting\u2026");
+    try {
+      await netRef.current.accept(input.trim());
+    } catch (e) {
+      say(e.message || "That answer code did not parse.", true);
+    }
+  };
+  const copy = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      say("Copied to clipboard.");
+    } catch (e) {
+      say("Select the text and copy it manually.");
+    }
+  };
+  const box = (value, readOnly) => /* @__PURE__ */ React9.createElement(
+    "textarea",
+    {
+      className: "codebox",
+      readOnly,
+      value,
+      onChange: (e) => setInput(e.target.value),
+      placeholder: readOnly ? "" : "paste the code here\u2026",
+      spellCheck: false
+    }
+  );
+  return /* @__PURE__ */ React9.createElement("div", { className: "screen" }, /* @__PURE__ */ React9.createElement("div", { className: "topbar" }, /* @__PURE__ */ React9.createElement("div", { className: "logo" }, "QynGun", /* @__PURE__ */ React9.createElement("small", null, "ONLINE DUEL")), /* @__PURE__ */ React9.createElement("div", { className: "wallet" }, /* @__PURE__ */ React9.createElement("button", { className: "btn sm ghost", onClick: onBack }, "\u25C0 LOBBY"))), /* @__PURE__ */ React9.createElement("div", { className: "content", style: { maxWidth: 820 } }, /* @__PURE__ */ React9.createElement("div", { className: "h" }, "PEER TO PEER \u2014 NO SERVER, NO ACCOUNT"), /* @__PURE__ */ React9.createElement("div", { className: "hint", style: { marginBottom: 18 } }, "QynGun links you straight to the other player. One of you hosts, you swap two codes (Discord, chat, anything) and the duel runs browser to browser. Both players keep their own movement, and whoever shoots decides the hit \u2014 there is no server to argue with."), /* @__PURE__ */ React9.createElement("div", { className: "row", style: { marginBottom: 16 } }, /* @__PURE__ */ React9.createElement(
+    "input",
+    {
+      className: "sel",
+      style: { maxWidth: 220 },
+      value: name,
+      placeholder: "YOUR NAME",
+      onChange: (e) => setName(e.target.value.slice(0, 14))
+    }
+  ), role !== "guest" && /* @__PURE__ */ React9.createElement("select", { className: "sel", style: { maxWidth: 240 }, value: mapId, onChange: (e) => setMapId(e.target.value) }, MAPS.filter((m) => m.modes.includes("1v1")).map((m) => /* @__PURE__ */ React9.createElement("option", { key: m.id, value: m.id }, m.name))), role === "guest" && /* @__PURE__ */ React9.createElement("div", { className: "hint" }, "The host picks the arena \u2014 you will drop in automatically.")), !role && /* @__PURE__ */ React9.createElement("div", { className: "grid", style: { gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))" } }, /* @__PURE__ */ React9.createElement("div", { className: "card", onClick: () => {
+    setRole("host");
+    setStep(0);
+    setInput("");
+  } }, /* @__PURE__ */ React9.createElement("div", { className: "nm" }, "HOST A DUEL"), /* @__PURE__ */ React9.createElement("div", { className: "ds" }, "You create the room, pick the map, and hand your friend one code. You own the round clock."), /* @__PURE__ */ React9.createElement("div", { className: "mt" }, /* @__PURE__ */ React9.createElement("span", null, "1 v 1"), /* @__PURE__ */ React9.createElement("span", { style: { color: "var(--cy)" } }, "CREATE \u25B6"))), /* @__PURE__ */ React9.createElement("div", { className: "card", onClick: () => {
+    setRole("guest");
+    setStep(0);
+    setInput("");
+  } }, /* @__PURE__ */ React9.createElement("div", { className: "nm" }, "JOIN A DUEL"), /* @__PURE__ */ React9.createElement("div", { className: "ds" }, "Paste the code your friend sent you, then send the answer code back."), /* @__PURE__ */ React9.createElement("div", { className: "mt" }, /* @__PURE__ */ React9.createElement("span", null, "1 v 1"), /* @__PURE__ */ React9.createElement("span", { style: { color: "var(--cy)" } }, "JOIN \u25B6")))), role === "host" && /* @__PURE__ */ React9.createElement("div", { className: "panel", style: { padding: 18 } }, /* @__PURE__ */ React9.createElement("div", { className: "h", style: { marginTop: 0 } }, "HOST"), step === 0 && /* @__PURE__ */ React9.createElement("button", { className: "btn pri", onClick: create }, "CREATE ROOM \u25B6"), step >= 1 && /* @__PURE__ */ React9.createElement(React9.Fragment, null, /* @__PURE__ */ React9.createElement("div", { style: { fontSize: 10, letterSpacing: ".2em", color: "var(--dim)" } }, "1 \u2014 SEND THIS CODE TO YOUR FRIEND"), box(code, true), /* @__PURE__ */ React9.createElement("button", { className: "btn sm", style: { marginBottom: 14 }, onClick: () => copy(code) }, "COPY CODE"), /* @__PURE__ */ React9.createElement("div", { style: { fontSize: 10, letterSpacing: ".2em", color: "var(--dim)" } }, "2 \u2014 PASTE THEIR ANSWER CODE"), box(input, false), /* @__PURE__ */ React9.createElement("button", { className: "btn pri", onClick: accept }, "CONNECT \u25B6"))), role === "guest" && /* @__PURE__ */ React9.createElement("div", { className: "panel", style: { padding: 18 } }, /* @__PURE__ */ React9.createElement("div", { className: "h", style: { marginTop: 0 } }, "JOIN"), step === 0 && /* @__PURE__ */ React9.createElement(React9.Fragment, null, /* @__PURE__ */ React9.createElement("div", { style: { fontSize: 10, letterSpacing: ".2em", color: "var(--dim)" } }, "PASTE THE HOST CODE"), box(input, false), /* @__PURE__ */ React9.createElement("button", { className: "btn pri", onClick: join }, "JOIN \u25B6")), step >= 2 && /* @__PURE__ */ React9.createElement(React9.Fragment, null, /* @__PURE__ */ React9.createElement("div", { style: { fontSize: 10, letterSpacing: ".2em", color: "var(--dim)" } }, "SEND THIS CODE BACK TO THE HOST"), box(code, true), /* @__PURE__ */ React9.createElement("button", { className: "btn sm", onClick: () => copy(code) }, "COPY CODE"), /* @__PURE__ */ React9.createElement("div", { className: "hint", style: { marginTop: 10 } }, "Waiting for the host to accept\u2026 you will drop into the lobby automatically."))), status && /* @__PURE__ */ React9.createElement("div", { className: `toast ${bad ? "bad" : ""}`, style: { position: "static", marginTop: 16 } }, status), role && step < 3 && /* @__PURE__ */ React9.createElement("button", { className: "btn ghost sm", style: { marginTop: 16 }, onClick: () => {
+    setRole(null);
+    setStep(0);
+    setStatus("");
+    netRef.current?.close();
+    netRef.current = null;
+  } }, "\u25C0 START OVER")));
+}
+
 // src/App.jsx
-import React9, { useState as useState5, useEffect as useEffect2, useRef, useCallback } from "react";
+import React10, { useState as useState6, useEffect as useEffect3, useRef as useRef2, useCallback } from "react";
 
 // src/game/core/Game.js
 import * as THREE8 from "three";
@@ -3493,6 +3880,12 @@ var Match = class {
 var STEP = 1 / 120;
 var TEAM_COLORS = { a: 7268351, b: 16747069 };
 var clamp4 = (v, a, b) => v < a ? a : v > b ? b : v;
+var shortAngle = (a, b) => {
+  let d = b - a;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return d;
+};
 var lerp2 = (a, b, t) => a + (b - a) * t;
 var Fighter = class {
   constructor(game, opts) {
@@ -3581,6 +3974,7 @@ var Fighter = class {
     this.mv.grounded = true;
     this.health = this.maxHealth;
     this.alive = true;
+    if (this.game?.netState) this.game.netState.sentKill = false;
     this.spawnGuard = this.isDummy ? 0 : 0.9;
     this.haste = 0;
     this.slow = 0;
@@ -3669,15 +4063,20 @@ var Game = class {
   }
   // ── lifecycle ────────────────────────────────────────────────────────────
   load(config) {
-    const { mapId, modeId, loadout, skin, botLevel, teamBots } = config;
+    const { mapId, modeId, loadout, skin, botLevel, teamBots, net, netRole, peerName } = config;
     this.config = config;
+    this.net = net || null;
+    this.netRole = netRole || null;
+    this.netState = net ? { hello: null, remoteHello: null, buf: [], slot: 0, lastHello: 0, sentKill: false } : null;
+    this.netPing = 0;
     this.map = MAP_BY_ID[mapId] || MAP_BY_ID.yard;
     this.mode = MODES.find((m) => m.id === modeId) || MODES[0];
     this.skin = SKIN_MAP[skin] || SKIN_MAP.stock;
     this.world = new World(this.map);
     this.vfx = new VFX(this.world.scene);
     this.playerLoadout = loadout || { ...DEFAULT_LOADOUT };
-    this.player = new Fighter(this, { team: "a", name: "YOU", loadout: this.playerLoadout, skin: this.skin });
+    this.playerName = config.playerName || (this.netRole === "host" ? "HOST" : this.netRole === "guest" ? "GUEST" : "YOU");
+    this.player = new Fighter(this, { team: "a", name: this.net ? this.playerName : "YOU", loadout: this.playerLoadout, skin: this.skin });
     this.fighters = [this.player];
     this.bots = [];
     if (this.mode.id === "range") {
@@ -3694,8 +4093,22 @@ var Game = class {
         this.bots.push(b);
       });
     }
-    const teamSize = this.mode.teamB;
-    const botsNeeded = this.mode.bots;
+    if (this.net) {
+      const foe = new Fighter(this, {
+        team: "b",
+        name: peerName || "GUEST",
+        isBot: true,
+        loadout: { ...DEFAULT_LOADOUT },
+        skin: SKIN_MAP.stock
+      });
+      foe.isRemote = true;
+      foe.model.visible = false;
+      this.fighters.push(foe);
+      this.remote = foe;
+      this.netSay(MSG.hello(this.playerName || "HOST", this.playerLoadout, skin));
+    }
+    const teamSize = this.net ? 0 : this.mode.teamB;
+    const botsNeeded = this.net ? 0 : this.mode.bots;
     for (let i = 0; i < teamSize; i++) {
       const f = new Fighter(this, {
         team: "b",
@@ -3707,7 +4120,7 @@ var Game = class {
       this.fighters.push(f);
       this.bots.push(new Bot(f, botLevel || "normal"));
     }
-    const friendlyBots = Math.max(0, this.mode.teamA - 1);
+    const friendlyBots = this.net ? 0 : Math.max(0, this.mode.teamA - 1);
     for (let i = 0; i < friendlyBots; i++) {
       const f = new Fighter(this, {
         team: "a",
@@ -3916,6 +4329,7 @@ var Game = class {
   fixedStep(dt) {
     this.time += dt;
     const live = this.match.phase === "live";
+    if (this.net) this.stepNet(dt);
     if (this.killStreakT > 0) {
       this.killStreakT -= dt;
       if (this.killStreakT <= 0) this.killStreak = 0;
@@ -3931,10 +4345,11 @@ var Game = class {
     this.stepProjectiles(dt);
     this.stepPlaceables(dt);
     this.vfx.update(dt);
-    this.match.update(dt);
+    if (!this.net || this.netRole === "host") this.match.update(dt);
     if (this.mode.id !== "range") this.checkFallOut();
   }
   stepFighter(f, dt, live) {
+    if (f.isRemote) return;
     if (!f.alive) {
       f.respawnTimer -= dt;
       if (f.respawnTimer <= 0 && (this.mode.id === "range" || f.isDummy)) this.respawnFighter(f);
@@ -4153,6 +4568,7 @@ var Game = class {
       this.spectate = null;
       return null;
     }
+    if (this.net) return null;
     if (this.killCam && this.killCam.t > 0 && this.killCam.target && this.killCam.target.alive && this.killCam.target !== p) {
       this.spectate = this.killCam.target;
       return this.spectate;
@@ -4163,6 +4579,213 @@ var Game = class {
     }
     this.spectate = t;
     return t;
+  }
+  // ══ netplay ═══════════════════════════════════════════════════════════════
+  netSay(msg) {
+    if (this.net && this.net.open) this.net.send(msg);
+  }
+  stepNet(dt) {
+    const net = this.net;
+    const st = this.netState;
+    if (!net || !st) return;
+    net.tick(dt);
+    this.netPing = net.ping;
+    if (this.netRole === "host" && !st.remoteHello) {
+      st.mapT = (st.mapT || 0) - dt;
+      if (st.mapT <= 0) {
+        st.mapT = 0.4;
+        this.netSay(MSG.ready(this.config.mapId, this.config.modeId));
+      }
+    }
+    st.lastHello -= dt;
+    if (st.lastHello <= 0) {
+      st.lastHello = 1;
+      this.netSay(MSG.hello(this.playerName || (this.netRole === "host" ? "HOST" : "GUEST"), this.playerLoadout, this.skin?.id));
+    }
+    for (const m of net.receive()) this.onNetMessage(m);
+    st.snapT = (st.snapT || 0) - dt;
+    if (st.snapT <= 0 && this.player) {
+      st.snapT = 1 / 30;
+      const f = this.player;
+      let flags = 0;
+      if (f.mv.grounded) flags |= FLAG.grounded;
+      if (f.mv.sliding) flags |= FLAG.sliding;
+      if (f.mv.sprinting) flags |= FLAG.sprinting;
+      if (f.mv.crouching) flags |= FLAG.crouching;
+      if (f.alive) flags |= FLAG.alive;
+      if (f.wantFire) flags |= FLAG.firing;
+      if (f.weapon.reloading) flags |= FLAG.reloading;
+      this.netSay(MSG.snapshot(performance.now(), f.mv, flags, f.health, f.slot, f.weapon.isMelee ? 0 : f.weapon.ammo));
+    }
+    if (this.netRole === "host" && this.match) {
+      st.matchT = (st.matchT || 0) - dt;
+      if (st.matchT <= 0) {
+        st.matchT = 0.1;
+        this.netSay(MSG.match(this.match.phase, this.match.round, this.match.scoreA, this.match.scoreB, this.match.timer));
+      }
+    }
+  }
+  onNetMessage(m) {
+    const st = this.netState;
+    const r = this.remote;
+    switch (m[0]) {
+      case "l": {
+        if (st.remoteHello && st.remoteHello.name === m[1]) break;
+        st.remoteHello = { name: m[1], loadout: m[2], skin: m[3] };
+        if (r) {
+          r.name = m[1];
+          r.loadout = { ...DEFAULT_LOADOUT, ...m[2] || {} };
+          r.skin = SKIN_MAP[m[3]] || SKIN_MAP.stock;
+          if (r.model) {
+            this.world.scene.remove(r.model);
+            r.model.traverse?.((o) => {
+              if (o.isMesh && o.geometry) o.geometry.dispose?.();
+            });
+          }
+          r.model = buildFighterModel(TEAM_COLORS.b, true, WEAPON_MAP[r.loadout.primary]);
+          this.world.scene.add(r.model);
+          for (const k of ["primary", "secondary", "melee"]) r.weapons[k] = new Weapon(r.loadout[k], r.skin);
+          r.utility = new UtilitySlot(r.loadout.utility);
+        }
+        this.banner("CONNECTED \u2014 " + m[1], "good", 2);
+        break;
+      }
+      case "s": {
+        if (!r) break;
+        st.buf.push({
+          t: performance.now(),
+          p: [m[2], m[3], m[4]],
+          v: [m[5], m[6], m[7]],
+          yaw: m[8],
+          pitch: m[9],
+          flags: m[10],
+          hp: m[11],
+          slot: m[12],
+          ammo: m[13],
+          spd: m[14]
+        });
+        if (st.buf.length > 40) st.buf.shift();
+        break;
+      }
+      case "d": {
+        if (!this.player || !this.player.alive) break;
+        const from = this.remote;
+        const before = this.player.health;
+        this.player.spawnGuard = 0;
+        this.player.health = Math.max(0, this.player.health - m[1]);
+        from.stats.damage += m[1];
+        this.damageFlash = 1;
+        this.rig.addShake(0.5);
+        this.audio.hurt();
+        if (from) this.addHitDir(from.mv.pos);
+        if (this.player.health <= 0) this.killFighter(this.player, from, !!m[2]);
+        if (before !== this.player.health) this.emit("damage", { amount: -m[1], head: !!m[2], speed: 0 });
+        break;
+      }
+      case "k": {
+        if (!r) break;
+        const killerIsMe = m[1] === this.player.name;
+        const victimIsMe = m[2] === this.player.name;
+        if (victimIsMe) this.killFighter(this.player, r, !!m[3]);
+        else if (killerIsMe) {
+          this.killFighter(r, this.player, !!m[3]);
+        } else this.killFighter(r, null, !!m[3]);
+        break;
+      }
+      case "f": {
+        const from = new THREE8.Vector3(m[1], m[2], m[3]);
+        const dir = new THREE8.Vector3(m[4], m[5], m[6]);
+        const hit = this.world.physics.raycast(from, dir, 200);
+        const end = hit ? hit.point : from.clone().addScaledVector(dir, 120);
+        this.vfx.tracer(from.clone(), end, 16766624, 0.02, 0.07);
+        const d = from.distanceTo(this.camera.position);
+        const def = WEAPON_MAP[m[7]];
+        if (def) this.audio.shot({
+          pitch: def.stats.pellets ? 0.7 : 1.05 - (def.stats.dmg ?? 20) / 400,
+          len: def.stats.pellets ? 0.28 : 0.14,
+          gain: Math.max(0.05, 0.42 - d / 90),
+          body: def.stats.pellets ? 110 : 200 - (def.stats.dmg ?? 20)
+        });
+        break;
+      }
+      case "m": {
+        if (this.netRole === "host" || !this.match) break;
+        const [phase, round, scoreA, scoreB, timer] = [m[1], m[2], m[3], m[4], m[5]];
+        if (phase === "countdown" && this.match.phase !== "countdown") {
+          this.match.round = round;
+          this.match.startRound();
+        } else if (phase === "live" && this.match.phase !== "live") {
+          this.match.goLive();
+        } else if (phase === "roundend" && this.match.phase !== "roundend") {
+          this.match.endRound(scoreA > this.match.scoreA ? "a" : scoreB > this.match.scoreB ? "b" : null);
+        } else if (phase === "matchend" && this.match.phase !== "matchend") {
+          this.match.phase = "matchend";
+          this.emit("matchend", { winner: scoreA > scoreB ? "a" : "b", scoreA, scoreB, stats: this.player.stats, board: [] });
+        }
+        this.match.scoreA = scoreA;
+        this.match.scoreB = scoreB;
+        this.match.timer = timer;
+        this.match.round = round;
+        break;
+      }
+      case "x":
+        this.banner("THE OTHER PLAYER LEFT", "bad", 2.4);
+        this.emit("peerleft", {});
+        break;
+      default:
+        break;
+    }
+  }
+  // Render the remote fighter a hair in the past and slide between samples,
+  // so a 30 Hz link still looks like a smooth 60+ fps player.
+  interpolateRemote() {
+    const st = this.netState;
+    const r = this.remote;
+    if (!st || !r || st.buf.length === 0) return;
+    const now = performance.now();
+    const renderAt = now - 90;
+    let a = st.buf[0], b = st.buf[0];
+    for (let i = 0; i < st.buf.length; i++) {
+      if (st.buf[i].t <= renderAt) a = st.buf[i];
+      if (st.buf[i].t >= renderAt) {
+        b = st.buf[i];
+        break;
+      }
+    }
+    const span = b.t - a.t;
+    let k = span > 0 ? (renderAt - a.t) / span : 1;
+    let ex = 0;
+    if (k > 1) {
+      ex = Math.min(0.12, (now - b.t) / 1e3);
+      k = 1;
+    }
+    const lerp3 = (i) => a.p[i] + (b.p[i] - a.p[i]) * k + (b.v[i] || 0) * ex;
+    r.mv.pos.set(lerp3(0), lerp3(1), lerp3(2));
+    r.mv.vel.set(b.v[0], b.v[1], b.v[2]);
+    r.mv.yaw = a.yaw + shortAngle(a.yaw, b.yaw) * k;
+    r.mv.pitch = a.pitch + (b.pitch - a.pitch) * k;
+    r.mv.grounded = !!(b.flags & FLAG.grounded);
+    r.mv.sliding = !!(b.flags & FLAG.sliding);
+    r.mv.crouching = !!(b.flags & FLAG.crouching);
+    r.mv.sprinting = !!(b.flags & FLAG.sprinting);
+    const wasAlive = r.alive;
+    r.alive = !!(b.flags & FLAG.alive);
+    r.health = b.hp;
+    r.slot = ["primary", "secondary", "melee"].includes(b.slot) ? b.slot : "primary";
+    if (wasAlive && !r.alive) this.vfx.burst(new THREE8.Vector3(r.mv.pos.x, r.mv.pos.y + 1, r.mv.pos.z), 20, 16731501, 6, 0.13, 0.9, 14);
+    r.model.visible = r.alive;
+    r.model.position.set(r.mv.pos.x, r.mv.pos.y, r.mv.pos.z);
+    r.model.rotation.y = r.mv.yaw + Math.PI;
+    const squash = r.mv.sliding ? 0.55 : r.mv.crouching ? 0.72 : 1;
+    r.model.scale.set(1, squash, 1);
+    if (b.flags & FLAG.firing) {
+      const mz = r.model.userData.muzzle;
+      if (mz) {
+        const p = new THREE8.Vector3();
+        mz.getWorldPosition(p);
+        this.vfx.muzzle(p, new THREE8.Vector3(-Math.sin(r.mv.yaw), 0, -Math.cos(r.mv.yaw)), 0.8, 16767392);
+      }
+    }
   }
   // ── aiming & shooting ────────────────────────────────────────────────────
   aimOrigin(f) {
@@ -4262,6 +4885,7 @@ var Game = class {
       }
       const hit = this.raycastAll(f, origin, dir, s.range ?? 120);
       const dist = origin.distanceTo(hit.point);
+      if (this.net && isPlayer && i === 0) this.netSay(MSG.shot(muzzleWorld.x, muzzleWorld.y, muzzleWorld.z, dir.x, dir.y, dir.z, def.id));
       if (!s.silent) this.vfx.tracer(muzzleWorld, hit.point, f.team === "a" ? 12578815 : 16766624, 0.02, s.pellets ? 0.05 : 0.075);
       if (hit.fighter) {
         const dmg = shot.dmg * mom * f.weapon.falloffMul(dist) * (hit.head ? s.head ?? 1.5 : 1);
@@ -4288,6 +4912,16 @@ var Game = class {
     return best;
   }
   damageTarget(target, dmg, from, head, dir, isPlayer) {
+    if (this.net && target.isRemote && from === this.player) {
+      dmg = Math.round(dmg);
+      this.netSay(MSG.damage(dmg, head, Math.max(0, target.health - dmg)));
+      this.hitmarker = 0.22;
+      this.lastHitWasHead = head;
+      if (head) this.audio.headshot();
+      else this.audio.hit();
+      this.emit("damage", { amount: dmg, head, speed: from.mv.horizontalSpeed });
+      return;
+    }
     const applied = target.applyDamage(dmg, from, head, dir);
     if (from && applied > 0) from.stats.hits = (from.stats.hits || 0) + 1;
     if (isPlayer) {
@@ -4314,6 +4948,10 @@ var Game = class {
     }
     victim.credit = [];
     victim.alive = false;
+    if (this.net && victim === this.player && !this.netState.sentKill) {
+      this.netState.sentKill = true;
+      this.netSay(MSG.kill(killer ? killer.name : "THE VOID", victim.name, head, killer ? killer.weapon.def.name : null));
+    }
     victim.stats.deaths++;
     victim.model.visible = false;
     victim.respawnTimer = 999;
@@ -4583,6 +5221,7 @@ var Game = class {
   spawnAll() {
     let ia = 0, ib = 0;
     for (const f of this.fighters) {
+      if (f.isRemote) continue;
       if (f.isDummy && f.home) {
         f.respawn(f.home.clone(), f.homeYaw);
         continue;
@@ -4615,6 +5254,7 @@ var Game = class {
     }
   }
   respawnFighter(f) {
+    if (f.isRemote) return;
     if (f.isDummy && f.home) {
       f.respawn(f.home.clone(), f.homeYaw);
       return;
@@ -4645,6 +5285,7 @@ var Game = class {
   checkFallOut() {
     const ky = this.map.killY ?? -25;
     for (const f of this.fighters) {
+      if (f.isRemote) continue;
       if (f.alive && f.mv.pos.y < ky) {
         this.killFighter(f, f.lastAttacker, false);
         if (f === this.player) this.emit("fell", {});
@@ -4733,6 +5374,7 @@ var Game = class {
       landImpact: cam.mv.landImpact
     }, spec ? 0 : f.weapon.ads, spec ? 0 : f.weapon.def.stats.adsFov);
     for (let i = this.banners.length - 1; i >= 0; i--) if ((this.banners[i].t -= dt) <= 0) this.banners.splice(i, 1);
+    if (this.net) this.interpolateRemote();
     this.updatePlates(dt);
     if (this.vmRoot) this.vmRoot.visible = f.alive && !spec;
     this.updateViewmodel(dt);
@@ -4796,7 +5438,8 @@ var Game = class {
       spawnGuard: Math.max(0, f.spawnGuard),
       streak: this.killStreak,
       matchPoint: this.match.scoreA >= FIRST_TO - 1 || this.match.scoreB >= FIRST_TO - 1,
-      ping: 0,
+      ping: this.net ? this.netPing : 0,
+      net: this.net ? { role: this.netRole, state: this.net.state, ping: this.netPing, peer: this.netState?.remoteHello?.name || null } : null,
       scoreboard: this.scoreboard,
       board: this.scoreboard ? this.fighters.map((x) => ({
         name: x.name,
@@ -4868,19 +5511,20 @@ function randomSkin() {
 
 // src/App.jsx
 function App() {
-  const [profile, setProfile] = useState5(() => loadProfile());
-  const [screen, setScreen] = useState5("title");
-  const [queue, setQueue] = useState5(null);
-  const [matchCfg, setMatchCfg] = useState5(null);
-  const [hud, setHud] = useState5(null);
-  const [paused, setPaused] = useState5(false);
-  const [needsLock, setNeedsLock] = useState5(true);
-  const [result, setResult] = useState5(null);
-  const [toastMsg, setToast] = useState5(null);
-  const [rangePicker, setRangePicker] = useState5(false);
-  const [damageNums, setDamageNums] = useState5([]);
-  const canvasRef = useRef(null);
-  const gameRef = useRef(null);
+  const [profile, setProfile] = useState6(() => loadProfile());
+  const [screen, setScreen] = useState6("title");
+  const [queue, setQueue] = useState6(null);
+  const [matchCfg, setMatchCfg] = useState6(null);
+  const [hud, setHud] = useState6(null);
+  const [paused, setPaused] = useState6(false);
+  const [needsLock, setNeedsLock] = useState6(true);
+  const [result, setResult] = useState6(null);
+  const [toastMsg, setToast] = useState6(null);
+  const [rangePicker, setRangePicker] = useState6(false);
+  const [netInfo, setNetInfo] = useState6(null);
+  const [damageNums, setDamageNums] = useState6([]);
+  const canvasRef = useRef2(null);
+  const gameRef = useRef2(null);
   const save = useCallback((p) => {
     setProfile(p);
     saveProfile(p);
@@ -4889,7 +5533,7 @@ function App() {
     setToast({ msg, bad });
     setTimeout(() => setToast(null), 2e3);
   }, []);
-  useEffect2(() => {
+  useEffect3(() => {
     if (screen !== "playing" || !canvasRef.current || !matchCfg) return;
     const g = new Game(canvasRef.current, {
       rendererFactory: window.__qyngunRendererFactory,
@@ -4902,6 +5546,8 @@ function App() {
           const id = Math.random().toString(36).slice(2);
           setDamageNums((d) => [...d.slice(-6), { id, ...data }]);
           setTimeout(() => setDamageNums((d) => d.filter((x) => x.id !== id)), 900);
+        } else if (type === "peerleft") {
+          toast("The other player left the duel.", true);
         } else if (type === "roundend") {
           g.lastRoundWin = data.winner === "a" ? "ROUND WON" : data.winner === "b" ? "ROUND LOST" : "DRAW";
         }
@@ -4912,7 +5558,11 @@ function App() {
       modeId: matchCfg.modeId,
       loadout: matchCfg.loadout || profile.loadout,
       skin: profile.skin,
-      botLevel: matchCfg.bots || profile.settings.botLevel
+      botLevel: matchCfg.bots || profile.settings.botLevel,
+      net: matchCfg.net || null,
+      netRole: matchCfg.netRole || null,
+      peerName: matchCfg.peerName,
+      playerName: matchCfg.name
     });
     g.audio.resume();
     g.start();
@@ -4933,7 +5583,7 @@ function App() {
       setHud(null);
     };
   }, [screen, matchCfg]);
-  useEffect2(() => {
+  useEffect3(() => {
     const g = gameRef.current;
     if (!g) return;
     g.settings = profile.settings;
@@ -4969,6 +5619,12 @@ function App() {
     setScreen("playing");
   };
   const quitMatch = () => {
+    const net = matchCfg?.net;
+    if (net) {
+      net.send(["x"]);
+      net.close();
+    }
+    setNetInfo(null);
     setMatchCfg(null);
     setScreen("lobby");
   };
@@ -4980,7 +5636,7 @@ function App() {
     setRangePicker(false);
     g?.input.requestLock();
   };
-  useEffect2(() => {
+  useEffect3(() => {
     const onKey = (e) => {
       if (screen !== "playing" || !gameRef.current) return;
       if (e.code === "KeyB" && gameRef.current.mode?.id === "range") {
@@ -4992,7 +5648,7 @@ function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [screen, rangePicker]);
   const isRange = matchCfg?.modeId === "range";
-  return /* @__PURE__ */ React9.createElement("div", { className: "app" }, screen === "title" && /* @__PURE__ */ React9.createElement(
+  return /* @__PURE__ */ React10.createElement("div", { className: "app" }, screen === "title" && /* @__PURE__ */ React10.createElement(
     Title,
     {
       profile,
@@ -5001,7 +5657,7 @@ function App() {
       onSkins: () => setScreen("skins"),
       onSettings: () => setScreen("settings")
     }
-  ), screen === "lobby" && /* @__PURE__ */ React9.createElement(
+  ), screen === "lobby" && /* @__PURE__ */ React10.createElement(
     Lobby,
     {
       profile,
@@ -5009,19 +5665,32 @@ function App() {
         setQueue(q);
         setScreen("loadout");
       },
+      onOnline: () => setScreen("netplay"),
       onBack: () => setScreen("title")
     }
-  ), screen === "loadout" && queue && /* @__PURE__ */ React9.createElement(
+  ), screen === "netplay" && /* @__PURE__ */ React10.createElement(
+    Netplay,
+    {
+      profile,
+      onConnected: (net, cfg) => {
+        setNetInfo({ net, ...cfg });
+        setQueue({ modeId: "p2p", mapId: cfg.mapId, net, netRole: cfg.role, peerName: cfg.name });
+        setScreen("loadout");
+      },
+      onBack: () => setScreen("lobby")
+    }
+  ), screen === "loadout" && queue && /* @__PURE__ */ React10.createElement(
     Loadout,
     {
       profile,
       save,
+      peerName: queue.peerName,
       mapId: queue.mapId,
       mode: MODES.find((m) => m.id === queue.modeId),
       onStart: startMatch,
       onBack: () => setScreen("lobby")
     }
-  ), screen === "armory" && /* @__PURE__ */ React9.createElement(Armory, { profile, save, toast, onBack: () => setScreen("title") }), screen === "skins" && /* @__PURE__ */ React9.createElement(Skins, { profile, save, toast, onBack: () => setScreen("title") }), screen === "settings" && /* @__PURE__ */ React9.createElement(Settings, { profile, save, onBack: () => setScreen("title") }), screen === "result" && result && /* @__PURE__ */ React9.createElement(
+  ), screen === "armory" && /* @__PURE__ */ React10.createElement(Armory, { profile, save, toast, onBack: () => setScreen("title") }), screen === "skins" && /* @__PURE__ */ React10.createElement(Skins, { profile, save, toast, onBack: () => setScreen("title") }), screen === "settings" && /* @__PURE__ */ React10.createElement(Settings, { profile, save, onBack: () => setScreen("title") }), screen === "result" && result && /* @__PURE__ */ React10.createElement(
     Result,
     {
       data: result,
@@ -5035,14 +5704,14 @@ function App() {
         setScreen("lobby");
       }
     }
-  ), screen === "playing" && /* @__PURE__ */ React9.createElement("div", { className: "gwrap" }, /* @__PURE__ */ React9.createElement(
+  ), screen === "playing" && /* @__PURE__ */ React10.createElement("div", { className: "gwrap" }, /* @__PURE__ */ React10.createElement(
     "canvas",
     {
       ref: canvasRef,
       className: paused ? "" : "live",
       onClick: () => gameRef.current?.input.requestLock()
     }
-  ), hud && /* @__PURE__ */ React9.createElement(
+  ), hud && /* @__PURE__ */ React10.createElement(
     HUD,
     {
       hud,
@@ -5054,14 +5723,14 @@ function App() {
       onResume: () => gameRef.current?.input.requestLock(),
       onQuit: quitMatch
     }
-  ), /* @__PURE__ */ React9.createElement("div", { style: { position: "absolute", left: "50%", top: "58%", transform: "translateX(-50%)", pointerEvents: "none" } }, damageNums.map((d) => /* @__PURE__ */ React9.createElement("div", { key: d.id, style: {
+  ), /* @__PURE__ */ React10.createElement("div", { style: { position: "absolute", left: "50%", top: "58%", transform: "translateX(-50%)", pointerEvents: "none" } }, damageNums.map((d) => /* @__PURE__ */ React10.createElement("div", { key: d.id, style: {
     fontFamily: "var(--mono)",
     fontSize: d.head ? 22 : 16,
     fontWeight: 800,
     color: d.head ? "var(--gd)" : "#fff",
     textShadow: "0 2px 6px #000",
     animation: "fadeUp .9s ease-out forwards"
-  } }, Math.round(d.amount), d.head ? " \u2316" : ""))), isRange && !rangePicker && /* @__PURE__ */ React9.createElement("div", { className: "panel", style: { position: "absolute", left: "50%", bottom: 24, transform: "translateX(-50%)", fontSize: 11, letterSpacing: ".12em", pointerEvents: "none" } }, "RANGE \u2014 ", /* @__PURE__ */ React9.createElement("b", { style: { color: "var(--cy)" } }, "[B]"), " CHANGE LOADOUT \xB7 EVERY WEAPON UNLOCKED \xB7 DUMMIES RESPAWN"), !hud && /* @__PURE__ */ React9.createElement("div", { style: { position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--dim)", letterSpacing: ".3em", fontSize: 12 } }, "LOADING ARENA\u2026")), rangePicker && /* @__PURE__ */ React9.createElement("div", { style: { position: "absolute", inset: 0, zIndex: 40 } }, /* @__PURE__ */ React9.createElement(
+  } }, Math.round(d.amount), d.head ? " \u2316" : ""))), isRange && !rangePicker && /* @__PURE__ */ React10.createElement("div", { className: "panel", style: { position: "absolute", left: "50%", bottom: 24, transform: "translateX(-50%)", fontSize: 11, letterSpacing: ".12em", pointerEvents: "none" } }, "RANGE \u2014 ", /* @__PURE__ */ React10.createElement("b", { style: { color: "var(--cy)" } }, "[B]"), " CHANGE LOADOUT \xB7 EVERY WEAPON UNLOCKED \xB7 DUMMIES RESPAWN"), !hud && /* @__PURE__ */ React10.createElement("div", { style: { position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--dim)", letterSpacing: ".3em", fontSize: 12 } }, "LOADING ARENA\u2026")), rangePicker && /* @__PURE__ */ React10.createElement("div", { style: { position: "absolute", inset: 0, zIndex: 40 } }, /* @__PURE__ */ React10.createElement(
     Loadout,
     {
       profile: { ...profile, unlocked: ["vex9", "krill", "halberd", "tremor", "longspur", "blackwing", "shatter", "wraith", "prismc", "quasar", "q1", "vesper", "moskito", "hornet", "cutlass", "needle", "judge", "flare", "prismp", "twinfang", "knife", "fists", "bat", "machete", "tonfa", "katana", "axe", "spear", "sledge", "qynblade", "frag", "flash", "smoke", "emp", "stim", "dash", "grapnel", "barrier", "mine", "decoy"] },
@@ -5074,7 +5743,7 @@ function App() {
         gameRef.current?.input.requestLock();
       }
     }
-  )), toastMsg && /* @__PURE__ */ React9.createElement("div", { className: `toast ${toastMsg.bad ? "bad" : ""}` }, toastMsg.msg));
+  )), toastMsg && /* @__PURE__ */ React10.createElement("div", { className: `toast ${toastMsg.bad ? "bad" : ""}` }, toastMsg.msg));
 }
 export {
   App,
@@ -5082,6 +5751,7 @@ export {
   HUD,
   Loadout,
   Lobby,
+  Netplay,
   Result,
   Settings,
   Skins,

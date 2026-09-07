@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { MODES, MAPS } from '../game/data/maps.js'
 
-export default function Lobby ({ profile, onQueue, onBack }) {
+export default function Lobby ({ profile, onQueue, onOnline, onBack }) {
   const [modeId, setModeId] = useState('1v1')
   const [mapId, setMapId] = useState('yard')
   const [bots, setBots] = useState(profile.settings.botLevel || 'normal')
@@ -66,6 +66,12 @@ export default function Lobby ({ profile, onQueue, onBack }) {
             {modeId === 'range'
               ? 'Free roam. Every weapon unlocked to try. Dummies respawn forever.'
               : `${mode.name} on ${map?.name} · first to 5 rounds · 150 HP · instant reset.`}
+          </div>
+        </div>
+        <div style={{ marginTop: 16, display: 'flex', gap: 14, alignItems: 'center' }}>
+          <button className="btn" style={{ padding: '13px 28px', fontSize: 12 }} onClick={onOnline}>ONLINE DUEL ▶</button>
+          <div className="hint">
+            Real 1 v 1 over WebRTC. You and a friend swap two codes — no server, no account.
           </div>
         </div>
       </div>

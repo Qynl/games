@@ -7,13 +7,14 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node scripts/movement-test.mjs && node scripts/maps-test.mjs && node scripts/game-test.mjs && node scripts/flow-test.mjs && node scripts/ui-test.mjs && node scripts/balance-test.mjs",
+    "test": "node scripts/movement-test.mjs && node scripts/maps-test.mjs && node scripts/game-test.mjs && node scripts/flow-test.mjs && node scripts/net-test.mjs && node scripts/ui-test.mjs && node scripts/balance-test.mjs",
     "test:movement": "node scripts/movement-test.mjs",
     "test:maps": "node scripts/maps-test.mjs",
     "test:game": "node scripts/game-test.mjs",
     "test:ui": "node scripts/ui-test.mjs",
     "test:balance": "node scripts/balance-test.mjs",
-    "test:flow": "node scripts/flow-test.mjs"
+    "test:flow": "node scripts/flow-test.mjs",
+    "test:net": "node scripts/net-test.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

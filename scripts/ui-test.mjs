@@ -37,7 +37,8 @@ const BOARD_BASE = {
 const screens = [
   ['App', UI.App, {}],
   ['Title', UI.Title, { onNav: noop, profile: DEFAULT_PROFILE }],
-  ['Lobby', UI.Lobby, { profile: DEFAULT_PROFILE, onQueue: noop, onBack: noop }],
+  ['Lobby', UI.Lobby, { profile: DEFAULT_PROFILE, onQueue: noop, onOnline: noop, onBack: noop }],
+  ['Netplay', UI.Netplay, { profile: DEFAULT_PROFILE, onConnected: noop, onBack: noop }],
   ['Armory', UI.Armory, { profile: DEFAULT_PROFILE, save: noop, onBack: noop }],
   ['Skins', UI.Skins, { profile: DEFAULT_PROFILE, save: noop, onBack: noop }],
   ['Settings', UI.Settings, { profile: DEFAULT_PROFILE, save: noop, onBack: noop }],
