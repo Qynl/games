@@ -15,6 +15,7 @@ export const GAME_SCENES: string[] = [
   'racing track',
   'bowling alley',
   'shooting gallery',
+  'mole course',
   'red light green light',
   'dodge alley',
   'speedrun',

@@ -246,6 +246,22 @@ export function SettingsPanel({ session }: { session: GameSession }) {
             ever touch your PC.
           </span>
         </div>
+        <div className="set-row col">
+          <label>world save slots</label>
+          <div className="slot-row">
+            {[1, 2, 3].map((n) => (
+              <span key={n} className="slot-pair">
+                <button className="chip-btn" title={`snapshot the world into slot ${n}`} onClick={() => session.saveSlot(n)}>
+                  💾 save {n}{session.slotMeta[n - 1] ? ` · ${session.slotMeta[n - 1]}` : ''}
+                </button>
+                <button className="chip-btn danger" title={`restore slot ${n} (replaces the current world)`} onClick={() => session.loadSlot(n)}>
+                  load {n}
+                </button>
+              </span>
+            ))}
+          </div>
+          <span className="muted">page-local saves in this browser only — never uploaded, safe to use anytime.</span>
+        </div>
         <div className="set-row">
           <label>autonomous AI loop</label>
           <button className={`toggle ${ui.autonomous ? 'on' : ''}`} onClick={() => session.setAutonomous(!ui.autonomous)}>{ui.autonomous ? 'ON' : 'OFF'}</button>

@@ -347,7 +347,7 @@ export class WorldAPI {
 
   // ============================== NPCs ====================================
   createNPC(opts: {
-    kind?: 'walker' | 'guard' | 'kid' | 'follower' | 'cow' | 'ghost' | 'firefly'
+    kind?: 'walker' | 'guard' | 'kid' | 'follower' | 'cow' | 'ghost' | 'firefly' | 'mole'
     name?: string
     pos?: [number, number, number]
     color?: string
@@ -365,6 +365,7 @@ export class WorldAPI {
       return null
     }
     const isFly = opts.kind === 'firefly'
+    const isMole = opts.kind === 'mole'
     const obj = this.createObject({
       kind: opts.kind ?? 'walker',
       shape: 'sphere',
@@ -372,24 +373,27 @@ export class WorldAPI {
       pos: opts.pos ?? [4, 1.2, 4],
       scale: 1,
       category: 'npc',
-      color: colorOf(opts.color, isFly ? '#ffe9a8' : '#ffb1c8'),
-      solid: isFly ? false : undefined,
-      body: isFly ? 'kinematic' : undefined,
+      color: colorOf(opts.color, isFly ? '#ffe9a8' : isMole ? '#8a5a3a' : '#ffb1c8'),
+      solid: isFly || isMole ? false : undefined,
+      body: isFly || isMole ? 'kinematic' : undefined,
     })
     if (isFly) {
       obj.emissive = colorOf(opts.color, '#ffd98a')
       obj.emissiveIntensity = 2.2
+    } else if (isMole) {
+      obj.emissive = '#67e8f9'
+      obj.emissiveIntensity = 0.25
     }
     obj.npc = {
       kind: opts.kind ?? 'walker',
-      color: colorOf(opts.color, isFly ? '#ffe9a8' : '#ffb1c8'),
+      color: colorOf(opts.color, isFly ? '#ffe9a8' : isMole ? '#8a5a3a' : '#ffb1c8'),
       waypoints: opts.waypoints ? opts.waypoints.map((w) => v3(w)) : [],
-      wander: opts.wander ?? true,
+      wander: opts.wander ?? !isMole,
       hostile: opts.hostile ?? false,
       follower: opts.follower ?? false,
       damage: opts.hostile ? opts.damage ?? 1 : opts.damage,
-      speed: sanitize(opts.speed ?? (isFly ? 0.9 : 2.4), isFly ? 0.9 : 2.4, 0.2, 30),
-      scale: sanitize(opts.scale ?? (isFly ? 0.5 : 1), 1, 0.15, 4),
+      speed: sanitize(opts.speed ?? (isFly ? 0.9 : isMole ? 0 : 2.4), isFly ? 0.9 : 2.4, 0.2, 30),
+      scale: sanitize(opts.scale ?? (isFly ? 0.5 : isMole ? 0.55 : 1), 1, 0.15, 4),
       chat: opts.chat,
     }
     this.objects.splice(this.objects.indexOf(obj), 1)

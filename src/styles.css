@@ -223,6 +223,30 @@ body,
   margin-left: 6px;
 }
 
+/* power-up + mole progress chips */
+.mini-chip.boots-chip {
+  color: #a5f3fc;
+  border-color: rgba(103, 232, 249, 0.5);
+  background: rgba(8, 47, 73, 0.55);
+}
+.mini-chip.mole-chip {
+  color: #ffe3a3;
+  border-color: rgba(255, 210, 63, 0.45);
+  background: rgba(73, 47, 8, 0.55);
+}
+
+/* world save slots */
+.slot-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0;
+}
+.slot-pair {
+  display: inline-flex;
+  gap: 4px;
+}
+
 /* ---------------------------------------------------------- AI bubble */
 .ai-bubble {
   position: absolute;

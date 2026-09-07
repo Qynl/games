@@ -112,6 +112,16 @@ export class GameEngine {
   private autoSpeakAt = new Map<string, number>()
   /** last bounce-pad trigger per pad (real ms) */
   private padCd = new Map<string, number>()
+  /** sim-seconds of double-jump boots remaining */
+  private bootsT = 0
+  /** whack-a-mole: hits landed in the current mole course */
+  private moleHits = 0
+  /** moles already whacked in the current mole course */
+  private molesWhacked = new Set<string>()
+  /** how many moles the current mole course contains */
+  private totalMoles = 0
+  /** sim-time until which each mole stays hidden after being whacked */
+  private moleDown = new Map<string, number>()
   /** home point of each firefly so it drifts around its lamp/area */
   private fireflyHome = new Map<string, { x: number; y: number; z: number }>()
   private camFov = 74
@@ -299,8 +309,11 @@ export class GameEngine {
       }
     }
 
+    this.bootsT = Math.max(0, this.bootsT - dt)
+    p.doubleJump = this.bootsT > 0
     if (!p.inVehicle) this.updatePads()
     this.updateNpcs(dt)
+    this.updateMoles(dt)
     this.updateVehicles(dt)
     this.updateDynamics(dt)
     this.updateShots(dt)
@@ -323,6 +336,9 @@ export class GameEngine {
   hurt(n: number, cause: string) {
     const died = this.player.damage(n)
     if (died) {
+      // powers end with the player's life (no boots after respawn)
+      this.bootsT = 0
+      this.player.doubleJump = false
       aifx.hurt()
       this.player.lives -= 1
       this.deathTimer = 1.5
@@ -468,6 +484,66 @@ export class GameEngine {
     return ring
   }
 
+  // ------------------------------------------------------------ whack moles
+  /** moles pop on a deterministic sim-time schedule: ~1.15s up of every 2.3s */
+  private moleUp(o: WorldObjectState, now: number): boolean {
+    const n = o.spawnIndex ?? 0
+    const t = (now + n * 0.73) % 2.3
+    return t < 1.15
+  }
+
+  private updateMoles(dt: number) {
+    const now = this.simT
+    const p = this.player
+    for (const o of [...this.api.npcs, ...this.api.objects]) {
+      if (o.kind !== 'mole') continue
+      const gy = this.groundHeightAt(o.pos[0], o.pos[2])
+      const n = o.spawnIndex ?? 0
+      const t = (now + n * 0.73) % 2.3
+      const scheduleUp = t < 1.15
+      const forcedDown = now < (this.moleDown.get(o.id) ?? 0)
+      const up = scheduleUp && !forcedDown
+      if (o.visible !== up) o.visible = up
+      // rising/retracting ease between peek (0.32) and full pop (0.92)
+      const ease = t < 0.18 ? t / 0.18 : t < 0.97 ? 1 : Math.max(0, (1.15 - t) / 0.18)
+      const targetY = gy + 0.32 + 0.6 * (up ? Math.min(1, ease) : 0)
+      if (up && (o.emissiveIntensity ?? 0) < 1.5) o.emissiveIntensity = 1.6
+      else if (!up && o.emissiveIntensity !== 0.25) o.emissiveIntensity = 0.25
+      if (!o.npc) {
+        // object-style mole: only engine animates it
+        o.pos[1] = targetY
+        continue
+      }
+      o.pos[1] = targetY
+      // whack on stepping near a popped mole (auto) — no script needed
+      if (up && p.alive) {
+        const d = dist3(p.pos.x, p.pos.y, p.pos.z, o.pos[0], o.pos[1], o.pos[2])
+        if (d < 1.6) this.whackMole(o)
+      }
+    }
+  }
+
+  /** score a hit on a popped mole (E or stepping on it) */
+  private whackMole(o: WorldObjectState): boolean {
+    if (o.visible === false) {
+      this.emit('interact', 'the mole is hiding...')
+      return false
+    }
+    o.visible = false
+    o.emissiveIntensity = 0.25
+    this.moleDown.set(o.id, this.simT + 0.9)
+    this.moleHits += 1
+    if (!this.molesWhacked.has(o.id)) this.molesWhacked.add(o.id)
+    aifx.build()
+    if (this.course?.winMode === 'moles') {
+      this.emit('interact', `WHACK! ${this.molesWhacked.size}/${this.totalMoles} moles down`)
+      if (this.totalMoles > 0 && this.molesWhacked.size >= this.totalMoles && !this.course.finished) this.checkWin('moles')
+    } else {
+      this.emit('interact', 'the player whacked a mole!')
+    }
+    return true
+  }
+
   // ----------------------------------------------------------- bounce pads
   /** pads tagged "bounce" launch the player: land on one and you fly. */
   private updatePads() {
@@ -502,6 +578,7 @@ export class GameEngine {
     for (const o of this.api.npcs) {
       const npc = o.npc
       if (!npc) continue
+      if (npc.kind === 'mole') continue // moles are animated by updateMoles only
       const now = performance.now()
       let since = this.npcTimer.get(o.id) ?? 0
       since += dt
@@ -906,6 +983,18 @@ export class GameEngine {
         this.emit('collect', `the player grabbed a collectible${left ? ` (${left} left)` : ''}`)
       }
     }
+    // double-jump boots: an air jump for ~24 sim-seconds
+    for (const o of [...this.api.objects]) {
+      const tags = o.tags ?? []
+      if (!tags.includes('boots')) continue
+      const d = dist3(p.pos.x, p.pos.y + 0.8, p.pos.z, o.pos[0], o.pos[1], o.pos[2])
+      if (d < 2.2) {
+        this.api.deleteObject(o.id)
+        aifx.power()
+        this.bootsT = 24
+        this.emit('collect', 'the player grabbed double-jump boots!')
+      }
+    }
     // hearts heal the player (they never count toward a coin win)
     for (const o of [...this.api.objects]) {
       const tags = o.tags ?? []
@@ -977,13 +1066,18 @@ export class GameEngine {
       const dot = (dx * dir.x + dy * dir.y + dz * dir.z) / d
       if (dot < 0.35) continue
       const tags = o.tags ?? []
-      if (o.npc || tags.includes('chat') || (o.interact) || tags.includes('shooting') || tags.includes('bowling') || o.kind === 'car' || o.vehicle || o.kind === 'door' || o.category === 'vehicle') {
+      if (o.npc || tags.includes('chat') || o.interact || tags.includes('shooting') || tags.includes('bowling') || o.kind === 'car' || o.vehicle || o.kind === 'door' || o.kind === 'mole' || o.category === 'vehicle') {
         best = o
         bestD = d
       }
     }
     if (!best) return
 
+    // whack-a-mole: E near a mole scores a hit if it is popped
+    if (best.kind === 'mole') {
+      this.whackMole(best)
+      return
+    }
     if (best.npc) {
       this.npcSpeak(best)
       return
@@ -1094,6 +1188,10 @@ export class GameEngine {
     this.gemsAtCourse = this.api.objects.filter((o) => (o.tags ?? []).includes('collectible')).length
     this.pinsTracked = this.api.objects.filter((o) => (o.tags ?? []).includes('pin')).length
     this.targetsTracked = this.api.objects.filter((o) => (o.tags ?? []).includes('target')).length
+    this.moleHits = 0
+    this.molesWhacked.clear()
+    this.moleDown.clear()
+    this.totalMoles = [...this.api.npcs, ...this.api.objects].filter((o) => o.kind === 'mole').length
     this.rlOffset = info.label.toLowerCase().includes('red light') ? this.simT : this.rlOffset
     this.rebuild()
     this.emit('scene', `new scene built: ${info.title}`)
@@ -1136,9 +1234,167 @@ export class GameEngine {
     this.lastWin = 0
     this.course = null
     this.objectivesDone = false
+    this.moleHits = 0
+    this.molesWhacked.clear()
+    this.totalMoles = 0
+    this.moleDown.clear()
+    this.bootsT = 0
+    this.player.doubleJump = false
     this.player.queueTeleport(...this.spawn)
     this.rebuild()
     this.emit('scene', 'world reset to a fresh baseplate')
+  }
+
+  // ----------------------------------------------------- world save/load
+  private worldClone(list: WorldObjectState[]): unknown[] {
+    return list
+      .filter((o) => o.name !== 'baseplate' && o.name !== 'spawnpad')
+      .map((o) => ({
+        ...o,
+        pos: [...o.pos] as [number, number, number],
+        rot: [...o.rot] as [number, number, number],
+        scale: Array.isArray(o.scale) ? [...o.scale] : o.scale,
+        tags: o.tags ? [...o.tags] : undefined,
+        npc: o.npc ? { ...o.npc, waypoints: o.npc.waypoints?.map((w) => [...w] as [number, number, number]) } : undefined,
+        vehicle: o.vehicle ? { ...o.vehicle } : undefined,
+      }))
+  }
+
+  /** plain-JSON snapshot of everything the AI can build (page-local) */
+  exportWorld(): string {
+    const a = this.api
+    const data = {
+      v: 2,
+      name: a.name,
+      sky: { ...a.sky },
+      weather: { ...a.weather },
+      timeOfDay: a.timeOfDay,
+      timeScale: a.timeScale,
+      dayLength: a.dayLength,
+      terrain: a.terrain ? { ...a.terrain } : null,
+      objects: this.worldClone(a.objects),
+      npcs: this.worldClone(a.npcs),
+      vehicles: this.worldClone(a.vehicles),
+      scripts: a.scripts.map((s) => ({ name: s.name, code: s.code })),
+      goals: a.goals.map((g) => ({ ...g })),
+      activeScript: a.activeScript,
+    }
+    return JSON.stringify(data)
+  }
+
+  /** restore a world snapshot (slots / export). Returns false on bad data. */
+  importWorld(json: string): boolean {
+    let d: Record<string, unknown>
+    try {
+      d = JSON.parse(json) as Record<string, unknown>
+    } catch {
+      return false
+    }
+    if (!d || typeof d !== 'object' || !Array.isArray(d.objects) || !Array.isArray(d.npcs) || !Array.isArray(d.vehicles)) return false
+    const num = (v: unknown, def: number): number => (typeof v === 'number' && Number.isFinite(v) ? v : def)
+    const pos = (v: unknown, def: [number, number, number] = [0, 0, 0]): [number, number, number] =>
+      Array.isArray(v) ? [num(v[0], def[0]), num(v[1], def[1]), num(v[2], def[2])] : def
+    const safeList = (list: unknown[]): WorldObjectState[] =>
+      (list
+        .filter((x): x is Record<string, unknown> => !!x && typeof x === 'object')
+        .map((o) => ({
+          id: typeof o.id === 'string' ? o.id : 'obj_' + Math.random().toString(36).slice(2, 8),
+          kind: typeof o.kind === 'string' ? String(o.kind).slice(0, 20) : 'cube',
+          category: typeof o.category === 'string' ? o.category : 'block',
+          name: typeof o.name === 'string' ? String(o.name).slice(0, 40) : 'thing',
+          shape: typeof o.shape === 'string' ? o.shape : 'box',
+          pos: pos(o.pos),
+          rot: pos(o.rot),
+          scale: Array.isArray(o.scale) ? pos(o.scale, [1, 1, 1]) : num(o.scale, 1),
+          color: typeof o.color === 'string' ? o.color : '#7fa1c4',
+          emissive: typeof o.emissive === 'string' ? o.emissive : '#000000',
+          emissiveIntensity: num(o.emissiveIntensity, 0),
+          body: o.body === 'dynamic' || o.body === 'kinematic' ? o.body : 'static',
+          visible: o.visible !== false,
+          solid: o.solid !== false,
+          opacity: typeof o.opacity === 'number' ? o.opacity : undefined,
+          roughness: typeof o.roughness === 'number' ? o.roughness : undefined,
+          metalness: typeof o.metalness === 'number' ? o.metalness : undefined,
+          tags: Array.isArray(o.tags) ? o.tags.map((t) => String(t)) : undefined,
+          interact: typeof o.interact === 'string' ? o.interact : undefined,
+          spawnIndex: num(o.spawnIndex, 0),
+          npc: o.npc && typeof o.npc === 'object' ? (o.npc as unknown as WorldObjectState['npc']) : undefined,
+          vehicle: o.vehicle && typeof o.vehicle === 'object' ? (o.vehicle as unknown as WorldObjectState['vehicle']) : undefined,
+        }) as unknown as WorldObjectState))
+        .slice(0, 260)
+    const a = this.api
+    a.objects = []
+    a.npcs = []
+    a.vehicles = []
+    a.zones = []
+    a.scripts = []
+    const objs = safeList(d.objects as unknown[])
+    const npcs = safeList(d.npcs as unknown[])
+    const vehs = safeList(d.vehicles as unknown[])
+    a.objects = objs
+    a.npcs = npcs
+    a.vehicles = vehs
+    if (Array.isArray(d.lights)) {
+      a.lights = (d.lights as Record<string, unknown>[])
+        .filter((x) => !!x && typeof x === 'object')
+        .map((l, i) => ({
+          id: typeof l.id === 'string' ? String(l.id) : 'light_' + i,
+          type: l.type === 'point' ? 'point' : 'sun',
+          pos: pos(l.pos, [60, 90, 40]),
+          color: typeof l.color === 'string' ? l.color : '#fff4d6',
+          intensity: num(l.intensity, 1),
+          target: Array.isArray(l.target) ? pos(l.target) : undefined,
+        }))
+    }
+    if (d.sky && typeof d.sky === 'object') a.sky = { ...(a.sky), ...(d.sky as Record<string, unknown>) } as typeof a.sky
+    a.weather = { rain: !!d.weather && typeof d.weather === 'object' ? Boolean((d.weather as { rain?: unknown }).rain) : false, intensity: num(typeof d.weather === 'object' ? (d.weather as { intensity?: unknown }).intensity : undefined, 0.5) }
+    a.timeOfDay = num(d.timeOfDay, 12)
+    a.timeScale = num(d.timeScale, 1)
+    a.dayLength = num(d.dayLength, 300)
+    a.terrain = d.terrain && typeof d.terrain === 'object' ? { size: num((d.terrain as { size?: unknown }).size, 160), amplitude: num((d.terrain as { amplitude?: unknown }).amplitude, 3), seed: num((d.terrain as { seed?: unknown }).seed, 0) } : null
+    a.name = typeof d.name === 'string' ? String(d.name).slice(0, 40) : 'world'
+    a.goals = Array.isArray(d.goals) ? (d.goals as { text?: unknown; done?: unknown }[]).map((g) => ({ text: String(g.text ?? '').slice(0, 160), done: g.done === true })) : []
+    if (Array.isArray(d.scripts)) {
+      a.scripts = (d.scripts as { name?: unknown; code?: unknown }[])
+        .filter((s) => typeof s.code === 'string' && typeof s.name === 'string')
+        .map((s, i) => ({ id: `scr_${Date.now()}_${i}`, name: String(s.name).slice(0, 40), code: String(s.code), created: Date.now() }))
+    }
+    a.activeScript = typeof d.activeScript === 'string' ? d.activeScript : null
+    // the permanent floor + spawn pad always exist
+    // createObject already appends to a.objects — do not push its result again
+    if (!a.objects.some((o) => o.name === 'baseplate')) {
+      a.createObject({
+        kind: 'baseplate', name: 'baseplate', shape: 'box', pos: [0, -1, 0], scale: [110, 2, 110],
+        color: '#cfdfef', category: 'block',
+      })
+    }
+    if (!a.objects.some((o) => o.name === 'spawnpad')) {
+      a.createObject({
+        kind: 'spawnpad', name: 'spawnpad', shape: 'cylinder', pos: [0, 0.02, 6], scale: [3.4, 0.04, 3.4],
+        color: '#59b7ff', opacity: 0.5, category: 'decoration', body: 'kinematic',
+      })
+    }
+    this.dyn.clear()
+    this.shots.length = 0
+    this.ringCache.clear()
+    this.padCd.clear()
+    this.fireflyHome.clear()
+    this.npcWander.clear()
+    this.npcTimer.clear()
+    this.moleDown.clear()
+    this.moleHits = 0
+    this.molesWhacked.clear()
+    this.totalMoles = 0
+    this.bootsT = 0
+    this.player.doubleJump = false
+    this.lastCp = null
+    this.lastWin = 0
+    this.course = null
+    this.objectivesDone = false
+    this.rebuild()
+    this.log('world restored', 'ok')
+    this.emit('scene', `world restored: ${a.name}`)
+    return true
   }
 
   teleportTo(idOrName: string): boolean {
@@ -1227,6 +1483,17 @@ export class GameEngine {
     return this.course ? Math.max(0, this.simT - this.course.simStart) : null
   }
 
+  /** active player power-ups (for the HUD) */
+  powerStatus(): { boots: number } {
+    return { boots: Math.ceil(this.bootsT) }
+  }
+
+  /** whack-a-mole course progress, or null when no mole course is running */
+  moleProgress(): { hit: number; total: number } | null {
+    if (this.course?.winMode !== 'moles') return null
+    return { hit: this.molesWhacked.size, total: this.totalMoles }
+  }
+
   /** nearest interactable the player could press E on (HUD hint) */
   interactHint: { name: string; kind: string } | null = null
 
@@ -1242,7 +1509,7 @@ export class GameEngine {
     const scan = [...this.api.objects, ...this.api.npcs, ...this.api.vehicles]
     for (const o of scan) {
       const tags = o.tags ?? []
-      const interactable = o.npc || o.vehicle || o.interact || tags.includes('shooting') || tags.includes('bowling') || o.kind === 'door' || o.category === 'vehicle'
+      const interactable = o.npc || o.vehicle || o.interact || tags.includes('shooting') || tags.includes('bowling') || o.kind === 'door' || o.kind === 'mole' || o.category === 'vehicle'
       if (!interactable) continue
       if (o.visible === false) continue
       const dy = o.pos[1] - eye.y
@@ -1250,9 +1517,13 @@ export class GameEngine {
       const d2 = dist2d(eye.x, eye.z, o.pos[0], o.pos[2])
       if (d2 < bestD) {
         bestD = d2
-        best = {
-          name: o.npc ? o.name : o.kind === 'door' ? 'door' : o.interact === 'bowl' ? 'ball rack' : o.interact === 'shoot' ? 'cannon' : o.vehicle ? `drive ${o.name}` : o.name,
-          kind: o.category,
+        if (o.kind === 'mole') {
+          best = { name: 'mole', kind: 'mole' }
+        } else {
+          best = {
+            name: o.npc ? o.name : o.kind === 'door' ? 'door' : o.interact === 'bowl' ? 'ball rack' : o.interact === 'shoot' ? 'cannon' : o.vehicle ? `drive ${o.name}` : o.name,
+            kind: o.category,
+          }
         }
       }
     }

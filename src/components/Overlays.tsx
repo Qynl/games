@@ -88,6 +88,8 @@ export function Overlays({ session }: { session: GameSession }) {
   const hintRef = useRef<HTMLDivElement>(null)
   const statusRef = useRef<HTMLDivElement>(null)
   const timeRef = useRef<HTMLDivElement>(null)
+  const bootsRef = useRef<HTMLDivElement>(null)
+  const moleRef = useRef<HTMLDivElement>(null)
   const flashRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -160,7 +162,7 @@ export function Overlays({ session }: { session: GameSession }) {
         const on = session.ui.controlsOn && h
         hintRef.current.style.opacity = on ? '1' : '0'
         if (h) {
-          const label = h.kind === 'npc' ? `talk to ${h.name}` : h.name
+          const label = h.kind === 'npc' ? `talk to ${h.name}` : h.kind === 'mole' ? `whack the mole` : h.name
           hintRef.current.textContent = `[E] ${label}`
         }
       }
@@ -170,6 +172,17 @@ export function Overlays({ session }: { session: GameSession }) {
         const show = course && !course.finished && course.winMode !== 'none'
         timeRef.current.style.display = show ? 'flex' : 'none'
         if (show) timeRef.current.textContent = `⏱ ${Math.floor(session.engine.courseRunSec() ?? 0)}s`
+      }
+      // power-up chips: boots remaining + mole course progress
+      if (bootsRef.current) {
+        const boots = session.engine.powerStatus().boots
+        bootsRef.current.style.display = boots > 0 ? 'flex' : 'none'
+        if (boots > 0) bootsRef.current.textContent = `👢 air-jump ${boots}s`
+      }
+      if (moleRef.current) {
+        const m = session.engine.moleProgress()
+        moleRef.current.style.display = m ? 'flex' : 'none'
+        if (m) moleRef.current.textContent = `🔨 ${m.hit}/${m.total} moles`
       }
       // damage / win screen flash
       if (flashRef.current) {
@@ -244,6 +257,8 @@ export function Overlays({ session }: { session: GameSession }) {
       {/* top-right: stats */}
       <div className="top-right">
         <div className="mini-chip time-chip" ref={timeRef} style={{ display: 'none' }} />
+        <div className="mini-chip boots-chip" ref={bootsRef} style={{ display: 'none' }} />
+        <div className="mini-chip mole-chip" ref={moleRef} style={{ display: 'none' }} />
         <div className="mini-chip">⌁ {Math.floor(engine.api.timeOfDay)}:{(engine.api.timeOfDay % 1) * 60 < 10 ? '0' : ''}{Math.floor((engine.api.timeOfDay % 1) * 60)}</div>
         <div className="mini-chip">{engine.api.weather.rain ? '☂ rain' : '☀ clear'}</div>
         <div className="mini-chip">obj {engine.api.objects.length}</div>

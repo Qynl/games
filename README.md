@@ -100,6 +100,26 @@ AI places) — or the spawn pad if none.
   generated scripts execute **only** inside the game's script sandbox against the
   `w.*` world API.
 
+## Playable bits (grab bag)
+
+Anything the AI builds out of boxes and lights can be played, but a few pieces are
+real mechanics:
+
+- **Bounce pads** — objects tagged `bounce` (a glowing green pad) launch you ~4.5 m
+  when you land on them. Towers of pads are the fastest way up.
+- **Hearts** — objects tagged `heart` heal +1 HP (max 3). The AI scatters them near
+  hazards.
+- **Double-jump boots** — a floating cyan pod tagged `boots` grants one extra
+  mid-air jump for ~24 seconds: press **Space** again while falling (once per
+  flight). The HUD shows how long the boots last.
+- **Whack-a-mole** — `createGame mole course` builds a meadow of six burrows whose
+  moles pop up on their own rhythm. Step onto a burrow while its mole is OUT (or
+  press **E** beside it) to whack it — whack all six to win. Moles are an NPC kind,
+  so the AI can place its own mole gardens anywhere.
+- **World save slots** — in **AI settings**, snapshot the whole world into one of
+  three page-local slots and restore it later. Saves live in this browser only and
+  are never uploaded; restoring always puts you back at spawn with a fair restart.
+
 ---
 
 ## How the AI works
@@ -159,7 +179,8 @@ World details that make it feel lived-in:
 The AI plans against a documented tool list (persona + tools live in
 `src/ai/prompts.ts`): `say/chat`, `createGame` (built-in scene recipes such as maze,
 parkour, coin run, floating islands, bounce tower, racing track, bowling alley,
-shooting gallery, red light green light, farm, graveyard, house, night camp…), plus object verbs (`createObject`,
+shooting gallery, mole course (whack-a-mole!), red light green light, farm,
+graveyard, house, night camp…), plus object verbs (`createObject`,
 `moveObject`, `rotateObject`, `scaleObject`, `deleteObject`, `paintObject`,
 `cloneObject`, `material`, `physicsBody`…), zones/checkpoints/collectibles helpers,
 NPCs & vehicles, terrain/weather/time/sky/light, objectives, scripts and
@@ -197,7 +218,7 @@ AI-generated scripts (and any script you paste in the editor) run through
 Run the guarantee as a test any time:
 
 ```bash
-npm run test:safety   # 46 checks: dangerous APIs blocked, benign w.* code allowed
+npm run test:safety   # 49 checks: dangerous APIs blocked, benign w.* code allowed
 ```
 
 > Honest scope: the scanner is a static capability filter over practical escape

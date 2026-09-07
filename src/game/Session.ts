@@ -117,6 +117,7 @@ export class GameSession {
       sessionTime: 0,
       teleportList: [],
     }
+    this.loadSlotMeta()
     this.engine.init()
   }
 
@@ -385,6 +386,67 @@ export class GameSession {
       if (this.toasts.length > 5) this.toasts.shift()
     }
     this.bump('editor')
+  }
+
+  // -------------------------------------------------- world save slots
+  /** per-slot saved-at stamps shown in the settings UI (3 slots) */
+  slotMeta: (string | null)[] = [null, null, null]
+
+  private loadSlotMeta() {
+    try {
+      const raw = localStorage.getItem('games.slots')
+      if (!raw) return
+      const m = JSON.parse(raw) as unknown
+      if (!Array.isArray(m)) return
+      for (let i = 0; i < 3; i++) this.slotMeta[i] = typeof m[i] === 'string' ? String(m[i]) : null
+    } catch {
+      // storage unavailable — slots simply won't persist across reloads
+    }
+  }
+
+  private pushToast(text: string, kind: string, dur = 4) {
+    this.toasts.push({ id: ++this.toastId, text, t0: performance.now(), dur, kind })
+    if (this.toasts.length > 5) this.toasts.shift()
+    this.bump('ui')
+  }
+
+  /** snapshot the whole world into a page-local slot (never leaves browser) */
+  saveSlot(n: number) {
+    if (n < 1 || n > 3) return
+    let ok = false
+    try {
+      const json = this.engine.exportWorld()
+      localStorage.setItem(`games.save.${n}`, json)
+      const t = new Date()
+      const stamp = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`
+      this.slotMeta[n - 1] = stamp
+      localStorage.setItem('games.slots', JSON.stringify(this.slotMeta))
+      ok = true
+    } catch {
+      ok = false
+    }
+    if (ok) this.pushToast(`world saved to slot ${n} (this browser only)`, 'scene')
+    else this.pushToast('save failed — storage is unavailable here', 'warn')
+    this.bump('ui')
+  }
+
+  /** restore a slot snapshot (engine rebuilds the world from it) */
+  loadSlot(n: number) {
+    if (n < 1 || n > 3) return
+    let raw: string | null = null
+    try {
+      raw = localStorage.getItem(`games.save.${n}`)
+    } catch {
+      raw = null
+    }
+    if (!raw) {
+      this.pushToast(`slot ${n} is empty — save a world there first`, 'warn')
+      return
+    }
+    const ok = this.engine.importWorld(raw)
+    if (!ok) this.pushToast(`slot ${n} contains an unreadable save`, 'warn')
+    else this.bump('world')
+    this.bump('ui')
   }
 
   setAutoModel(on: boolean) {

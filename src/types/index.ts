@@ -57,7 +57,7 @@ export interface WorldObjectState {
   spawnIndex?: number
 }
 
-export type NpcKind = 'walker' | 'guard' | 'kid' | 'follower' | 'cow' | 'ghost' | 'firefly'
+export type NpcKind = 'walker' | 'guard' | 'kid' | 'follower' | 'cow' | 'ghost' | 'firefly' | 'mole'
 
 export interface NpcConfig {
   kind: NpcKind
@@ -130,7 +130,7 @@ export interface PlayerState {
   onGroundId?: string | null
 }
 
-export type ActionType = 'move' | 'jump' | 'crouch' | 'interact' | 'place' | 'run' | 'look'
+export type ActionType = 'move' | 'jump' | 'jump2' | 'crouch' | 'interact' | 'place' | 'run' | 'look'
 
 export interface PlayerAction {
   type: ActionType

@@ -25,7 +25,7 @@ export interface ColliderBox {
 }
 
 export interface PlayerEvents {
-  onAction: (a: { type: 'move' | 'jump' | 'crouch' | 'interact' | 'run' | 'look'; at: number }) => void
+  onAction: (a: { type: 'move' | 'jump' | 'jump2' | 'crouch' | 'interact' | 'run' | 'look'; at: number }) => void
   onInteractRequest: () => void
   onFootstep: () => void
   onJump: () => void
@@ -39,6 +39,10 @@ export class PlayerController {
   pitch = 0
   grounded = false
   onGroundId: string | null = null
+  /** set by the engine while double-jump boots are active */
+  doubleJump = false
+  private airJumpUsed = false
+  private spaceWasDown = false
   hp = 3
   lives = 3
   alive = true
@@ -254,12 +258,22 @@ export class PlayerController {
       this.vel.z *= fr
     }
 
-    if (!freezeInput && this.keys.has('Space') && !this.crouching && this.grounded) {
+    const spaceDown = !freezeInput && this.keys.has('Space') && !this.crouching
+    const spacePressed = spaceDown && !this.spaceWasDown
+    this.spaceWasDown = spaceDown
+    if (this.grounded) this.airJumpUsed = false
+    if (spacePressed && this.grounded) {
       this.vel.y = JUMP_SPEED
       this.grounded = false
       this.ev.onAction({ type: 'jump', at: performance.now() })
       this.ev.onJump()
       this.fallFromY = this.pos.y
+    } else if (spacePressed && this.doubleJump && !this.airJumpUsed && this.vel.y < 2.5) {
+      // double-jump boots: one air jump per flight, only while falling/apex
+      this.vel.y = JUMP_SPEED * 0.97
+      this.airJumpUsed = true
+      this.ev.onAction({ type: 'jump2', at: performance.now() })
+      this.ev.onJump()
     }
 
     this.vel.y -= GRAVITY * dt

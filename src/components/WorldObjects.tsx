@@ -72,7 +72,7 @@ function entryFor(o: WorldObjectState): Entry {
     root: new THREE.Group(), mats: [], kind: o.kind ?? '', shape: o.shape,
     baseY: o.pos[1],
     spin: o.shape === 'gem' || o.kind === 'gem' || o.kind === 'ember' || o.kind === 'arrow',
-    bob: o.shape === 'gem' || o.kind === 'gem' || o.kind === 'ember' || o.kind === 'lamp',
+    bob: o.shape === 'gem' || o.kind === 'gem' || o.kind === 'ember' || o.kind === 'lamp' || o.kind === 'boots',
     flicker: o.kind === 'lava' || o.kind === 'ember' || o.kind === 'fire',
   }
 }
@@ -271,6 +271,35 @@ function buildNpc(o: WorldObjectState): Entry | null {
     const wing = M('#ffffff', { opacity: 0.28, rough: 0.9 })
     addMesh(root, new THREE.SphereGeometry(0.16 * sc, 8, 6), wing, [0.2 * sc, 0.02 * sc, 0])
     addMesh(root, new THREE.SphereGeometry(0.16 * sc, 8, 6), wing, [-0.2 * sc, 0.02 * sc, 0])
+    return e
+  }
+
+  if (cfg.kind === 'mole') {
+    // chubby mole peeking out of its burrow; the engine raises/lowers the
+    // body and hides it while burrowed (blue-ring eyes show it's targetable)
+    const fur = M(col, { rough: 0.95 })
+    const body = new THREE.SphereGeometry(0.5 * sc, 18, 14)
+    body.scale(1, 0.8, 1)
+    addMesh(root, body, fur, [0, 0.18 * sc, 0])
+    const belly = M('#caa97e', { rough: 0.9 })
+    const bel = new THREE.SphereGeometry(0.3 * sc, 12, 10)
+    bel.scale(1, 0.7, 0.62)
+    addMesh(root, bel, belly, [0, 0.1 * sc, 0.18 * sc])
+    const snoot = M('#e8b8a0', { rough: 0.8 })
+    const sn = new THREE.SphereGeometry(0.15 * sc, 10, 8)
+    sn.scale(1, 0.72, 1.5)
+    addMesh(root, sn, snoot, [0, 0.16 * sc, 0.4 * sc])
+    const eye = M('#1b1226', { rough: 0.25 })
+    addMesh(root, new THREE.SphereGeometry(0.075 * sc, 8, 8), eye, [-0.17 * sc, 0.4 * sc, 0.36 * sc])
+    addMesh(root, new THREE.SphereGeometry(0.075 * sc, 8, 8), eye, [0.17 * sc, 0.4 * sc, 0.36 * sc])
+    const ring = M('#6fe0ff', { emissive: '#6fe0ff', ei: 2.2 })
+    addMesh(root, new THREE.SphereGeometry(0.035 * sc, 6, 6), ring, [-0.17 * sc, 0.42 * sc, 0.43 * sc])
+    addMesh(root, new THREE.SphereGeometry(0.035 * sc, 6, 6), ring, [0.17 * sc, 0.42 * sc, 0.43 * sc])
+    const paw = M('#6b4226', { rough: 0.9 })
+    const pawGeo = new THREE.SphereGeometry(0.11 * sc, 8, 6)
+    pawGeo.scale(0.9, 0.5, 1.1)
+    addMesh(root, pawGeo, paw, [-0.22 * sc, -0.05 * sc, 0.24 * sc])
+    addMesh(root, pawGeo, paw, [0.22 * sc, -0.05 * sc, 0.24 * sc])
     return e
   }
 
@@ -497,7 +526,7 @@ export function WorldLayer({ session }: { session: GameSession }) {
       const n = api.npcs.find((x) => x.id === id)
       if (!n) continue
       const kind = n.npc?.kind
-      const bob = kind === 'ghost' ? Math.sin(t * 1.8 + n.pos[0]) * 0.2 : kind === 'firefly' ? Math.sin(t * 3.3 + n.pos[0] * 2.2) * 0.3 : Math.sin(t * 2.6 + n.pos[0] * 2) * 0.05
+      const bob = kind === 'ghost' ? Math.sin(t * 1.8 + n.pos[0]) * 0.2 : kind === 'firefly' ? Math.sin(t * 3.3 + n.pos[0] * 2.2) * 0.3 : kind === 'mole' ? 0 : Math.sin(t * 2.6 + n.pos[0] * 2) * 0.05
       e.root.position.set(n.pos[0], n.pos[1] + bob, n.pos[2])
       e.root.rotation.set(0, n.rot?.[1] ?? 0, 0)
       const pulse = kind === 'firefly' ? 1 + Math.sin(t * 5 + n.pos[2] * 3) * 0.12 : 1

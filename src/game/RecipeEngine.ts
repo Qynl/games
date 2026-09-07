@@ -23,7 +23,7 @@ type Extra = {
   kind?: string
 }
 
-export type WinMode = 'none' | 'finish' | 'coins' | 'targets' | 'pins'
+export type WinMode = 'none' | 'finish' | 'coins' | 'targets' | 'pins' | 'moles'
 
 export interface SceneInfo {
   label: string
@@ -89,6 +89,7 @@ export class RecipeEngine {
     if (l.includes('tower') || l.includes('climb') || l.includes('island')) return this.islands(label)
     if (l.includes('race') || l.includes('car') || l.includes('track')) return this.race(label)
     if (l.includes('bowl')) return this.bowling(label)
+    if (l.includes('mole') || l.includes('whack')) return this.moleCourse(label)
     if (l.includes('target') || l.includes('shoot')) return this.shooting(label)
     if (l.includes('red light')) return this.redLight(label)
     if (l.includes('guard') || l.includes('sneak')) return this.guardRun(label)
@@ -440,6 +441,49 @@ export class RecipeEngine {
       category: 'prop', emissive: GREEN, emissiveIntensity: 0.3, tags: ['shooting'], interact: 'shoot',
     })
     return this.done(label, 'target gallery', 'Six glowing targets float above the ground.', 'Press E on the glowing console to load your cannon. Look at a target, press E again to FIRE. Hit all 6!', 'targets', [this.lx(lane, 15), 2, z])
+  }
+
+  // ------------------------------------------------------------ mole course
+  /** six burrows in a soft dirt patch; moles pop on their own schedule */
+  private moleCourse(label: string): SceneInfo {
+    const lane = this.lane()
+    const cx = this.lx(lane, 12)
+    const cz = lane.z0
+    this.tile('wh_patch', [cx, 0.015, cz], [11.5, 0.05, 7.6], '#a3967b')
+    // dirt rings + turf dots mark the burrows
+    const cols = [-2.6, 0, 2.6]
+    const rows = [-1.9, 1.9]
+    let i = 0
+    for (const zz of rows) {
+      for (const xx of cols) {
+        const hx = cx + xx
+        const hz = cz + zz
+        this.w.createObject({
+          kind: 'burrow', name: `wh_hole${i}`, shape: 'cylinder', pos: [hx, 0.05, hz],
+          scale: [1.15, 0.05, 1.15], color: '#4c3a26', category: 'prop', solid: false,
+        })
+        this.w.createObject({
+          kind: 'burrow_rim', name: `wh_rim${i}`, shape: 'cylinder', pos: [hx, 0.045, hz],
+          scale: [1.5, 0.03, 1.5], color: '#c9b98a', opacity: 0.8, category: 'prop', solid: false,
+        })
+        const mole = this.w.createNPC({
+          kind: 'mole', name: `whacky_${i + 1}`, pos: [hx, 0.6, hz], scale: 0.62, color: '#7c5230',
+        })
+        if (mole) mole.spawnIndex = i
+        i += 1
+      }
+    }
+    // cozy lamp so the meadow reads as a fairground patch at dusk
+    this.obj('post', 'wh_post', [cx, 2.1, cz + 5.4], [0.3, 4.2, 0.3], '#5b4632')
+    this.w.createObject({
+      kind: 'lamp', name: 'wh_lamp', shape: 'sphere', pos: [cx, 4.4, cz + 5.4], scale: 0.5,
+      color: '#ffdf8a', emissive: '#ffc94d', emissiveIntensity: 2, category: 'prop', solid: false,
+    })
+    this.w.createObject({
+      kind: 'sign', name: 'wh_sign', shape: 'box', pos: [cx, 1.2, cz + 5.4], scale: [2.6, 0.8, 0.14],
+      color: '#8a5a2b', category: 'prop', body: 'static',
+    })
+    return this.done(label, 'whack-a-mole meadow', 'Six moles pop from their burrows on a soft dirt patch.', 'Walk onto a burrow while its mole is OUT (or press E beside it) to WHACK it. Whack all 6!', 'moles', [cx, 0, cz])
   }
 
   // -------------------------------------------------------------- redlight
