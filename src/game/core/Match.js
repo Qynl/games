@@ -89,6 +89,9 @@ export class Match {
     if (winner === 'a') this.scoreA++
     else if (winner === 'b') this.scoreB++
     this.log.push({ round: this.round, winner })
+    // the round lands in slow motion — but never in netplay, where the other
+    // player's clock has to keep running at the same speed as ours
+    if (!this.game.net && winner) this.game.slowmo = 0.5
     this.game.emit('roundend', {
       winner, scoreA: this.scoreA, scoreB: this.scoreB, round: this.round,
       firstTo: FIRST_TO,

@@ -18,6 +18,16 @@ globalThis.requestAnimationFrame = () => 0
 globalThis.cancelAnimationFrame = () => {}
 globalThis.structuredClone = globalThis.structuredClone || ((o) => JSON.parse(JSON.stringify(o)))
 
+// ── deterministic randomness ───────────────────────────────────────────────
+// Bot AI, spawns and spread all call Math.random, which makes a suite that
+// plays real matches flake for no reason. Seed it once, get the same match
+// every run.
+let _seed = 0x2f6e2b1
+Math.random = () => {
+  _seed ^= _seed << 13; _seed ^= _seed >>> 17; _seed ^= _seed << 5
+  return (_seed >>> 0) / 4294967296
+}
+
 const rendererStub = () => ({
   autoClear: true, domElement: canvas,
   info: { render: { calls: 0, triangles: 0 } },

@@ -196,6 +196,7 @@ export class Game {
     this.hitmarker = 0
     this.killHit = 0
     this.hitStop = 0
+    this.slowmo = 0
     this.plates = new Map()
     this.platesEnabled = typeof document !== 'undefined' && typeof document.createElement === 'function'
     this.renderScale = 1
@@ -473,10 +474,13 @@ export class Game {
       }
     }
 
-    // hit-stop: 70 ms of slow motion the moment you land a kill. Never in
+    // hit-stop on a kill, and a longer beat when a round ends. Never in
     // netplay — a peer's clock is not ours to stretch.
     let scale = 1
-    if (this.hitStop > 0) {
+    if (this.slowmo > 0) {
+      this.slowmo = Math.max(0, this.slowmo - dt)
+      scale = 0.45
+    } else if (this.hitStop > 0) {
       this.hitStop = Math.max(0, this.hitStop - dt)
       scale = 0.3
     }
