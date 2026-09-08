@@ -476,6 +476,8 @@ export class GameState {
       if (this.mode.id !== 'showdown' && e.team === p.team) continue
       const d = dist(p.pos, e.pos)
       if (d > range) continue
+      // bush stealth: hidden enemies can't be auto-aimed unless close
+      if (e.inBush && e.revealT <= 0 && d > 3.5 * TILE) continue
       const dir = v(e.pos.x - p.pos.x, e.pos.y - p.pos.y)
       const dot = Math.cos(angDiff(Math.atan2(dir.y, dir.x), p.aim))
       const offAim = (1 - dot) * 90
@@ -530,6 +532,8 @@ export class GameState {
     }
     b.ammo--
     if (b.ammo === b.def.ammoMax - 1) b.reloadT = b.def.reload
+    // shooting reveals you if you're hiding in a bush
+    if (b.inBush) b.revealT = 1.0
     const def = b.def
     const atk = def.attack
     const dir = vecFromAngle(b.aim)

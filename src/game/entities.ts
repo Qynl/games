@@ -1,5 +1,5 @@
 import { BrawlerDef, attackRangeOf, superRangeOf } from './brawlers'
-import { GameMap, solidTile, blocksBullet, tileAt, T_WALL } from './maps'
+import { GameMap, solidTile, blocksBullet, tileAt, T_WALL, T_BUSH } from './maps'
 import { ParticleSystem } from './particles'
 import { Vec, v, dist, dist2, norm, clamp, rand, lerp, angDiff, approachAng } from './util'
 import { TILE, TeamId } from './types'
@@ -66,6 +66,8 @@ export interface BrawlerState {
   spawnFx: number
   lastHitT: number
   regenPulse: number
+  inBush: boolean
+  revealT: number
 }
 
 let NEXT_ID = 1
@@ -138,6 +140,8 @@ export function createBrawler(
     spawnFx: 0,
     lastHitT: 99,
     regenPulse: 0,
+    inBush: false,
+    revealT: 0,
   }
 }
 
@@ -176,6 +180,10 @@ export function updateBrawler(
   } else {
     b.regenPulse = Math.max(0, b.regenPulse - dt * 40)
   }
+
+  // bush stealth state
+  b.revealT = Math.max(0, b.revealT - dt)
+  b.inBush = tileAt(g.map, Math.floor(b.pos.x / TILE), Math.floor(b.pos.y / TILE)) === T_BUSH
 
   // reload
   if (b.ammo < b.def.ammoMax) {

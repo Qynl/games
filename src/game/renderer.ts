@@ -60,12 +60,12 @@ export class Renderer {
 
     if (this.cw === 0 || this.ch === 0) this.resize()
 
-    // camera
+    // camera: zoomed in like Brawl Stars — you see ~20x14 tiles, not the whole map
     const target = g.player ?? g.brawlers[0]
     const desiredScale = clamp(
-      Math.min(this.cw / (map.w * TILE + 60), this.ch / (map.h * TILE + 120)),
-      0.55,
-      1.6
+      Math.min(this.cw / (20 * TILE), this.ch / (14 * TILE)),
+      0.9,
+      1.7
     )
     this.scale = lerp(this.scale, desiredScale, 1 - Math.exp(-dt * 4))
     this.shakeT = Math.max(0, this.shakeT - dt * 2)
@@ -638,8 +638,12 @@ export class Renderer {
     pointerWorld: Vec | null
   ) {
     if (b.dead) return
+    // bush stealth: hidden enemies are invisible; the player sees themselves faintly
+    const hidden = b.inBush && b.revealT <= 0
+    if (hidden && !b.isPlayer) return
     ctx.save()
     ctx.translate(b.pos.x, b.pos.y)
+    if (hidden) ctx.globalAlpha = 0.45
 
     const speedNorm = Math.min(1, Math.hypot(b.vel.x, b.vel.y) / (b.def.speed + 40))
     const bounce = b.moving ? Math.abs(Math.sin(b.walkPhase * 2)) * 2.4 : Math.sin(b.bobPhase) * 1.2
@@ -753,6 +757,7 @@ export class Renderer {
     // ---- body (upright, squash & bounce, big chibi head) ----
     ctx.save()
     ctx.translate(b.pos.x, b.pos.y)
+    if (hidden) ctx.globalAlpha = 0.45
     ctx.scale(1 + speedNorm * 0.06, 1 - speedNorm * 0.1 + Math.sin(b.bobPhase) * 0.02)
     ctx.rotate(clamp(b.vel.x / (b.def.speed + 40), -1, 1) * 0.16)
     ctx.translate(0, -bounce)
@@ -834,6 +839,7 @@ export class Renderer {
     // ---- overlays (screen space, above body) ----
     ctx.save()
     ctx.translate(b.pos.x, b.pos.y)
+    if (hidden) ctx.globalAlpha = 0.45
     // hit flash
     if (b.hitFlash > 0) {
       ctx.globalAlpha = b.hitFlash * 0.55
@@ -893,6 +899,23 @@ export class Renderer {
     ctx.fillStyle = hpFrac > 0.5 ? '#4ade80' : hpFrac > 0.25 ? '#facc15' : '#f87171'
     rr(ctx, -13, -40, 26 * hpFrac, 3.5, 2)
     ctx.fill()
+    // ammo pips (Brawl Stars style: 3 yellow bars under the HP)
+    const ammoMax = Math.min(b.def.ammoMax, 3)
+    const pipW = 6
+    const pipH = 3
+    const gap = 2
+    const totalW = ammoMax * pipW + (ammoMax - 1) * gap
+    for (let i = 0; i < ammoMax; i++) {
+      const x = -totalW / 2 + i * (pipW + gap)
+      ctx.fillStyle = i < b.ammo ? '#ffd23f' : 'rgba(0,0,0,0.5)'
+      rr(ctx, x, -34.5, pipW, pipH, 1.5)
+      ctx.fill()
+      if (i < b.ammo) {
+        ctx.fillStyle = 'rgba(255,255,255,0.5)'
+        rr(ctx, x, -34.5, pipW, 1.2, 1)
+        ctx.fill()
+      }
+    }
     // player marker
     if (b.isPlayer) {
       const bob = Math.sin(g.time * 6) * 2
@@ -903,6 +926,27 @@ export class Renderer {
       ctx.lineTo(5, -60 + bob)
       ctx.closePath()
       ctx.fill()
+    }
+    // hidden in a bush: draw bush cover over the (faint) brawler
+    if (hidden) {
+      ctx.globalAlpha = 0.92
+      ctx.fillStyle = '#1f7a33'
+      ctx.beginPath()
+      ctx.arc(-7, -4, 11, 0, Math.PI * 2)
+      ctx.arc(8, 3, 10, 0, Math.PI * 2)
+      ctx.arc(0, 9, 9, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = '#2f9e44'
+      ctx.beginPath()
+      ctx.arc(-3, -11, 8.5, 0, Math.PI * 2)
+      ctx.arc(9, -5, 7, 0, Math.PI * 2)
+      ctx.arc(-9, 2, 6.5, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = 'rgba(140,230,120,0.35)'
+      ctx.beginPath()
+      ctx.arc(-3, -13, 4.5, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.globalAlpha = 1
     }
     ctx.restore()
 
@@ -1197,21 +1241,46 @@ export class Renderer {
         break
       }
       default: {
-        // bullets, rockets
+        // bullets, rockets — chunky glow + long motion trail (Brawl Stars feel)
         const isRocket = p.kind === 'rocket' || p.kind === 'megarocket'
         const trail = p.vel.x !== 0 || p.vel.y !== 0
         if (trail) {
-          const tl = Math.hypot(p.vel.x, p.vel.y)
-          const tx = p.pos.x - (p.vel.x / tl) * (isRocket ? 12 : 8)
-          const ty = p.pos.y - (p.vel.y / tl) * (isRocket ? 12 : 8)
-          ctx.strokeStyle = isRocket ? 'rgba(255,140,60,0.7)' : 'rgba(255,220,120,0.55)'
-          ctx.lineWidth = isRocket ? 6 : p.size * 0.8
+          const tl = Math.hypot(p.vel.x, p.vel.y) || 1
+          const ux = p.vel.x / tl
+          const uy = p.vel.y / tl
+          const trailLen = isRocket ? 26 : 18
+          // wide soft glow
+          const tg = ctx.createLinearGradient(
+            p.pos.x - ux * trailLen, p.pos.y - uy * trailLen,
+            p.pos.x, p.pos.y
+          )
+          const c1 = isRocket ? 'rgba(255,120,40,0.0)' : 'rgba(255,230,140,0.0)'
+          const c2 = isRocket ? 'rgba(255,140,60,0.55)' : 'rgba(255,220,110,0.45)'
+          tg.addColorStop(0, c1)
+          tg.addColorStop(1, c2)
+          ctx.strokeStyle = tg
+          ctx.lineWidth = isRocket ? 14 : p.size * 2.2
           ctx.lineCap = 'round'
           ctx.beginPath()
-          ctx.moveTo(tx, ty)
+          ctx.moveTo(p.pos.x - ux * trailLen, p.pos.y - uy * trailLen)
+          ctx.lineTo(p.pos.x, p.pos.y)
+          ctx.stroke()
+          // bright core trail
+          ctx.strokeStyle = isRocket ? 'rgba(255,190,90,0.85)' : 'rgba(255,240,170,0.8)'
+          ctx.lineWidth = isRocket ? 5 : p.size * 0.75
+          ctx.beginPath()
+          ctx.moveTo(p.pos.x - ux * trailLen * 0.6, p.pos.y - uy * trailLen * 0.6)
           ctx.lineTo(p.pos.x, p.pos.y)
           ctx.stroke()
         }
+        // radial glow behind the shot
+        const glow = ctx.createRadialGradient(p.pos.x, p.pos.y, 0, p.pos.x, p.pos.y, p.size * 2.6)
+        glow.addColorStop(0, isRocket ? 'rgba(255,160,70,0.5)' : 'rgba(255,230,150,0.4)')
+        glow.addColorStop(1, 'rgba(255,200,100,0)')
+        ctx.fillStyle = glow
+        ctx.beginPath()
+        ctx.arc(p.pos.x, p.pos.y, p.size * 2.6, 0, Math.PI * 2)
+        ctx.fill()
         ctx.translate(p.pos.x, p.pos.y)
         ctx.rotate(Math.atan2(p.vel.y, p.vel.x))
         ctx.fillStyle = p.color
@@ -1374,6 +1443,29 @@ function drawMapTo(ctx: CanvasRenderingContext2D, map: GameMap) {
       ctx.beginPath()
       ctx.ellipse(px + 26 - h2 * 18, py + 24 - h1 * 16, 12 + h1 * 9, 7 + h2 * 7, h2 * 3, 0, Math.PI * 2)
       ctx.fill()
+      // tiny detail: flowers and pebbles
+      const h3 = hash(x * 17.7 + y * 31.3)
+      if (h3 < 0.28) {
+        const fx = px + 7 + h1 * 18
+        const fy = py + 7 + h2 * 18
+        ctx.fillStyle = h3 < 0.13 ? 'rgba(255,246,200,0.85)' : 'rgba(240,205,140,0.75)'
+        ctx.beginPath()
+        ctx.arc(fx, fy, 1.7, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.fillStyle = 'rgba(90,110,60,0.7)'
+        ctx.beginPath()
+        ctx.arc(fx + 1.8, fy + 1.6, 1.1, 0, Math.PI * 2)
+        ctx.fill()
+      } else if (h3 > 0.82) {
+        ctx.fillStyle = 'rgba(110,120,100,0.45)'
+        ctx.beginPath()
+        ctx.ellipse(px + 6 + h1 * 20, py + 6 + h2 * 20, 2.6, 1.9, h2, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.fillStyle = 'rgba(255,255,255,0.18)'
+        ctx.beginPath()
+        ctx.ellipse(px + 5.6 + h1 * 20, py + 5.6 + h2 * 20, 1.3, 0.9, h2, 0, Math.PI * 2)
+        ctx.fill()
+      }
     }
   }
   // scattered grass tufts (deterministic via hash)
@@ -1518,21 +1610,36 @@ function drawMapTo(ctx: CanvasRenderingContext2D, map: GameMap) {
       ctx.fill()
     }
   }
-  // bush leafy bumps
+  // bush leafy bumps — dense fluffy clusters like Brawl Stars
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       if (tileAt(map, x, y) !== T_BUSH) continue
       const px = x * TILE
       const py = y * TILE
-      ctx.fillStyle = 'rgba(60,180,80,0.55)'
+      const hb = hash(x * 7.3 + y * 13.7)
+      const hc = hash(x * 3.1 + y * 9.9)
+      // mid-tone leaves
+      ctx.fillStyle = 'rgba(54,164,74,0.85)'
       ctx.beginPath()
-      ctx.arc(px + 8, py + 9, 7, 0, Math.PI * 2)
-      ctx.arc(px + 24, py + 20, 6, 0, Math.PI * 2)
+      ctx.arc(px + 7 + hb * 10, py + 8 + hc * 8, 8, 0, Math.PI * 2)
+      ctx.arc(px + 24 - hb * 8, py + 19 - hc * 6, 7.5, 0, Math.PI * 2)
+      ctx.arc(px + 16 + hc * 8, py + 26 - hb * 6, 7, 0, Math.PI * 2)
       ctx.fill()
-      ctx.fillStyle = 'rgba(16,90,40,0.45)'
+      // dark under-leaves
+      ctx.fillStyle = 'rgba(14,80,34,0.6)'
       ctx.beginPath()
-      ctx.arc(px + 19, py + 7, 5, 0, Math.PI * 2)
-      ctx.arc(px + 6, py + 24, 5, 0, Math.PI * 2)
+      ctx.arc(px + 20 - hb * 8, py + 8 + hc * 8, 6, 0, Math.PI * 2)
+      ctx.arc(px + 7 + hc * 10, py + 23 - hb * 8, 6, 0, Math.PI * 2)
+      ctx.fill()
+      // light top highlights
+      ctx.fillStyle = 'rgba(122,214,112,0.75)'
+      ctx.beginPath()
+      ctx.arc(px + 10 + hb * 8, py + 7 + hc * 6, 4.5, 0, Math.PI * 2)
+      ctx.arc(px + 24 - hc * 6, py + 16 - hb * 4, 3.5, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = 'rgba(190,240,150,0.5)'
+      ctx.beginPath()
+      ctx.arc(px + 12 + hc * 8, py + 10 + hb * 6, 2, 0, Math.PI * 2)
       ctx.fill()
     }
   }

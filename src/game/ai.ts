@@ -2,7 +2,7 @@ import { BrawlerState } from './entities'
 import type { GameState } from './state'
 import type { Projectile } from './entities'
 import { findPath, hasLineOfSight } from './pathfind'
-import { solidTile } from './maps'
+import { solidTile, T_BUSH, tileAt } from './maps'
 import { Vec, v, dist, norm, angDiff, clamp, rand, pick, chance } from './util'
 import { TILE } from './types'
 import { brawlerById } from './brawlers'
@@ -59,6 +59,34 @@ function enemiesOf(g: GameState, me: BrawlerState): BrawlerState[] {
   return g.brawlers.filter(
     (b) => !b.dead && b.id !== me.id && (g.mode.id === 'showdown' || b.team !== me.team)
   )
+}
+
+// bush stealth: hidden enemies can't be seen unless very close
+function hiddenFrom(viewer: BrawlerState, e: BrawlerState): boolean {
+  return e.inBush && e.revealT <= 0 && dist(viewer.pos, e.pos) > 3.5 * TILE
+}
+
+function visibleEnemiesOf(g: GameState, me: BrawlerState): BrawlerState[] {
+  return enemiesOf(g, me).filter((e) => !hiddenFrom(me, e))
+}
+
+// nearest bush tile (world center) within radius — used to hide when hurt
+function nearestBush(g: GameState, me: BrawlerState, radiusTiles: number): Vec | null {
+  const cx = Math.floor(me.pos.x / TILE)
+  const cy = Math.floor(me.pos.y / TILE)
+  let best: Vec | null = null
+  let bd = Infinity
+  for (let ty = Math.max(0, cy - radiusTiles); ty <= Math.min(g.map.h - 1, cy + radiusTiles); ty++) {
+    for (let tx = Math.max(0, cx - radiusTiles); tx <= Math.min(g.map.w - 1, cx + radiusTiles); tx++) {
+      if (tileAt(g.map, tx, ty) !== T_BUSH) continue
+      const d = dist(me.pos, v(tx * TILE + TILE / 2, ty * TILE + TILE / 2))
+      if (d < bd) {
+        bd = d
+        best = v(tx * TILE + TILE / 2, ty * TILE + TILE / 2)
+      }
+    }
+  }
+  return best
 }
 
 function alliesOf(g: GameState, me: BrawlerState): BrawlerState[] {
@@ -187,15 +215,16 @@ export function updateAI(g: GameState, me: BrawlerState, ai: AIData, dt: number)
     // safe already destroyed: fall through to normal combat
   }
 
-  // --- target selection: gem carrier > lowest hp > nearest ---
+  // --- target selection: gem carrier > lowest hp > nearest (bush-hidden ignored)
   let target: BrawlerState | null = null
-  if (enemies.length > 0) {
+  const visibleEnemies = enemiesOf(g, me).filter((e) => !hiddenFrom(me, e))
+  if (visibleEnemies.length > 0) {
     const myCount = g.teamGems[myTeam === 1 ? 1 : 0] ?? 0
-    const carrier = enemies.find((e) => (e.gems ?? 0) >= 4 && myCount >= 7)
-    const byHp = [...enemies].sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)
+    const carrier = visibleEnemies.find((e) => (e.gems ?? 0) >= 4 && myCount >= 7)
+    const byHp = [...visibleEnemies].sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)
     const lowHp = byHp[0]
     const distTo = (b: BrawlerState) => dist(me.pos, b.pos)
-    const nearest = [...enemies].sort((a, b) => distTo(a) - distTo(b))[0]
+    const nearest = [...visibleEnemies].sort((a, b) => distTo(a) - distTo(b))[0]
     if (carrier && distTo(carrier) < 12 * TILE) target = carrier
     else if (lowHp && lowHp.hp / lowHp.maxHp < 0.28 && distTo(lowHp) < 9 * TILE) target = lowHp
     else target = nearest
@@ -244,14 +273,24 @@ export function updateAI(g: GameState, me: BrawlerState, ai: AIData, dt: number)
     }
   }
   if (aimTarget) {
-    const lead = v(aimTarget.x + target!.vel.x * 0.3, aimTarget.y + target!.vel.y * 0.3)
-    const a = Math.atan2(lead.y - me.pos.y, lead.x - me.pos.x) + rand(-0.1, 0.1)
-    ai.aimAngle = a
-    me.aim = a
-    ai.shotTimer -= dt
-    if (ai.shotTimer <= 0) {
-      g.tryFire(me)
-      ai.shotTimer = rand(0.26, 0.55)
+    const d = dist(me.pos, target!.pos)
+    // hidden in a bush: wait until the enemy is very close before striking
+    const holdForAmbush = me.inBush && me.revealT <= 0 && d > me.attackRange * 0.72
+    if (!holdForAmbush) {
+      const lead = v(aimTarget.x + target!.vel.x * 0.3, aimTarget.y + target!.vel.y * 0.3)
+      const a = Math.atan2(lead.y - me.pos.y, lead.x - me.pos.x) + rand(-0.1, 0.1)
+      ai.aimAngle = a
+      me.aim = a
+      ai.shotTimer -= dt
+      if (ai.shotTimer <= 0) {
+        g.tryFire(me)
+        ai.shotTimer = rand(0.26, 0.55)
+      }
+    } else {
+      // track silently
+      const a = Math.atan2(target!.pos.y - me.pos.y, target!.pos.x - me.pos.x)
+      me.aim = a
+      ai.aimAngle = a
     }
   } else {
     // face where we're moving, mostly
@@ -285,9 +324,22 @@ export function updateAI(g: GameState, me: BrawlerState, ai: AIData, dt: number)
   const lowHp = me.hp / me.maxHp < 0.28
   const threatened = enemies.some((e) => dist(e.pos, me.pos) < 4.5 * TILE)
   if (lowHp && !threatened && !countdownActive) {
-    // retreat to spawn to regen
-    const spawnPts = g.map.spawns.filter((s) => s.team === myTeam).map((s) => v(s.pos.x * TILE, s.pos.y * TILE))
-    desired = spawnPts.length > 0 ? pick(spawnPts) : v((g.map.w / 2) * TILE, (g.map.h / 2) * TILE)
+    // hurt: hide in a bush if one is close, else retreat to spawn to regen
+    const bush = nearestBush(g, me, 9)
+    if (bush) {
+      desired = bush
+    } else {
+      const spawnPts = g.map.spawns.filter((s) => s.team === myTeam).map((s) => v(s.pos.x * TILE, s.pos.y * TILE))
+      desired = spawnPts.length > 0 ? pick(spawnPts) : v((g.map.w / 2) * TILE, (g.map.h / 2) * TILE)
+    }
+  }
+
+  // ambush: hidden in a bush, let the enemy come to us
+  if (me.inBush && me.revealT <= 0 && target && !lowHp) {
+    const td = dist(me.pos, target.pos)
+    if (td > me.attackRange * 0.75 && td < 7 * TILE) {
+      desired = null // stay put, stay hidden
+    }
   }
 
   if (target && aimTarget && !lowHp) {
@@ -347,21 +399,32 @@ function updateShowdownAI(
     // fight if strong or threatened
     const cubes = me.cubes ?? 0
     const hurt = me.hp / me.maxHp < 0.3
+    const visible = enemies.filter((e) => !hiddenFrom(me, e))
     let victim: BrawlerState | null = null
-    for (const e of enemies) {
+    for (const e of visible) {
       const d = dist(me.pos, e.pos)
       if (d < 5 * TILE && (hurt || e.cubes <= cubes + 1) && hasLineOfSight(g.map, me.pos, e.pos)) {
         if (!victim || dist(me.pos, e.pos) < dist(me.pos, victim.pos)) victim = e
       }
     }
     const fleeFrom: BrawlerState[] = []
-    for (const e of enemies) {
+    for (const e of visible) {
       if (dist(me.pos, e.pos) < 5.5 * TILE && (hurt || e.cubes > cubes + 1)) fleeFrom.push(e)
     }
     if (fleeFrom.length > 0) {
       const f = fleeFrom[0]
-      const away = norm(v(me.pos.x - f.pos.x, me.pos.y - f.pos.y))
-      desired = v(me.pos.x + away.x * 6 * TILE, me.pos.y + away.y * 6 * TILE)
+      // hide in a bush when hurt, otherwise run away
+      if (hurt) {
+        const bush = nearestBush(g, me, 8)
+        if (bush) desired = bush
+        else {
+          const away = norm(v(me.pos.x - f.pos.x, me.pos.y - f.pos.y))
+          desired = v(me.pos.x + away.x * 6 * TILE, me.pos.y + away.y * 6 * TILE)
+        }
+      } else {
+        const away = norm(v(me.pos.x - f.pos.x, me.pos.y - f.pos.y))
+        desired = v(me.pos.x + away.x * 6 * TILE, me.pos.y + away.y * 6 * TILE)
+      }
     } else if (victim) {
       const lead = v(victim.pos.x + victim.vel.x * 0.3, victim.pos.y + victim.vel.y * 0.3)
       const a = Math.atan2(lead.y - me.pos.y, lead.x - me.pos.x) + rand(-0.1, 0.1)
@@ -590,6 +653,8 @@ export function dodgeThreat(g: GameState, me: BrawlerState): Vec | null {
     if (e.dead || e.id === me.id) continue
     if (g.mode.id !== 'showdown' && e.team === me.team) continue
     const d = dist(me.pos, e.pos)
+    // can't dodge what we can't see
+    if (hiddenFrom(me, e)) continue
     const eRange = e.attackRange
     if (d > eRange * 1.5) continue
     const toMe = norm(v(me.pos.x - e.pos.x, me.pos.y - e.pos.y))
