@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.local
+*.log
+.DS_Store
+.vite/
+scripts/.uitest/bundle.mjs
+scripts/.uitest/app.mjs
