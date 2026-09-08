@@ -245,5 +245,69 @@ check('a peer leaving does not crash the loop', !byeErr, byeErr ? String(byeErr.
 A.dispose(); B.dispose()
 
 globalThis.performance.now = realNow
+// ── 4. the same duel over the PeerJS transport ─────────────────────────────
+// The wire protocol must not care who introduced the two browsers, so we run
+// the real PeerNet class against a fake broker and play a short duel.
+{
+  const { makePeerWorld } = await import('./net-fakes.mjs')
+  const { Peer } = makePeerWorld()
+  const loadPeer = async () => Peer
+  const { PeerNet } = await import('../src/game/net/PeerNet.js')
+
+  const hostNet = new PeerNet({ loadPeer })
+  const guestNet = new PeerNet({ loadPeer })
+  const room = await hostNet.host('duel42')
+  check('peerjs: the host claims a room name', room === 'DUEL42', room)
+  await guestNet.join('DUEL42')
+  check('peerjs: both ends report open', hostNet.open && guestNet.open, `host ${hostNet.state} / guest ${guestNet.state}`)
+  check('peerjs: a fast channel and a reliable channel on each side',
+    !!hostNet.fast && !!hostNet.reliable && hostNet.fast.reliable === false && hostNet.reliable.reliable === true,
+    `fast reliable=${hostNet.fast?.reliable} control reliable=${hostNet.reliable?.reliable}`)
+  check('peerjs: the host keeps its room-name connection', hostNet.peer?.id === 'qyngun-DUEL42', hostNet.peer?.id)
+
+  const A2 = mk(hostNet, 'host', 'HOST')
+  const B2 = mk(guestNet, 'guest', 'GUEST')
+  place(A2, -7, 0, -Math.PI / 2)
+  place(B2, 7, 0, Math.PI / 2)
+
+  let boom = null
+  let snapErr = 99
+  let sawDamage = false
+  try {
+    for (let i = 0; i < 120 * 10; i++) {
+      now += STEP * 1000
+      for (const g of [A2, B2]) {
+        const IN = g.input
+        IN.mouse.dx = 0
+        if (i % 36 === 0 && g.netState.buf.length > 0) {
+          const foe = g.remote
+          const dd = new THREE.Vector3().subVectors(foe.mv.pos, g.player.mv.pos)
+          g.player.mv.yaw = Math.atan2(-dd.x, -dd.z)
+          g.player.mv.pitch = Math.atan2(dd.y + 1.0 - (g.player.mv.pos.y + g.player.mv.height * 0.92), Math.hypot(dd.x, dd.z))
+        }
+        const live = g.match.phase === 'live' && i > 120
+        IN.mouseButtons[0] = live && (i % 36) < 14
+        IN.mousePressed[0] = live && i % 36 === 0
+        g.fixedStep(STEP)
+        if (i % 4 === 0) g.renderFrame(STEP * 4)   // interpolation lives in the render frame
+      }
+      // measure while both are still standing where we put them
+      if (i > 200 && i < 500) snapErr = Math.min(snapErr, A2.remote.mv.pos.distanceTo(B2.player.mv.pos))
+      if (A2.player.health < 150 || B2.player.health < 150 || A2.match.scoreA + A2.match.scoreB > 0) sawDamage = true
+    }
+  } catch (e) { boom = e }
+
+  check('peerjs: the duel runs without errors', !boom, boom ? boom.message : '')
+  check('peerjs: the hello lands (both ends know who they are shooting)',
+    A2.netState.remoteHello?.name === 'GUEST' && B2.netState.remoteHello?.name === 'HOST',
+    `A sees ${A2.netState.remoteHello?.name} / B sees ${B2.netState.remoteHello?.name}`)
+  check('peerjs: snapshots carry the other player across', snapErr < 2, `${snapErr.toFixed(2)} m off`)
+  check('peerjs: damage crosses the link', sawDamage,
+    `host hp ${Math.round(A2.player.health)} / guest hp ${Math.round(B2.player.health)} score ${A2.match.scoreA}-${A2.match.scoreB}`)
+  check('peerjs: both ends agree on the round clock', A2.match.phase === B2.match.phase,
+    `host ${A2.match.phase} / guest ${B2.match.phase}`)
+  check('peerjs: closing is clean', (() => { hostNet.close(); guestNet.close(); return !hostNet.open && !guestNet.open })(), '')
+}
+
 console.log(`\n${fails === 0 ? 'ALL NETPLAY TESTS PASSED' : `${fails} NETPLAY FAILURE(S)`}  (${passes} checks)`)
 process.exit(fails ? 1 : 0)

@@ -66,6 +66,34 @@ export default function Settings ({ profile, save, onBack }) {
             <option value="hard">HARD</option><option value="qyn">QYN</option>
           </select>
         </div>
+        <div className="h" style={{ marginTop: 26 }}>ONLINE</div>
+        <div className="hint" style={{ marginBottom: 8 }}>
+          EASY CONNECT introduces the two browsers through a broker. Leave these blank to use the
+          public PeerJS one; point them at your own if you run one. ROOM CODE never touches a broker.
+        </div>
+        <div className="set">
+          <label>BROKER HOST</label>
+          <input className="sel" value={s.peerHost || ''} placeholder="public broker"
+            onChange={(e) => set('peerHost', e.target.value.trim())} />
+        </div>
+        {!!s.peerHost && (<>
+          <div className="set">
+            <label>BROKER PORT</label>
+            <input className="sel" type="number" value={s.peerPort ?? 443}
+              onChange={(e) => set('peerPort', parseInt(e.target.value, 10) || 443)} />
+          </div>
+          <div className="set">
+            <label>BROKER PATH</label>
+            <input className="sel" value={s.peerPath || '/'} onChange={(e) => set('peerPath', e.target.value.trim() || '/')} />
+          </div>
+          <Toggle label="BROKER OVER HTTPS" value={s.peerSecure !== false} onChange={(v) => set('peerSecure', v)} />
+          <div className="set">
+            <label>BROKER KEY (OPTIONAL)</label>
+            <input className="sel" value={s.peerKey || ''} placeholder="peerjs"
+              onChange={(e) => set('peerKey', e.target.value.trim())} />
+          </div>
+        </>)}
+
         <div style={{ marginTop: 26, display: 'flex', gap: 12 }}>
           <button className="btn ghost" onClick={() => {
             if (!confirm('Reset all progress, Qyns and unlocks?')) return

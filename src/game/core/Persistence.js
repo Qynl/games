@@ -18,6 +18,8 @@ export const DEFAULT_PROFILE = {
     fov: 95, sensitivity: 1.0, volume: 0.7, sound: true, quality: 'high',
     crosshair: 'dot', showMovement: true, invertY: false, botLevel: 'normal', adaptive: true,
     brightness: 1.0,
+    // blank broker = the public PeerJS broker. Point these at your own if you run one.
+    peerHost: '', peerPort: 443, peerPath: '/', peerSecure: true, peerKey: '',
   },
 }
 
