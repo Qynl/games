@@ -15,8 +15,9 @@ export default function Title ({ profile, onPlay, onArmory, onSkins, onSettings 
           <button className="btn ghost" onClick={() => setHelp(!help)}>{help ? 'CLOSE' : 'MOVEMENT GUIDE'}</button>
         </div>
         <div className="keys">
-          <span><b>WASD</b> MOVE</span><span><b>SHIFT</b> SPRINT</span><span><b>CTRL</b> SLIDE</span>
+          <span><b>WASD</b> MOVE</span><span><b>SHIFT</b> SLIDE</span><span><b>Q</b> DASH</span>
           <span><b>SPACE</b> JUMP</span><span><b>RMB</b> AIM</span><span><b>F</b> UTILITY</span>
+          <span><b>SHIFT</b> IN THE AIR = DIVE</span><span><b>CTRL</b> CROUCH</span>
           <span><b>SPACE</b> AT A WALL = RUN IT</span><span><b>SPACE</b> AGAIN = KICK OFF</span>
         </div>
         {help && (
@@ -33,6 +34,17 @@ export default function Title ({ profile, onPlay, onArmory, onSkins, onSettings 
                 curves your path and <i>gains</i> speed. Holding W does nothing up there.<br />
                 • Downhill sprints and slides accelerate. Uphill bleeds. Slopes are never walls.<br />
                 • Jump is buffered before landing and coyote-timed after leaving a ledge. Both are invisible.<br />
+                • <b style={{ color: 'var(--cy)' }}>DASH (Q):</b> a burst that adds to the speed you
+                already have — 7 m/s on top, and never less than 13. It only partly goes where your keys
+                point, so a dash out of a fast line is worth more than one from a standstill. Works in the
+                air, one charge, recharges in three seconds. The <i>DASH CHARGE</i> gear gives you two and
+                makes each one harder.<br />
+                • <b style={{ color: 'var(--cy)' }}>DIVE (SHIFT IN THE AIR):</b> you commit to the ground —
+                down at 9.5 m/s and 13% faster forward, with more air control to steer it. Land one and the
+                fall speed is paid back as forward speed, so a dive is a way to <i>buy</i> pace. One per
+                jump. Hold SHIFT through the landing and you slide straight out of it.<br />
+                • <b style={{ color: 'var(--cy)' }}>SPRINT IS AUTOMATIC</b> while you push forward — Shift
+                belongs to the slide now. Turn it off in Settings and sprint moves to <b>E</b>.<br />
                 • <b style={{ color: 'var(--cy)' }}>WALL RUN:</b> hit a wall in the air while moving along it fast
                 and you stick to it — gravity nearly lets go for about a second, and your speed survives.
                 Jump again to kick off it, twice per jump.<br />

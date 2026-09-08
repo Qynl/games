@@ -17,6 +17,7 @@ import { MSG, FLAG } from '../net/Net.js'
 
 const STEP = 1 / 120
 const TEAM_COLORS = { a: 0x6ee7ff, b: 0xff8a3d }
+const _dash = new THREE.Vector3()
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v)
 const _netA = new THREE.Vector3()
@@ -33,7 +34,7 @@ class Fighter {
     this.name = opts.name
     this.isBot = !!opts.isBot
     this.mv = new MovementController(game.world.physics)
-    this.input = { forward: 0, right: 0, jump: false, crouch: false, sprint: false, jumpPressed: false, crouchPressed: false }
+    this.input = { forward: 0, right: 0, jump: false, crouch: false, slide: false, sprint: false, jumpPressed: false, crouchPressed: false, slidePressed: false, dashPressed: false }
     this.maxHealth = ROUND_HP
     this.health = ROUND_HP
     this.alive = true
@@ -45,7 +46,13 @@ class Fighter {
       secondary: new Weapon(this.loadout.secondary, this.skin),
       melee: new Weapon(this.loadout.melee, this.skin),
     }
+    // the dash is everyone's: one charge, and the DASH CHARGE gear makes it two
+    this.dashMax = 1
+    this.dashCharges = 1
+    this.dashCd = 0
+    this.dashCdMax = 3.2
     this.utility = new UtilitySlot(this.loadout.utility)
+    this.syncDashGear()
     this.slot = 'primary'
     this.prevSlot = 'secondary'
     this.wantFire = false
@@ -68,6 +75,23 @@ class Fighter {
     game.world.scene.add(this.model)
     this.radius = 0.42
     this.ping = rollPing()
+  }
+
+  // Equipping DASH CHARGE does not give you a button — it makes the button
+  // better: an extra charge, a faster recharge, and a harder shove.
+  syncDashGear () {
+    const st = this.utility?.def?.stats
+    const geared = !!st && st.type === 'self' && st.impulse > 0
+    this.dashGear = geared
+    this.dashMax = geared ? 2 : 1
+    this.dashCdMax = geared ? 2.4 : 3.2
+    this.dashCharges = this.dashMax
+    this.dashCd = 0
+  }
+
+  refillDash () {
+    this.dashCharges = this.dashMax
+    this.dashCd = 0
   }
 
   get weapon () { return this.weapons[this.slot] }
@@ -128,6 +152,7 @@ class Fighter {
     this.slot = 'primary'
     for (const k of ['primary', 'secondary', 'melee']) this.weapons[k].reset(true)
     this.utility.reset()
+    this.refillDash()
     this.hook = null
   }
 
@@ -324,6 +349,7 @@ export class Game {
     f.weapons.secondary = new Weapon(loadout.secondary, this.skin)
     f.weapons.melee = new Weapon(loadout.melee, this.skin)
     f.utility = new UtilitySlot(loadout.utility)
+    f.syncDashGear()
     f.slot = 'primary'
     this.buildViewModelFor('primary')
   }
@@ -532,11 +558,24 @@ export class Game {
     f.hitFlash = Math.max(0, f.hitFlash - dt * 3)
     f.switchTimer = Math.max(0, f.switchTimer - dt)
     f.mv.speedMult = f.speedMul
+    // dash charges tick back one at a time
+    if (f.dashCharges < f.dashMax) {
+      f.dashCd -= dt
+      if (f.dashCd <= 0) {
+        f.dashCharges++
+        f.dashCd = f.dashCharges < f.dashMax ? f.dashCdMax : 0
+      }
+    }
 
     if (f === this.player) this.readPlayerInput(f, dt, live)
     else f.wantFirePressed = f.wantFire && !f._prevFire
     f._prevFire = f.wantFire
 
+    if (f.wantDash || f.input.dashPressed) {
+      f.wantDash = false
+      f.input.dashPressed = false
+      this.tryDash(f, live || this.mode.id === 'range')
+    }
     const canAct = live || this.mode.id === 'range'
     const w = f.weapon
     w.update(dt, {
@@ -602,6 +641,18 @@ export class Game {
         this.vfx.particle(_fx, _fxv, 0xd7e2ee, 0.11 + hard * 0.07, 0.45 + hard * 0.4, 6, 2.2)
       }
     }
+    // the dive starts with a rush of air you can see go past you
+    if (f.mv.diving && !f._wasDiving) {
+      this.audio.dive()
+      for (let i = 0; i < 9; i++) {
+        const a = Math.random() * Math.PI * 2
+        const rad = 0.2 + Math.random() * 0.5
+        _fx.set(f.mv.pos.x + Math.cos(a) * rad, f.mv.pos.y + 0.2 + Math.random() * 1.3, f.mv.pos.z + Math.sin(a) * rad)
+        _fxv.set(Math.cos(a) * 0.6, 3.4 + Math.random() * 2.6, Math.sin(a) * 0.6)
+        this.vfx.particle(_fx, _fxv, 0xbfe9ff, 0.1, 0.42, 3, 0.6)
+      }
+    }
+    f._wasDiving = f.mv.diving
     this.groundFx(f, dt)
     // footsteps
     if (f.mv.grounded && f.mv.horizontalSpeed > 1.5) {
@@ -647,6 +698,8 @@ export class Game {
     f.input.sprint = m.sprint
     f.input.jumpPressed = m.jumpPressed
     f.input.crouchPressed = m.crouchPressed
+    f.input.slide = m.slide
+    f.input.slidePressed = m.slidePressed
     f.input.mouseDx = inp.mouse.dx
 
     f.wantFire = inp.mouseButtons[0] && live
@@ -655,11 +708,12 @@ export class Game {
     f.wantFireReleased = false
     f.wantFireHeld = inp.mouseButtons[0]
 
+    if (inp.hit('KeyQ')) f.wantDash = true          // the dash lives on Q
     if (inp.hit('KeyR')) f.requestReload = true
     if (inp.hit('Digit1')) this.switchSlot('primary')
     if (inp.hit('Digit2')) this.switchSlot('secondary')
     if (inp.hit('Digit3')) this.switchSlot('melee')
-    if (inp.hit('KeyQ')) this.switchSlot(f.prevSlot)
+    if (inp.hit('KeyX')) this.switchSlot(f.prevSlot)   // Q is the dash now
     if (inp.hit('KeyF') || inp.hit('KeyG')) this.useUtility(f)
     if (inp.wheel) {
       const order = ['primary', 'secondary', 'melee']
@@ -680,6 +734,50 @@ export class Game {
     f.switchTimer = 0.32
     f.weapons[f.prevSlot].cancelReload()
     if (f === this.player) { this.buildViewModelFor(slot); this.audio.beep() }
+  }
+
+  // ── the dash (Q) ──────────────────────────────────────────────────────────
+  // Everyone has one. It adds to the speed you already have, only partly goes
+  // where your keys point, and works in the air — so it is a way to spend
+  // momentum well rather than a get-out-of-jail card.
+  dashDir (f, out) {
+    const yaw = f.mv.yaw
+    const fx = -Math.sin(yaw), fz = -Math.cos(yaw)
+    const rx = Math.cos(yaw), rz = -Math.sin(yaw)
+    let dx = fx * (f.input.forward || 0) + rx * (f.input.right || 0)
+    let dz = fz * (f.input.forward || 0) + rz * (f.input.right || 0)
+    let l = Math.hypot(dx, dz)
+    if (l < 0.01) { dx = fx; dz = fz; l = 1 }
+    out.set(dx / l, 0, dz / l)
+    return out
+  }
+
+  tryDash (f, allowed) {
+    if (!allowed || !f.alive || f.mv.dashWindow > 0) return false
+    if (f.dashCharges <= 0) {
+      if (f === this.player) this.audio.ui(false)
+      return false
+    }
+    const dir = this.dashDir(f, _dash)
+    let impulse = TUNE.dashImpulse
+    let floor = TUNE.dashFloor
+    // DASH CHARGE gear: a harder shove, and it does not cost your charge
+    if (f.dashGear && f.utility && f.utility.canUse()) {
+      impulse *= 1.45
+      floor += 2.2
+      f.utility.consume()
+    }
+    f.mv.dash(dir.x, dir.z, impulse, floor)
+    if (f.mv.grounded) f.mv.vel.y = Math.max(f.mv.vel.y, 2.2)
+    f.dashCharges--
+    if (f.dashCd <= 0) f.dashCd = f.dashCdMax
+    if (f.mv.sliding) f.mv.endSlide()
+    this.vfx.burst(new THREE.Vector3(f.mv.pos.x, f.mv.pos.y + 0.9, f.mv.pos.z),
+      14, f.dashGear ? 0xffd166 : 0x6ee7ff, 5, 0.1, 0.45, 9)
+    this.audio.dash()
+    if (f === this.player) this.emit('dash', { charges: f.dashCharges, max: f.dashMax })
+    else if (this.net && this.netRole === 'host') this.netSay(MSG.fx('dash', f.mv.pos.x, f.mv.pos.y, f.mv.pos.z))
+    return true
   }
 
   useUtility (f) {
@@ -804,6 +902,7 @@ export class Game {
       if (f.wantFire) flags |= FLAG.firing
       if (f.weapon.reloading) flags |= FLAG.reloading
       if (f.mv.wallRunning) flags |= FLAG.wall
+      if (f.mv.diving) flags |= FLAG.diving
       const snap = MSG.snapshot(performance.now(), f.mv, flags, f.health, f.slot, f.weapon.isMelee ? 0 : f.weapon.ammo)
       st.recent.push(snap)
       if (st.recent.length > 3) st.recent.shift()
@@ -877,6 +976,7 @@ export class Game {
           this.world.scene.add(r.model)
           for (const k of ['primary', 'secondary', 'melee']) r.weapons[k] = new Weapon(r.loadout[k], r.skin)
           r.utility = new UtilitySlot(r.loadout.utility)
+          r.syncDashGear()
         }
         this.banner('CONNECTED — ' + m[1], 'good', 2)
         break
@@ -942,6 +1042,10 @@ export class Game {
         this.match.round = round
         break
       }
+      case 'e': {   // a peer's movement tell — you see the dash, not just the result
+        if (m[1] === 'dash') this.vfx.burst(new THREE.Vector3(m[2], m[3] + 0.9, m[4]), 12, 0x6ee7ff, 5, 0.1, 0.45, 9)
+        break
+      }
       case 'x':
         this.banner('THE OTHER PLAYER LEFT', 'bad', 2.4)
         this.emit('peerleft', {})
@@ -985,6 +1089,7 @@ export class Game {
     r.mv.crouching = !!(b.flags & FLAG.crouching)
     r.mv.sprinting = !!(b.flags & FLAG.sprinting)
     r.mv.wallRunning = !!(b.flags & FLAG.wall)
+    r.mv.diving = !!(b.flags & FLAG.diving)
     const wasAlive = r.alive
     r.alive = !!(b.flags & FLAG.alive)
     r.health = b.hp
@@ -1714,6 +1819,8 @@ export class Game {
       killHit: this.killHit,
       onTarget,
       crosshair: this.settings.crosshair || 'cross',
+      dash: { charges: f.dashCharges, max: f.dashMax, cd: f.dashCd, cdMax: f.dashCdMax, gear: !!f.dashGear },
+      diving: f.mv.diving,
       headshot: this.lastHitWasHead,
       damageFlash: this.damageFlash,
       flashTime: f.flashTime,

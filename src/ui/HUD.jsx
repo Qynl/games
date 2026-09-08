@@ -17,7 +17,7 @@ export default function HUD ({ hud, paused, needsLock, onResume, onQuit, showMv,
       <div className="vig" />
       {/* ── speed: the faster you go, the more the world streaks ── */}
       {hud.speed > 10 && (
-        <div className={`speedlines ${hud.wallRunning ? 'wall' : ''} ${hud.sliding ? 'slide' : ''}`}
+        <div className={`speedlines ${hud.wallRunning ? 'wall' : ''} ${hud.sliding ? 'slide' : ''} ${hud.diving ? 'dive' : ''}`}
           style={{ opacity: Math.min(1, (hud.speed - 10) / 8) }} />
       )}
 
@@ -110,6 +110,21 @@ export default function HUD ({ hud, paused, needsLock, onResume, onQuit, showMv,
       <div className="panel util">
         [F] {hud.utility?.name} <b>×{hud.utility?.uses}</b>
       </div>
+      {hud.dash && (
+        <div className={`panel dashp ${hud.dash.charges > 0 ? '' : 'dry'}`}>
+          <div className="lbl">[Q] DASH{hud.dash.gear ? ' +' : ''}</div>
+          <div className="pips">
+            {Array.from({ length: hud.dash.max }, (_, i) => (
+              <i key={i} className={i < hud.dash.charges ? 'on' : ''} />
+            ))}
+          </div>
+          {hud.dash.charges < hud.dash.max && (
+            <div className="reload" style={{ position: 'static', marginTop: 5, width: '100%' }}>
+              <i style={{ width: (1 - hud.dash.cd / hud.dash.cdMax) * 100 + '%' }} />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── momentum damage ───────────────────────────────────────── */}
       {spd > 5 && (
@@ -204,7 +219,7 @@ export default function HUD ({ hud, paused, needsLock, onResume, onQuit, showMv,
           )}
           <div className="hint" style={{ textAlign: 'center', maxWidth: 460, marginBottom: 10 }}>
             <span className="kbd">W</span><span className="kbd">A</span><span className="kbd">S</span><span className="kbd">D</span> move
-            · <span className="kbd">SHIFT</span> sprint · <span className="kbd">CTRL</span> slide/crouch
+            · <span className="kbd">SHIFT</span> slide / dive · <span className="kbd">Q</span> dash · <span className="kbd">CTRL</span> crouch
             · <span className="kbd">SPACE</span> jump · <span className="kbd">RMB</span> aim
             · <span className="kbd">F</span> utility · <span className="kbd">1</span><span className="kbd">2</span><span className="kbd">3</span> weapons
             · <span className="kbd">R</span> reload

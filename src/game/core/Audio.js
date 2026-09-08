@@ -102,6 +102,21 @@ export class AudioKit {
   ui (up = true) { this.enabled && this._tone(up ? 720 : 420, 0.05, 0.1, 'triangle', up ? 180 : -120) }
   beep () { this.enabled && this._tone(880, 0.08, 0.12, 'square') }
   hurt () { this.enabled && this._noiseBurst(0.2, 500, 0.7, 0.3, 'bandpass') }
+  dash () {
+    if (!this.enabled) return
+    // a short rising whoosh — the sound of speed arriving on purpose
+    this._noiseBurst(0.22, 1500, 0.7, 0.22, 'bandpass')
+    this._tone(300, 0.16, 0.1, 'sine', 280)
+    this._tone(620, 0.1, 0.07, 'sine', 120)
+  }
+
+  dive () {
+    if (!this.enabled) return
+    // air tearing past — a dive announces itself
+    this._noiseBurst(0.34, 900, 0.55, 0.2, 'bandpass')
+    this._tone(520, 0.3, 0.06, 'sine', -300)
+  }
+
   roundWin () { this.enabled && [523, 659, 784].forEach((f, i) => setTimeout(() => this._tone(f, 0.18, 0.16, 'triangle'), i * 90)) }
   roundLose () { this.enabled && [392, 330, 262].forEach((f, i) => setTimeout(() => this._tone(f, 0.22, 0.14, 'sawtooth'), i * 110)) }
 }

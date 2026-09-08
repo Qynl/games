@@ -19,7 +19,8 @@ function makeWorld () {
 }
 
 function mkInput () {
-  return { forward: 0, right: 0, jump: false, crouch: false, sprint: false, jumpPressed: false, crouchPressed: false, mouseDx: 0 }
+  return { forward: 0, right: 0, jump: false, crouch: false, slide: false, sprint: false,
+    jumpPressed: false, crouchPressed: false, slidePressed: false, dashPressed: false, mouseDx: 0 }
 }
 
 class Sim {
@@ -37,6 +38,8 @@ class Sim {
       this.m.step(DT, this.input)
       this.input.jumpPressed = false
       this.input.crouchPressed = false
+      this.input.slidePressed = false
+      this.input.dashPressed = false
     }
     return this
   }
@@ -340,6 +343,150 @@ function timeToLand (s) {
   })
   check('12 MANTLE: does not scale tall walls', !mantled2 && s2.m.pos.y < 1.0, `y=${s2.m.pos.y.toFixed(2)}`)
 }
+
+// ── 14. THE DIVE: SHIFT with no floor under you ────────────────────────────
+{
+  const s = new Sim()
+  s.hold('forward', 1); s.hold('sprint', true)
+  s.run(1.8)
+  const before = s.hs()
+  s.press('jump')
+  s.step(20)
+  const vy0 = s.m.vel.y
+  s.input.slidePressed = true
+  s.step(1)
+  check('14 DIVE: SHIFT in the air starts a dive', s.m.diving === true, `diving=${s.m.diving}`)
+  check('14 DIVE: it throws you down, hard', s.m.vel.y < vy0 - 8, `${vy0.toFixed(1)} → ${s.m.vel.y.toFixed(1)} m/s`)
+  check('14 DIVE: and forward faster than you went in', s.hs() > before * 1.05, `${before.toFixed(2)} → ${s.hs().toFixed(2)} m/s`)
+  check('14 DIVE: you go small (harder to hit)', s.m.targetHeight <= 1.0, `height target ${s.m.targetHeight}`)
+
+  // one per jump: a second press must not kick again
+  const vy1 = s.m.vel.y
+  s.input.slidePressed = true
+  s.step(1)
+  check('14 DIVE: only one dive per jump', s.m.vel.y >= vy1 - 0.6, `${vy1.toFixed(1)} → ${s.m.vel.y.toFixed(1)}`)
+
+  // and it pays the fall back as forward speed
+  let landed = null
+  s.hold('slide', true)
+  s.run(2.5, () => { if (!landed && s.m.events.some((e) => e.type === 'diveLand')) landed = s.hs() })
+  check('14 DIVE: landing pays the fall back as speed', landed !== null && landed > before,
+    `in ${before.toFixed(2)} → out ${landed === null ? 'never landed' : landed.toFixed(2)} m/s`)
+
+  // steering: you can aim a dive, not just fall in it
+  const s2 = new Sim()
+  s2.hold('forward', 1); s2.hold('sprint', true); s2.run(1.8)
+  s2.press('jump'); s2.step(16)
+  s2.input.slidePressed = true; s2.step(1)
+  const yaw0 = s2.m.vel.x
+  s2.hold('right', 1); s2.input.mouseDx = 14
+  s2.step(30)
+  check('14 DIVE: you can steer it (it is not a cutscene)', Math.abs(s2.m.vel.x - yaw0) > 1.5,
+    `vx ${yaw0.toFixed(2)} → ${s2.m.vel.x.toFixed(2)}`)
+}
+
+// ── 15. DIVE → LAND → SLIDE (hold the key through the landing) ─────────────
+{
+  const s = new Sim()
+  s.hold('forward', 1); s.hold('sprint', true); s.run(1.8)
+  s.press('jump'); s.step(18)
+  s.hold('slide', true); s.input.slidePressed = true; s.step(1)
+  s.run(2.2, () => { s.input.mouseDx = 0 })
+  check('15 DIVE → LAND → SLIDE chains', s.m.tracker.done[15] === true, JSON.stringify(Object.keys(s.m.tracker.done)))
+  check('15 the slide is real (not just a crouch)', s.hs() > 4, `${s.hs().toFixed(2)} m/s`)
+}
+
+// ── 16. THE DASH (Q) ───────────────────────────────────────────────────────
+{
+  const from = (speedTarget) => {
+    const s = new Sim()
+    s.hold('forward', 1); s.hold('sprint', true); s.run(speedTarget ? 2.2 : 0)
+    return s
+  }
+  // a standing dash is worth at least the floor
+  const still = from(false)
+  still.m.dash(-0, -1, TUNE.dashImpulse, TUNE.dashFloor)
+  check('16 DASH: from a standstill it still gets you going', still.hs() >= TUNE.dashFloor - 0.1,
+    `${still.hs().toFixed(2)} m/s (floor ${TUNE.dashFloor})`)
+
+  // a moving dash ADDS to what you have — this is the whole point
+  const moving = from(true)
+  const pre = moving.hs()
+  moving.m.dash(0, -1, TUNE.dashImpulse, TUNE.dashFloor)
+  check('16 DASH: it adds to the speed you already earned', moving.hs() > pre + TUNE.dashImpulse - 0.2,
+    `${pre.toFixed(2)} → ${moving.hs().toFixed(2)} m/s`)
+
+  // and friction does not eat it immediately
+  const kept = (() => { moving.step(Math.round(0.16 / DT)); return moving.hs() })()
+  check('16 DASH: the burst survives friction for a beat', kept > pre + TUNE.dashImpulse * 0.6,
+    `${kept.toFixed(2)} m/s after 0.16 s`)
+
+  // chaining: dash, keep running, dash again
+  const s3 = from(true)
+  s3.m.dash(0, -1, TUNE.dashImpulse, TUNE.dashFloor)
+  const one = s3.hs()
+  s3.m.dashWindow = 0
+  s3.m.dash(0, -1, TUNE.dashImpulse, TUNE.dashFloor)
+  check('16 DASH: two dashes stack (and stay inside the cap)', s3.hs() > one && s3.hs() <= TUNE.dashMax + 0.01,
+    `${one.toFixed(2)} → ${s3.hs().toFixed(2)} (cap ${TUNE.dashMax})`)
+
+  // direction: mostly yours, but not entirely — momentum still argues
+  const s4 = from(true)
+  s4.m.dash(1, 0, TUNE.dashImpulse, TUNE.dashFloor)     // dash hard right while running forward (-Z)
+  check('16 DASH: your keys steer most of it', Math.abs(s4.m.vel.x) > s4.hs() * 0.4,
+    `vx ${s4.m.vel.x.toFixed(2)} of ${s4.hs().toFixed(2)}`)
+  check('16 DASH: but not all of it — the old heading survives', s4.m.vel.z < -2,
+    `vz ${s4.m.vel.z.toFixed(2)}`)
+
+  // in the air a dash keeps your fall — it is a redirect, not a lift
+  const s5 = new Sim()
+  s5.hold('forward', 1); s5.hold('sprint', true); s5.run(1.6)
+  s5.press('jump'); s5.step(10)
+  const vy = s5.m.vel.y
+  s5.m.dash(0, -1, TUNE.dashImpulse, TUNE.dashFloor)
+  check('16 DASH: in the air it redirects without lifting you', s5.m.vel.y <= vy + 0.001 && s5.hs() > 12,
+    `vy ${vy.toFixed(2)} → ${s5.m.vel.y.toFixed(2)}, hs ${s5.hs().toFixed(2)}`)
+}
+
+
+// ── 17. THE WHOLE CHAIN, with the new tools in it ──────────────────────────
+{
+  const s = new Sim()
+  s.hold('forward', 1); s.hold('sprint', true)
+  s.run(2.2)
+  const vSprint = s.hs()
+
+  s.press('crouch'); s.hold('crouch', true)
+  s.step(26)
+  const vSlide = s.hs()
+
+  s.release('crouch')
+  s.press('jump'); s.hold('jump', true)
+  s.step(30)
+  s.release('jump')
+  const vJump = s.hs()
+
+  s.input.slidePressed = true
+  s.step(1)
+  const vDive = s.hs()
+
+  s.m.dash(0, -1, TUNE.dashImpulse, TUNE.dashFloor)
+  const vDash = s.hs()
+
+  s.hold('slide', true)
+  let vLand = 0
+  s.run(2.4, () => { if (s.m.grounded && !vLand) vLand = s.hs() })
+
+  const steps = [['sprint', vSprint], ['slide', vSlide], ['jump', vJump], ['dive', vDive], ['dash', vDash], ['land', vLand]]
+  const line = steps.map(([k, v]) => `${k} ${v.toFixed(1)}`).join(' → ')
+  check('17 FULL CHAIN: no link throws speed away',
+    vSlide > vSprint && vJump >= vSlide - 0.2 && vDive > vJump && vDash > vDive, line)
+  check('17 FULL CHAIN: you arrive at real speed', vLand > 13, `landed at ${vLand.toFixed(2)} m/s`)
+  // the dive ceiling caps the landing; the slide that follows adds its own boost
+  check('17 FULL CHAIN: it is earned, not free', vLand <= TUNE.diveLandCeil + TUNE.slideBoost + 0.01,
+    `${vLand.toFixed(2)} m/s (dive ceiling ${TUNE.diveLandCeil} + slide ${TUNE.slideBoost})`)
+}
+
 
 let pass = 0
 for (const r of results) {

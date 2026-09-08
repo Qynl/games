@@ -35,6 +35,7 @@ export class Bot {
     this.aimPitch = 0
     this.stuckTimer = 0
     this.hop = -1        // game-time slide-hop timer (never a wall-clock timeout)
+    this.dashCd = 3 + Math.random() * 5
   }
 
   pickTarget (game) {
@@ -154,6 +155,30 @@ export class Bot {
       inp.right = this.strafeDir * 1.0
       inp.forward = Math.max(inp.forward, 0.4)
       if (this.jumpCd <= 0 && Math.random() < 0.4) { inp.jump = true; inp.jumpPressed = true; this.jumpCd = 1.1 }
+    }
+
+    // ── the dive: closing from above, or dropping onto a head ─────────────
+    if (!f.mv.grounded && !f.mv.wallRunning && !f.mv.diving && !f.mv.diveUsed &&
+        this.d.hp >= 0 && dist > 5 && f.mv.pos.y > t.mv.pos.y + 1.4 && this.hop <= 0) {
+      inp.slide = true
+      inp.slidePressed = true
+      inp.crouchPressed = true
+    }
+
+    // ── the dash: a charge spent on closing, escaping or crossing ──────────
+    this.dashCd -= dt
+    if (f.dashCharges > 0 && f.mv.dashWindow <= 0 && this.dashCd <= 0 && f.switchTimer <= 0) {
+      const hurt = f.health < f.maxHealth * 0.5
+      const chase = (dist > 11 && los) || (dist > 7 && dist < 30 && !los)
+      const flee = hurt && dist < 26
+      const crossing = !f.mv.grounded && Math.abs(f.mv.vel.y) < 3 && dist < 34
+      if (chase || flee || crossing) {
+        // escape dashes go sideways, chase dashes go in, never straight at a wall
+        if (flee) { inp.right = -this.strafeDir; inp.forward = -0.4 }
+        else if (!fa || fa.dist > 3) inp.forward = 1
+        inp.dashPressed = true
+        this.dashCd = 3.5 + Math.random() * 5
+      }
     }
 
     // flair: bots slide-hop when closing at speed

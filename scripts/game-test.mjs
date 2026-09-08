@@ -89,12 +89,11 @@ for (const mode of MODES.filter((m) => m.id !== 'p2p')) {   // p2p needs a live 
   try {
     for (let i = 0; i < 120 * 45; i++) {          // 45 simulated seconds
       const t = i * STEP
-      K.KeyW = true
-      K.ShiftLeft = true
+      K.KeyW = true                                  // sprint is automatic now
       K.KeyD = Math.sin(t * 1.1) > 0
       K.KeyA = !K.KeyD
       K.Space = (i % 200) < 4
-      K.ControlLeft = (i % 170) < 45
+      K.ControlLeft = (i % 170) < 45                 // crouch
       // aim like a person: re-acquire between bursts, then ride the recoil
       if (i % 36 === 0) live = g.fighters.find((f) => f.alive && f.team !== player.team) || null
       const aimAt = (target) => {
@@ -108,7 +107,8 @@ for (const mode of MODES.filter((m) => m.id !== 'p2p')) {   // p2p needs a live 
       IN.mouseButtons[0] = (i % 36) < 14
       IN.mouseButtons[2] = (i % 320) < 90
       if (i % 200 === 0) IN.pressed.Space = true
-      if (i % 170 === 0) IN.pressed.ControlLeft = true
+      if (i % 170 === 0) IN.pressed.ShiftLeft = true      // slide
+      if (i % 260 === 0) IN.pressed.KeyQ = true           // dash
       if (i % 14 === 0) IN.pressed.__f = true
       IN.mousePressed[0] = (i % 36) === 0
       if (player.weapon.ammo === 0) IN.pressed.KeyR = true
@@ -280,8 +280,8 @@ for (const mode of MODES.filter((m) => m.id !== 'p2p')) {   // p2p needs a live 
         IN.keys.KeyA = rnd() < 0.35
         IN.keys.KeyS = rnd() < 0.2
         IN.keys.KeyD = rnd() < 0.35
-        IN.keys.ShiftLeft = rnd() < 0.6
-        IN.keys.ControlLeft = rnd() < 0.25
+        IN.keys.ShiftLeft = rnd() < 0.3          // slide / dive
+        IN.keys.ControlLeft = rnd() < 0.25       // crouch
         IN.keys.Space = rnd() < 0.25
         IN.pressed.Space = rnd() < 0.06
         IN.pressed.ControlLeft = rnd() < 0.05
@@ -295,6 +295,8 @@ for (const mode of MODES.filter((m) => m.id !== 'p2p')) {   // p2p needs a live 
         if (rnd() < 0.008) IN.pressed.Digit3 = true
         if (rnd() < 0.006) IN.pressed.KeyR = true
         if (rnd() < 0.005) IN.pressed.KeyF = true
+        if (rnd() < 0.02) IN.pressed.KeyQ = true
+        if (rnd() < 0.03) IN.pressed.ShiftLeft = true
         g.fixedStep(STEP)
         if (i % 4 === 0) g.renderFrame(STEP * 4)
         for (const f of g.fighters) {
@@ -411,8 +413,8 @@ for (const mode of MODES.filter((m) => m.id !== 'p2p')) {   // p2p needs a live 
     IN.keys.KeyW = true
     IN.keys.Space = i % 40 === 0
     IN.pressed.Space = i % 40 === 0
-    IN.keys.ShiftLeft = true
-    IN.pressed.ControlLeft = i % 220 === 0
+    IN.pressed.ShiftLeft = i % 220 === 0     // slide on the ground, dive in the air
+    IN.pressed.KeyQ = i % 300 === 0          // dash
     IN.mouse.dx = Math.sin(i / 30) * 26
     IN.mouse.dy = Math.cos(i / 51) * 9
     IN.mouseButtons[0] = i % 8 < 4
@@ -431,6 +433,114 @@ for (const mode of MODES.filter((m) => m.id !== 'p2p')) {   // p2p needs a live 
   g.dispose()
 }
 
+// ── the dash through the real game: Q, charges, the gear upgrade ───────────
+{
+  const g = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
+  g.load({ mapId: 'yard', modeId: 'range', loadout: { primary: 'vex9', secondary: 'q1', melee: 'knife', utility: 'frag' }, skin: SKINS[0] })
+  const p = g.player
+  p.mv.yaw = -Math.PI / 2       // the firing line faces a wall; face open ground
+  g.input.keys.KeyW = true
+  for (let i = 0; i < 240; i++) g.fixedStep(STEP)      // up to sprint speed
+  const cruise = p.mv.horizontalSpeed
+  check('dash: you start with one charge', p.dashCharges === 1 && p.dashMax === 1, `${p.dashCharges}/${p.dashMax}`)
+
+  g.input.pressed.KeyQ = true
+  g.fixedStep(STEP)
+  g.input.pressed.KeyQ = false
+  check('dash: Q dashes', p.mv.horizontalSpeed > cruise + 6, `${cruise.toFixed(2)} → ${p.mv.horizontalSpeed.toFixed(2)} m/s`)
+  check('dash: it costs the charge', p.dashCharges === 0, `${p.dashCharges} left`)
+
+  const empty = p.mv.horizontalSpeed
+  for (let i = 0; i < 30; i++) g.fixedStep(STEP)
+  g.input.pressed.KeyQ = true
+  g.fixedStep(STEP)
+  g.input.pressed.KeyQ = false
+  check('dash: an empty charge does nothing', p.mv.horizontalSpeed < empty && p.dashCharges === 0,
+    `${p.mv.horizontalSpeed.toFixed(2)} m/s, ${p.dashCharges} charges`)
+
+  for (let i = 0; i < 120 * 4; i++) g.fixedStep(STEP)
+  check('dash: the charge comes back', p.dashCharges === 1, `${p.dashCharges} after 4 s`)
+  g.dispose()
+
+  // the DASH CHARGE gear: two charges, faster recharge, harder shove
+  const g2 = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
+  g2.load({ mapId: 'yard', modeId: 'range', loadout: { primary: 'vex9', secondary: 'q1', melee: 'knife', utility: 'dash' }, skin: SKINS[0] })
+  const p2 = g2.player
+  p2.mv.yaw = -Math.PI / 2
+  g2.input.keys.KeyW = true
+  for (let i = 0; i < 240; i++) g2.fixedStep(STEP)
+  const cruise2 = p2.mv.horizontalSpeed
+  check('dash gear: two charges and a faster recharge', p2.dashMax === 2 && p2.dashCdMax < 3.2,
+    `${p2.dashMax} charges, ${p2.dashCdMax}s`)
+  g2.input.pressed.KeyQ = true
+  g2.fixedStep(STEP)
+  g2.input.pressed.KeyQ = false
+  const geared = p2.mv.horizontalSpeed
+  check('dash gear: a harder shove', geared > cruise2 + 10, `${cruise2.toFixed(2)} → ${geared.toFixed(2)} m/s`)
+  check('dash gear: costs a gear use, not the charge', p2.dashCharges === 1 && p2.utility.uses === 1,
+    `${p2.dashCharges} charges, ${p2.utility.uses} uses`)
+  g2.input.pressed.KeyQ = true          // straight away: the burst is still live
+  g2.fixedStep(STEP)
+  g2.input.pressed.KeyQ = false
+  check('dash: you cannot spend two charges in one burst', p2.dashCharges === 1, `${p2.dashCharges} charges`)
+  for (let i = 0; i < 40; i++) g2.fixedStep(STEP)
+  g2.input.pressed.KeyQ = true
+  g2.fixedStep(STEP)
+  g2.input.pressed.KeyQ = false
+  check('dash gear: the second charge is there', p2.dashCharges === 0 && p2.mv.horizontalSpeed > 10,
+    `${p2.dashCharges} charges, ${p2.mv.horizontalSpeed.toFixed(2)} m/s`)
+  g2.dispose()
+}
+
+// ── the dive through the real game ─────────────────────────────────────────
+{
+  const g = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
+  g.load({ mapId: 'yard', modeId: 'range', loadout: { primary: 'vex9', secondary: 'q1', melee: 'knife', utility: 'frag' }, skin: SKINS[0] })
+  const p = g.player
+  p.mv.yaw = -Math.PI / 2
+  g.input.keys.KeyW = true
+  for (let i = 0; i < 240; i++) g.fixedStep(STEP)
+  g.input.pressed.Space = true
+  g.input.keys.Space = true
+  g.fixedStep(STEP)
+  g.input.pressed.Space = false
+  for (let i = 0; i < 30; i++) g.fixedStep(STEP)   // hold the jump: no jump-cut
+  g.input.keys.Space = false
+  const airborne = p.mv.horizontalSpeed
+  g.input.pressed.ShiftLeft = true
+  g.fixedStep(STEP)
+  g.input.pressed.ShiftLeft = false
+  check('dive: SHIFT in the air dives', p.mv.diving === true && p.mv.vel.y < -6,
+    `vy ${p.mv.vel.y.toFixed(1)}, diving=${p.mv.diving}`)
+  let peak = 0
+  for (let i = 0; i < 200 && !p.mv.grounded; i++) { g.fixedStep(STEP); peak = Math.max(peak, -p.mv.vel.y) }
+  const landed = p.mv.horizontalSpeed
+  g.dispose()
+
+  // the same jump, no dive — the dive has to be measurably faster on the way down
+  const g2 = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
+  g2.load({ mapId: 'yard', modeId: 'range', loadout: { primary: 'vex9', secondary: 'q1', melee: 'knife', utility: 'frag' }, skin: SKINS[0] })
+  const p2 = g2.player
+  p2.mv.yaw = -Math.PI / 2
+  g2.input.keys.KeyW = true
+  for (let i = 0; i < 240; i++) g2.fixedStep(STEP)
+  g2.input.pressed.Space = true
+  g2.input.keys.Space = true
+  g2.fixedStep(STEP)
+  g2.input.pressed.Space = false
+  for (let i = 0; i < 30; i++) g2.fixedStep(STEP)
+  g2.input.keys.Space = false
+  let plainPeak = 0
+  for (let i = 0; i < 200 && !p2.mv.grounded; i++) { g2.fixedStep(STEP); plainPeak = Math.max(plainPeak, -p2.mv.vel.y) }
+  check('dive: you fall a lot faster than just falling', peak > plainPeak * 1.25,
+    `${plainPeak.toFixed(1)} → ${peak.toFixed(1)} m/s down`)
+  check('dive: and you come out of it faster than you went in', landed > airborne,
+    `${airborne.toFixed(2)} → ${landed.toFixed(2)} m/s`)
+  check('dive: a plain jump gains nothing like it', p2.mv.horizontalSpeed < landed,
+    `no dive ${p2.mv.horizontalSpeed.toFixed(2)} vs dive ${landed.toFixed(2)} m/s`)
+  g2.dispose()
+}
+
 // ── weapon state machine under abuse ───────────────────────────────────────
 {
   const g = new Game(canvas, { rendererFactory: rendererStub, settings: {} })
@@ -443,7 +553,7 @@ for (const mode of MODES.filter((m) => m.id !== 'p2p')) {   // p2p needs a live 
     if (i % 70 === 0) g.input.pressed.Digit2 = true
     if (i % 90 === 0) g.input.pressed.Digit1 = true
     if (i % 110 === 0) g.input.pressed.Digit3 = true
-    if (i % 130 === 0) g.input.pressed.KeyQ = true
+    if (i % 130 === 0) g.input.pressed.KeyX = true
     g.input.mouseButtons[0] = true
     g.input.mouseButtons[2] = i % 40 < 12
     g.input.mousePressed[0] = i % 12 === 0
@@ -512,8 +622,8 @@ for (const level of ['easy', 'normal', 'hard', 'qyn']) {
   try {
     for (let i = 0; i < 120 * 120 && !ended; i++) {
       K.KeyW = (i % 200) < 150
-      K.ShiftLeft = (i % 90) < 60
-      K.ControlLeft = (i % 170) < 40
+      K.ShiftLeft = (i % 90) < 25                 // slide, not sprint
+      K.ControlLeft = (i % 170) < 40              // crouch
       K.Space = (i % 130) < 3
       K.KeyD = (i % 240) < 120
       K.KeyA = !K.KeyD

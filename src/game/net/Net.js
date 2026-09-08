@@ -245,7 +245,8 @@ export const MSG = {
   hello: (name, loadout, skin) => ['l', name, loadout, skin],
   ready: (mapId, modeId) => ['y', mapId, modeId],
   spawn: (index) => ['r', index],
+  fx: (kind, x, y, z) => ['e', kind, +x.toFixed(2), +y.toFixed(2), +z.toFixed(2)],
   bye: () => ['x'],
 }
 
-export const FLAG = { grounded: 1, sliding: 2, sprinting: 4, crouching: 8, alive: 16, firing: 32, reloading: 64, wall: 128 }
+export const FLAG = { grounded: 1, sliding: 2, sprinting: 4, crouching: 8, alive: 16, firing: 32, reloading: 64, wall: 128, diving: 256 }

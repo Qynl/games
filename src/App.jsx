@@ -98,6 +98,7 @@ export default function App () {
     if (!g) return
     g.settings = profile.settings
     g.input.sensitivity = profile.settings.sensitivity
+    g.input.autoSprint = profile.settings.autoSprint !== false
     g.rig.baseFov = profile.settings.fov
     g.audio.setVolume(profile.settings.volume)
     g.audio.enabled = profile.settings.sound !== false

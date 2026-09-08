@@ -21,6 +21,7 @@ export class CameraRig {
     this.dipVel = 0
     this.roll = 0
     this.wallBlend = 0
+    this.diveBlend = 0
     this.bob = 0
     this.bobPhase = 0
     this.slideTilt = 0
@@ -77,6 +78,8 @@ export class CameraRig {
     this.sprintBlend = lerp(this.sprintBlend, sprinting ? 1 : 0, 1 - Math.exp(-9 * dt))
     this.slideBlend = lerp(this.slideBlend, mv.sliding ? 1 : 0, 1 - Math.exp(-14 * dt))
     this.wallBlend = lerp(this.wallBlend, mv.wallRunning ? 1 : 0, 1 - Math.exp(-(mv.wallRunning ? 15 : 9) * dt))
+    // the dive: a lean you can feel, but the horizon stays where you left it
+    this.diveBlend = lerp(this.diveBlend, mv.diving ? 1 : 0, 1 - Math.exp(-(mv.diving ? 12 : 7) * dt))
 
     // ── roll: strafe lean + slide lean ──────────────────────────────────────
     const right = Math.sin(this.yaw), cosY = Math.cos(this.yaw)
@@ -98,7 +101,8 @@ export class CameraRig {
 
     // ── fov: sprint + slide push, ads pull ──────────────────────────────────
     const speedFov = clamp((sp - 6) / 9, 0, 1)
-    let fovTarget = this.baseFov + this.sprintBlend * 7 + speedFov * 5 + this.slideBlend * 3 + this.wallBlend * 5
+    let fovTarget = this.baseFov + this.sprintBlend * 7 + speedFov * 5 + this.slideBlend * 3
+      + this.wallBlend * 5 + this.diveBlend * 9 + (mv.dashWindow > 0 ? 6 : 0)
     if (ads > 0.01 && adsFov) fovTarget = lerp(fovTarget, adsFov, ads)
     // a tiny kick of fov on landing sells the impact without shaking anything
     fovTarget += clamp(-this.dip, 0, 0.4) * 8
@@ -117,7 +121,7 @@ export class CameraRig {
     this.camera.position.copy(this.pos)
     this.camera.rotation.order = 'YXZ'
     this.camera.rotation.set(
-      this.pitch + this.recoil.x + (Math.random() - 0.5) * sh,
+      this.pitch + this.recoil.x + this.diveBlend * 0.16 + (Math.random() - 0.5) * sh,
       this.yaw + this.recoil.y + (Math.random() - 0.5) * sh,
       this.roll,
     )

@@ -58,6 +58,24 @@ export const TUNE = {
   wallRunCooldown: 0.22,
   wallRunMax: 2,            // per airtime — you cannot circle one room forever
 
+  // ── dash (Q) ──────────────────────────────────────────────────────────────
+  dashImpulse: 7.4,      // added to whatever you already have
+  dashFloor: 13.2,       // but a dash never leaves you slower than this
+  dashMax: 23.0,
+  dashWindow: 0.20,      // friction and air drag let go for this long
+  dashRedirect: 0.62,    // how much of the burst follows your keys (skill lives here)
+
+  // ── air slide: the dive (SHIFT in the air) ────────────────────────────────
+  diveDown: 8.5,         // m/s of downward kick, on top of gravity
+  diveBoost: 1.13,       // horizontal multiplier the moment it starts
+  divePush: 2.4,         // and a flat shove, so a standing jump can still dive
+  diveGravity: 1.7,
+  diveTime: 1.9,
+  diveAccel: 1.7,        // extra air authority while diving: you can steer it
+  diveLandGain: 0.34,    // fall speed paid back as forward speed on landing
+  diveLandMax: 4.4,
+  diveLandCeil: 24.0,   // however good the chain, this is where the speed stops
+
   // ── ledge grab / mantle ─────────────────────────────────────────────────
   mantleMin: 0.25,
   mantleMax: 1.6,
@@ -92,6 +110,10 @@ export class MovementController {
     this.sprinting = false
     this.slideTime = 0
     this.slideCooldown = 0
+    this.diving = false        // air slide: committed to going down, fast
+    this.diveT = 0
+    this.diveUsed = false      // one dive per airtime
+    this.dashWindow = 0        // the burst has not been bled off yet
     this.slideEntrySpeed = 0
     this.slideHopTimer = 0
     this.wallHit = false
@@ -114,7 +136,7 @@ export class MovementController {
     this._throttle = {}
     this._contacts = []
     this.tracker = new ChainTracker()
-    this.inputCache = { forward: 0, right: 0, jump: false, crouch: false, sprint: false }
+    this.inputCache = { forward: 0, right: 0, jump: false, crouch: false, slide: false, sprint: false }
   }
 
   get horizontalSpeed () { return Math.hypot(this.vel.x, this.vel.z) }
@@ -130,6 +152,10 @@ export class MovementController {
     this.sliding = false
     this.crouching = false
     this.sprinting = false
+    this.diving = false
+    this.diveT = 0
+    this.diveUsed = false
+    this.dashWindow = 0
     this.airTime = 0
     this.coyote = 0
     this.jumpBuffer = 0
@@ -165,6 +191,9 @@ export class MovementController {
   step (dt, input) {
     this.time += dt
     this.inputCache = input
+    // the slide/dive keys may be absent (tests, bots, network ghosts)
+    if (this.inputCache.slidePressed === undefined) this.inputCache.slidePressed = !!input.crouchPressed
+    if (this.inputCache.slide === undefined) this.inputCache.slide = !!input.crouch
     this.slideCooldown -= dt
     this.jumpBuffer -= dt
     this.slideHopTimer -= dt
@@ -198,25 +227,38 @@ export class MovementController {
     if (canSprint && !this.sprinting && this.grounded) this.emit('sprintOn')
     this.sprinting = canSprint
 
-    // ── slide entry ────────────────────────────────────────────────────────
-    if (input.crouchPressed && !this.sliding && this.slideCooldown <= 0 && this.grounded) {
-      const fastEnough = speed > TUNE.slideMinSpeed || (this.sprinting && speed > TUNE.walkSpeed * 0.75)
-      if (fastEnough) this.startSlide()
+    // ── slide entry (SHIFT, or CTRL) / dive when there is no floor ─────────
+    const slideHit = !!(input.slidePressed || input.crouchPressed)
+    const holdSlide = !!input.slide
+    if (slideHit && !this.sliding && this.slideCooldown <= 0) {
+      if (this.grounded) {
+        const fastEnough = speed > TUNE.slideMinSpeed || (this.sprinting && speed > TUNE.walkSpeed * 0.75)
+        if (fastEnough) this.startSlide()
+      } else if (!this.wallRunning && !this.diving && !this.diveUsed) {
+        this.startDive()
+      }
     }
     if (this.sliding) {
       this.slideTime += dt
       const tooSlow = this.horizontalSpeed < TUNE.slideEndSpeed && this.slideTime > 0.22
-      const gaveUp = !wantCrouch && this.slideTime > 0.3
+      const gaveUp = !wantCrouch && !holdSlide && this.slideTime > 0.3
       const expired = tooSlow && this.slideTime > 1.6
-      if (!this.grounded || expired || gaveUp || (tooSlow && !wantCrouch)) this.endSlide()
+      if (!this.grounded || expired || gaveUp || (tooSlow && !wantCrouch && !holdSlide)) this.endSlide()
+    }
+
+    // ── dive: committed to the ground, faster than gravity alone ───────────
+    this.dashWindow = Math.max(0, this.dashWindow - dt)
+    if (this.diving) {
+      this.diveT += dt
+      if (this.grounded || this.diveT > TUNE.diveTime || this.wallRunning) this.endDive()
     }
 
     // ── stance ─────────────────────────────────────────────────────────────
-    if (this.sliding) {
+    if (this.sliding || this.diving) {
       this.crouching = true
       this.targetHeight = TUNE.slideHeight
     } else if (this.crouching) {
-      if (!wantCrouch) this.tryStand()
+      if (!wantCrouch && !holdSlide) this.tryStand()
       this.targetHeight = this.crouching ? TUNE.crouchHeight : TUNE.standHeight
     } else if (wantCrouch) {
       this.crouching = true
@@ -231,6 +273,9 @@ export class MovementController {
       this.airTime = 0
       if (this.sliding) {
         this.slideMove(dt, _wish)
+      } else if (this.dashWindow > 0) {
+        // a dash keeps its speed for a beat — friction would eat the whole point
+        this.accelerate(_wish, Math.max(TUNE.sprintSpeed, this.horizontalSpeed), TUNE.groundAccel, dt)
       } else {
         this.friction(dt, TUNE.friction, TUNE.stopSpeed)
         const target = (this.crouching ? TUNE.crouchSpeed : this.sprinting ? TUNE.sprintSpeed : TUNE.walkSpeed) * this.speedMult
@@ -254,17 +299,19 @@ export class MovementController {
     } else {
       this.airTime += dt
       if (this.wasGrounded) this.emit('leftGround')
-      this.accelerate(_wish, TUNE.airWishCap, TUNE.airAccel, dt)
+      this.accelerate(_wish, TUNE.airWishCap * (this.diving ? 1.35 : 1),
+        TUNE.airAccel * (this.diving ? TUNE.diveAccel : 1), dt)
       if (this.wallRunning) {
         // hang on the wall: gravity barely touches you, so a wall run is a
         // genuine way to cross a gap while keeping every m/s you arrived with
         this.vel.y -= TUNE.gravity * TUNE.wallRunGravity * dt
         if (this.vel.y < -TUNE.wallRunMaxFall) this.vel.y = -TUNE.wallRunMaxFall
       } else {
-        this.vel.y -= TUNE.gravity * dt
+        this.vel.y -= TUNE.gravity * (this.diving ? TUNE.diveGravity : 1) * dt
       }
       const hs = this.horizontalSpeed
-      if (hs > TUNE.maxAirDragSpeed) {
+      const dragCap = this.diving ? TUNE.maxAirDragSpeed + 5 : TUNE.maxAirDragSpeed
+      if (this.dashWindow <= 0 && hs > dragCap) {
         const k = Math.max(0, 1 - TUNE.airDrag * (hs - TUNE.maxAirDragSpeed) * dt)
         this.vel.x *= k
         this.vel.z *= k
@@ -355,12 +402,65 @@ export class MovementController {
     this.emit('slideStart', { speed: hs, downhill: this.groundNormal.y < 0.99 })
   }
 
+  // ── the air slide ──────────────────────────────────────────────────────────
+  // SHIFT with no floor under you: you commit to going down, and you come out
+  // of it going forward faster than you went in.
+  startDive () {
+    const hs = this.horizontalSpeed
+    this.diving = true
+    this.diveUsed = true
+    this.diveT = 0
+    this.crouching = true
+    this.targetHeight = TUNE.slideHeight
+    const k = TUNE.diveBoost - 1
+    this.vel.x += this.vel.x * k
+    this.vel.z += this.vel.z * k
+    if (hs < 1.2) {   // a standing jump can still be thrown somewhere
+      const fx = -Math.sin(this.yaw), fz = -Math.cos(this.yaw)
+      this.vel.x += fx * TUNE.divePush
+      this.vel.z += fz * TUNE.divePush
+    }
+    this.vel.y = Math.min(this.vel.y, 0) - TUNE.diveDown
+    this.emit('dive', { speed: this.horizontalSpeed })
+  }
+
+  endDive () {
+    if (!this.diving) return
+    this.diving = false
+    this.diveT = 0
+    if (!this.inputCache.slide && !this.inputCache.crouch) this.tryStand()
+    this.targetHeight = this.crouching ? TUNE.crouchHeight : TUNE.standHeight
+  }
+
+  // ── the dash (Q) ───────────────────────────────────────────────────────────
+  // Momentum is additive and the direction is only partly yours, so a dash out
+  // of a fast line is worth more than one from a standstill — and steering it
+  // mid-burst is where the skill sits.
+  dash (dirX, dirZ, impulse = TUNE.dashImpulse, floor = TUNE.dashFloor) {
+    const hs = this.horizontalSpeed
+    const target = Math.min(Math.max(hs + impulse, floor), TUNE.dashMax)
+    let dx, dz
+    if (hs > 0.5) {
+      const bx = this.vel.x / hs, bz = this.vel.z / hs
+      const blend = TUNE.dashRedirect
+      const mx = bx + dirX * blend, mz = bz + dirZ * blend
+      const ml = Math.hypot(mx, mz) || 1
+      dx = mx / ml; dz = mz / ml
+    } else {
+      dx = dirX; dz = dirZ
+    }
+    this.vel.x = dx * target
+    this.vel.z = dz * target
+    this.dashWindow = TUNE.dashWindow
+    this.emit('dash', { speed: target })
+  }
+
   endSlide () {
     if (!this.sliding) return
     this.sliding = false
     this.slideCooldown = TUNE.slideCooldown
     this.slideHopTimer = 0.5
-    if (!this.inputCache.crouch) this.tryStand()
+    if (!this.inputCache.crouch && !this.inputCache.slide) this.tryStand()
     this.targetHeight = this.crouching ? TUNE.crouchHeight : TUNE.standHeight
   }
 
@@ -518,6 +618,8 @@ export class MovementController {
       this.emit('jump', { speed: hs })
     }
     this.vel.y = TUNE.jumpVel
+    this.diving = false
+    this.diveUsed = false
     this.grounded = false
     this.coyote = 0
     this.jumpBuffer = 0
@@ -530,12 +632,29 @@ export class MovementController {
     this.landImpact = clamp(this.lastFallSpeed / 15, 0, 1.5)
     this.lastLandSpeed = this.horizontalSpeed
     this.emit('land', { speed: this.horizontalSpeed, fall: this.lastFallSpeed })
-    // LAND → SLIDE, instantly: crouch held (or a fresh slide-hop) resumes the
+    // DIVE → LAND: everything you fell at is paid back as forward speed, so a
+    // dive is a way to buy pace, not just a way to get down.
+    if (this.diving) {
+      const fall = Math.max(0, this.lastFallSpeed)
+      const gain = Math.min(clamp(fall * TUNE.diveLandGain, 0, TUNE.diveLandMax),
+        Math.max(0, TUNE.diveLandCeil - this.horizontalSpeed))
+      const hsv = this.horizontalSpeed
+      if (hsv > 0.001) {
+        const k = gain / hsv
+        this.vel.x += this.vel.x * k
+        this.vel.z += this.vel.z * k
+      }
+      this.diving = false
+      this.emit('diveLand', { speed: this.horizontalSpeed, fall })
+    }
+    this.diveUsed = false
+    // LAND → SLIDE, instantly: slide held (or a fresh slide-hop) resumes the
     // slide with zero momentum loss.
     const hs = this.horizontalSpeed
+    const holding = this.inputCache.slide || this.inputCache.crouch
     if (this.slideCooldown <= 0 &&
-        ((this.inputCache.crouch && hs > TUNE.slideMinSpeed) ||
-         (this.slideHopTimer > 0 && this.inputCache.crouch && hs > 3.8))) {
+        ((holding && hs > TUNE.slideMinSpeed) ||
+         (this.slideHopTimer > 0 && holding && hs > 3.8))) {
       this.startSlide()
     }
   }
@@ -706,6 +825,9 @@ export const CHAINS = [
   { id: 11, name: 'SLIDE → JUMP → WALL RUN → WALL JUMP → LAND → SLIDE', seq: ['slideStart', 'slideJump', 'wallrun', 'walljump', 'land', 'slideStart'] },
   { id: 12, name: 'SPRINT → JUMP → LEDGE GRAB', seq: ['sprintOn', 'jump', 'mantle'] },
   { id: 13, name: 'WALL RUN → WALL JUMP → AIR STRAFE → LAND', seq: ['wallrun', 'walljump', 'airstrafe', 'land'] },
+  { id: 14, name: 'SPRINT → JUMP → DIVE → LAND', seq: ['sprintOn', 'jump', 'dive', 'diveLand'] },
+  { id: 15, name: 'DIVE → LAND → SLIDE', seq: ['dive', 'diveLand', 'slideStart'] },
+  { id: 16, name: 'SLIDE → JUMP → DASH', seq: ['slideStart', 'slideJump', 'dash'] },
 ]
 
 export class ChainTracker {

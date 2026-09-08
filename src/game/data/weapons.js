@@ -161,7 +161,7 @@ export const WEAPONS = [
     { type: 'self', heal: 45, haste: 1.35, hasteTime: 4, count: 2, speed: 1.0, color: 0xff5d8f },
     { kind: 'device', body: 0x3a1f2a, accent: 0xff5d8f }),
 
-  U('dash', 'DASH CHARGE', 1100, 'rare', 'Instant impulse in your movement direction. Converts a slide into a launch.',
+  U('dash', 'DASH CHARGE', 1100, 'rare', 'Upgrades the dash on Q: two charges, faster recharge, and a 45% harder shove that costs no charge.',
     { type: 'self', impulse: 15, count: 2, speed: 1.0, color: 0x6ee7ff },
     { kind: 'device', body: 0x1b2a3a, accent: 0x6ee7ff }),
 

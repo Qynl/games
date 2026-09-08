@@ -14,6 +14,7 @@ export class Input {
     this.enabled = true
     this.sensitivity = 1
     this.invertY = false
+    this.autoSprint = true     // sprint by pushing forward; E if you turn it off
     this._onLock = null
     this._ls = []
   }
@@ -118,17 +119,30 @@ export class Input {
   hit (code) { return !!this.pressed[code] }
 
   // Build the movement input for one frame.
+  // SHIFT is the slide key (and the dive key in the air). Sprinting is
+  // automatic while you push forward, like every game that takes movement
+  // seriously; turn that off in Settings and sprint lives on E.
   moveFrame () {
     const k = this.keys
     const forward = (k.KeyW ? 1 : 0) - (k.KeyS ? 1 : 0)
     const right = (k.KeyD ? 1 : 0) - (k.KeyA ? 1 : 0)
+    const slide = !!k.ShiftLeft || !!k.ShiftRight
+    const crouch = !!k.ControlLeft || !!k.KeyC
+    const crouchPressed = !!this.pressed.ControlLeft || !!this.pressed.KeyC
+    const slidePressed = !!this.pressed.ShiftLeft || !!this.pressed.ShiftRight
+    const sprint = this.autoSprint
+      ? forward > 0.1 && !crouch && !slide
+      : !!k.KeyE
     return {
       forward, right,
       jump: !!k.Space,
-      crouch: !!k.ControlLeft || !!k.KeyC || !!k.ShiftRight,
-      sprint: !!k.ShiftLeft,
+      crouch: crouch || slide,        // holding slide keeps you low
+      slide,
+      sprint,
       jumpPressed: !!this.pressed.Space,
-      crouchPressed: !!this.pressed.ControlLeft || !!this.pressed.KeyC || !!this.pressed.ShiftRight,
+      crouchPressed: crouchPressed || slidePressed,
+      slidePressed: slidePressed || crouchPressed,
+      dashPressed: !!this.pressed.KeyQ,
       mouseDx: this.mouse.dx,
     }
   }

@@ -355,3 +355,13 @@ input[type=range]{width:190px;accent-color:var(--cy)}
 /* crosshair confirms a target: it goes red the instant you are on one */
 .cross.tgt i { background: var(--rd); box-shadow: 0 0 6px rgba(255, 77, 109, .8) }
 .cross.tgt .d { background: var(--rd) }
+
+/* ── dash charges (Q) ─────────────────────────────────────────────────────── */
+.dashp { left: 32px; bottom: 116px; padding: 8px 10px; min-width: 112px }
+.dashp .lbl { font-size: 9.5px; letter-spacing: .16em; color: var(--dim) }
+.dashp .pips { display: flex; gap: 5px; margin-top: 6px }
+.dashp .pips i { width: 100%; min-width: 16px; height: 5px; background: rgba(255,255,255,.13); border: 1px solid var(--line) }
+.dashp .pips i.on { background: var(--cy); border-color: var(--cy); box-shadow: 0 0 7px rgba(110,231,255,.55) }
+.dashp.dry .lbl { color: var(--dim2) }
+.speedlines.dive { animation-duration: .7s; opacity: 1 }
+.speedlines.dive::after { background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0) 26%, rgba(191,233,255,.2) 70%, rgba(0,0,0,.5) 100%) }

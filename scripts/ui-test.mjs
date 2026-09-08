@@ -48,6 +48,11 @@ const screens = [
       qyns: 620, xp: 500, level: 4, levelUp: true, unlocks: ['nova'] },
     profile: DEFAULT_PROFILE, onAgain: noop, onLobby: noop,
   }],
+  ['HUD-dash', UI.HUD, {
+    showMv: true, mapName: 'QYN YARD', mode: '1v1',
+    hud: { ...BOARD_BASE, dash: { charges: 1, max: 2, cd: 1.1, cdMax: 2.4, gear: true } },
+    paused: false, onResume: noop, onQuit: noop, profile: DEFAULT_PROFILE,
+  }],
   ['HUD-board', UI.HUD, {
     showMv: true, mapName: 'QYN YARD', mode: '1v1',
     hud: { ...BOARD_BASE, scoreboard: true, board: [1, 2, 3, 4].map((i) => ({ name: 'BOT-' + i, team: i % 2 ? 'b' : 'a', you: i === 1, kills: i, deaths: 5 - i, damage: i * 210, assists: i % 3, weapon: 'VEX-9', alive: i % 2 === 0, ping: 20 + i * 9 })) },

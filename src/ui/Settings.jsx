@@ -30,6 +30,8 @@ export default function Settings ({ profile, save, onBack }) {
       <div className="content" style={{ maxWidth: 760 }}>
         <div className="h">FEEL</div>
         <Slider label="FIELD OF VIEW" value={s.fov} min={75} max={120} step={1} onChange={(v) => set('fov', v)} fmt={(v) => v + '°'} />
+        <Toggle label="AUTO SPRINT" value={s.autoSprint !== false} onChange={(v) => set('autoSprint', v)} />
+        <div className="hint" style={{ marginTop: 4 }}>Sprint by pushing forward. Off means sprint sits on E.</div>
         <Slider label="MOUSE SENSITIVITY" value={s.sensitivity} min={0.2} max={3} step={0.05} onChange={(v) => set('sensitivity', v)} fmt={(v) => v.toFixed(2)} />
         <Toggle label="INVERT Y" value={s.invertY} onChange={(v) => set('invertY', v)} />
         <Slider label="VOLUME" value={s.volume} min={0} max={1} step={0.05} onChange={(v) => set('volume', v)} fmt={(v) => Math.round(v * 100) + '%'} />
