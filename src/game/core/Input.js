@@ -130,8 +130,10 @@ export class Input {
     const crouch = !!k.ControlLeft || !!k.KeyC
     const crouchPressed = !!this.pressed.ControlLeft || !!this.pressed.KeyC
     const slidePressed = !!this.pressed.ShiftLeft || !!this.pressed.ShiftRight
+    // aiming down the sights is a choice to slow down: no auto-sprint through it
+    const ads = !!this.mouseButtons[2]
     const sprint = this.autoSprint
-      ? forward > 0.1 && !crouch && !slide
+      ? forward > 0.1 && !crouch && !slide && !ads
       : !!k.KeyE
     return {
       forward, right,

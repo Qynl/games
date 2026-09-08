@@ -599,6 +599,8 @@ export class MovementController {
       this.jumpBuffer = 0
       this.wasGrounded = false
       this.airTime = 0.001
+      this.diving = false
+      this.diveUsed = false      // kicking off a wall earns the dive back
       this.emit('walljump', { speed: nh })
       return
     }
