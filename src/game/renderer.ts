@@ -60,10 +60,10 @@ export class Renderer {
 
     if (this.cw === 0 || this.ch === 0) this.resize()
 
-    // camera: zoomed in like Brawl Stars — you see ~20x14 tiles, not the whole map
+    // camera: zoomed in like Brawl Stars — see ~18x11.5 tiles
     const target = g.player ?? g.brawlers[0]
     const desiredScale = clamp(
-      Math.min(this.cw / (20 * TILE), this.ch / (14 * TILE)),
+      Math.min(this.cw / (18 * TILE), this.ch / (11.5 * TILE)),
       0.9,
       1.7
     )
@@ -332,8 +332,8 @@ export class Renderer {
       const aimWorld = pointerWorld
         ? pointerWorld
         : v(
-            p.pos.x + Math.cos(p.aim) * 80,
-            p.pos.y + Math.sin(p.aim) * 80
+            p.pos.x + Math.cos(p.aim) * p.attackRange * 0.95,
+            p.pos.y + Math.sin(p.aim) * p.attackRange * 0.95
           )
       const range = p.attackRange
       const inRange = dist(p.pos, aimWorld) <= range
@@ -1548,36 +1548,49 @@ function drawMapTo(ctx: CanvasRenderingContext2D, map: GameMap) {
   }
   ctx.stroke()
 
-  // walls: brick blocks with bevel
+  // walls: wooden crates with cross planks (Brawl Stars style)
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       if (tileAt(map, x, y) !== T_WALL) continue
       const px = x * TILE
       const py = y * TILE
-      ctx.fillStyle = '#a56a33'
+      // crate base
+      ctx.fillStyle = '#b07a3f'
       ctx.fillRect(px + 1, py + 1, TILE - 2, TILE - 2)
-      // top bevel
+      // wood grain
+      ctx.fillStyle = 'rgba(120,70,25,0.35)'
+      ctx.fillRect(px + 4, py + 6, TILE - 8, 2)
+      ctx.fillRect(px + 4, py + 16, TILE - 8, 2)
+      ctx.fillRect(px + 4, py + 25, TILE - 8, 2)
+      // top bevel light
       const topOpen = tileAt(map, x, y - 1) !== T_WALL
       const leftOpen = tileAt(map, x - 1, y) !== T_WALL
       if (topOpen || leftOpen) {
-        ctx.fillStyle = 'rgba(255,235,190,0.5)'
+        ctx.fillStyle = 'rgba(255,226,175,0.6)'
         if (topOpen) ctx.fillRect(px + 2, py + 2, TILE - 4, 4)
         if (leftOpen) ctx.fillRect(px + 2, py + 2, 4, TILE - 4)
       }
-      ctx.fillStyle = 'rgba(60,35,12,0.3)'
-      ctx.fillRect(px + 2, py + TILE - 8, TILE - 4, 6)
-      // brick lines
-      ctx.strokeStyle = 'rgba(74,42,16,0.5)'
-      ctx.lineWidth = 1.5
+      // bottom shadow
+      ctx.fillStyle = 'rgba(70,40,12,0.35)'
+      ctx.fillRect(px + 2, py + TILE - 6, TILE - 4, 4)
+      // cross planks
+      ctx.strokeStyle = 'rgba(96,58,20,0.75)'
+      ctx.lineWidth = 4
+      ctx.lineCap = 'butt'
       ctx.beginPath()
-      ctx.moveTo(px + 1, py + TILE / 2)
-      ctx.lineTo(px + TILE - 1, py + TILE / 2)
-      const off = (y % 2) * (TILE / 2)
-      ctx.moveTo(px + TILE / 2 + off * 0.5, py + 1)
-      ctx.lineTo(px + TILE / 2 + off * 0.5, py + TILE / 2)
-      ctx.moveTo(px + off, py + TILE / 2)
-      ctx.lineTo(px + off, py + TILE - 1)
+      ctx.moveTo(px + 3, py + 2)
+      ctx.lineTo(px + TILE - 3, py + TILE - 2)
+      ctx.moveTo(px + TILE - 3, py + 2)
+      ctx.lineTo(px + 3, py + TILE - 2)
       ctx.stroke()
+      // plank nails
+      ctx.fillStyle = 'rgba(255,235,190,0.5)'
+      ctx.beginPath()
+      ctx.arc(px + 5, py + 5, 1.6, 0, Math.PI * 2)
+      ctx.arc(px + TILE - 5, py + 5, 1.6, 0, Math.PI * 2)
+      ctx.arc(px + 5, py + TILE - 5, 1.6, 0, Math.PI * 2)
+      ctx.arc(px + TILE - 5, py + TILE - 5, 1.6, 0, Math.PI * 2)
+      ctx.fill()
     }
   }
   // wall outline

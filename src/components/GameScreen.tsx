@@ -523,7 +523,7 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
               className="super-fill"
               style={{ height: `${Math.min(100, hud.superCharge * 100)}%` }}
             />
-            {def.superName}
+            ⚡{def.superName}
           </button>
         </div>
       </div>

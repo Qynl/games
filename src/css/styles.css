@@ -1096,16 +1096,22 @@ body,
   font-size: 13px;
 }
 .super-btn {
-  width: 88px;
-  height: 64px;
-  font-size: 12px;
+  width: 72px;
+  height: 72px;
+  border-radius: 50% !important;
+  font-size: 11px;
   background: rgba(30, 34, 52, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
+  gap: 0;
+  line-height: 1.1;
 }
 .super-btn.ready {
-  background: linear-gradient(180deg, #b45309, #92400e);
+  background: linear-gradient(180deg, #ffd23f, #e09f00);
+  color: #4a3000;
+  border-color: #fff3c4;
   animation: pulse-banner 0.9s infinite;
 }
 .super-fill {
@@ -1136,10 +1142,11 @@ body,
   width: 126px;
   height: 126px;
   border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.08);
+  border: 3px solid rgba(90, 150, 255, 0.55);
+  background: rgba(47, 123, 255, 0.12);
   position: absolute;
   pointer-events: none;
+  box-shadow: inset 0 0 20px rgba(47, 123, 255, 0.12);
 }
 .aim-zone {
   position: absolute;
@@ -1166,7 +1173,7 @@ body,
   font-family: 'Lilita One', 'Nunito', sans-serif;
   font-size: 11px;
   letter-spacing: 2px;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.7);
   pointer-events: none;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
@@ -1174,7 +1181,7 @@ body,
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.85);
+  background: linear-gradient(180deg, #7db4ff, #2f7bff);
   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
   position: absolute;
   pointer-events: none;
@@ -1185,16 +1192,17 @@ body,
   height: 64px;
   border-radius: 50%;
   border: 3px solid rgba(255, 255, 255, 0.55);
-  background: rgba(255, 210, 63, 0.35);
+  background: linear-gradient(180deg, #ff8a75, #ff4b3e);
   position: absolute;
   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
   pointer-events: none;
   will-change: transform;
 }
 .aim-base {
-  background: rgba(255, 210, 63, 0.07);
-  border-color: rgba(255, 210, 63, 0.4);
+  background: rgba(255, 75, 62, 0.1);
+  border-color: rgba(255, 120, 100, 0.55);
   pointer-events: none;
+  box-shadow: inset 0 0 20px rgba(255, 75, 62, 0.1);
 }
 .fire-btn {
   position: absolute;
@@ -1946,14 +1954,15 @@ html:fullscreen .app,
     right: 10px;
   }
   .ability-btn {
-    width: 48px;
-    height: 48px;
-    font-size: 10px;
-    border-radius: 12px;
+    width: 52px;
+    height: 52px;
+    font-size: 9px;
+    border-radius: 50%;
   }
   .super-btn {
-    width: 76px;
-    height: 52px;
+    width: 60px;
+    height: 60px;
+    font-size: 9px;
   }
 }
 
@@ -1964,4 +1973,75 @@ html:fullscreen .app,
 }
 .hud-name {
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* ================= PORTRAIT PHONE = Brawl Stars portrait layout ================= */
+@media (orientation: portrait) and (max-width: 560px) {
+  .game-screen {
+    overflow: hidden;
+  }
+  .fire-btn {
+    display: none; /* attack stick handles everything in portrait, like BS */
+  }
+  .ability-buttons {
+    bottom: 210px;
+  }
+  .gadget-btn {
+    left: 14px;
+    bottom: 0;
+  }
+  .super-btn {
+    right: 14px;
+    bottom: 0;
+  }
+  .joy-zone {
+    width: 150px;
+    height: 150px;
+    bottom: 22px;
+    left: 14px;
+  }
+  .aim-zone {
+    width: 165px;
+    height: 165px;
+    bottom: 22px;
+    right: 14px;
+  }
+  .joy-base { width: 138px; height: 138px; }
+  .aim-base { width: 152px; height: 152px; }
+  .joy-knob { width: 58px; height: 58px; }
+  .aim-knob { width: 70px; height: 70px; }
+  .hud-top {
+    padding: 8px 10px;
+    align-items: flex-start;
+  }
+  .hud-player {
+    gap: 2px;
+  }
+  .hud-hpbar {
+    width: 130px;
+    height: 14px;
+  }
+  .hud-timer {
+    font-size: 18px;
+  }
+  .hud-gems {
+    font-size: 14px;
+  }
+  .safe-hud-track {
+    width: 100px;
+  }
+  .event-feed {
+    top: 110px;
+    left: 10px;
+    max-width: 70%;
+  }
+  .gem-banner {
+    top: 56px;
+  }
+  .kb-hints {
+    display: none;
+  }
+  .rotate-hint {
+    display: none; /* portrait layout is fully supported now */
+  }
 }
