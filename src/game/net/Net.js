@@ -73,6 +73,7 @@ export async function unpack (code) {
 // ── the connection ─────────────────────────────────────────────────────────
 export class Net {
   constructor () {
+    this.kind = 'code'        // PeerNet sets 'peer'; the HUD shows which one won
     this.role = null          // 'host' | 'guest'
     this.pc = null
     this.chan = null          // 'qyn-f'  unreliable: 30Hz state, redundant

@@ -24,6 +24,15 @@ export default function App () {
   const [toastMsg, setToast] = useState(null)
   const [rangePicker, setRangePicker] = useState(false)
   const [netInfo, setNetInfo] = useState(null)   // { net, role, mapId, name }
+
+  // someone opened a shared invite link: skip the menu and go to the duel
+  useEffect(() => {
+    try {
+      const room = new URLSearchParams(window.location.search).get('room')
+      if (room) setScreen('netplay')
+    } catch (e) { /* no address bar to read */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [damageNums, setDamageNums] = useState([])
   const canvasRef = useRef(null)
   const gameRef = useRef(null)

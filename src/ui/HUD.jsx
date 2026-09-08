@@ -137,6 +137,7 @@ export default function HUD ({ hud, paused, needsLock, onResume, onQuit, showMv,
           <b style={{ color: hud.net.state === 'open' ? 'var(--gr)' : 'var(--rd)' }}>●</b>
           {hud.net.role === 'host' ? 'HOST' : 'GUEST'} · {hud.net.ping}ms
           {hud.net.peer && <span> · VS {hud.net.peer}</span>}
+          {hud.net.kind && <span style={{ color: 'var(--dim2)' }}> · {hud.net.kind === 'peer' ? 'EASY CONNECT' : 'ROOM CODE'}</span>}
         </div>
       )}
 

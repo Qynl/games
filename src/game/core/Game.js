@@ -1842,7 +1842,7 @@ export class Game {
       streak: this.killStreak,
       matchPoint: this.match.scoreA >= FIRST_TO - 1 || this.match.scoreB >= FIRST_TO - 1,
       ping: this.net ? this.netPing : 0,
-      net: this.net ? { role: this.netRole, state: this.net.state, ping: this.netPing, peer: this.netState?.remoteHello?.name || null, delay: Math.round(this.netState.delay || 0), jitter: Math.round(this.netState.jitter || 0) } : null,
+      net: this.net ? { role: this.netRole, state: this.net.state, ping: this.netPing, peer: this.netState?.remoteHello?.name || null, delay: Math.round(this.netState.delay || 0), jitter: Math.round(this.netState.jitter || 0), kind: this.net.kind || null } : null,
       scoreboard: this.scoreboard,
       board: this.scoreboard ? this.buildBoard() : null,
       lastWin: this.lastRoundWin,

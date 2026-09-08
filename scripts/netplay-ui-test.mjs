@@ -253,5 +253,17 @@ await wait(200)
 check('a taken room name is reported, not silently ignored', /already in use/i.test(txt()), txt().slice(-70))
 await act(async () => { clashRoot.unmount() })
 
+// ══ C. an invite link opens the right screen, with the room already in ══════
+console.log('— C: invite link —')
+window.history.replaceState({}, '', '/?room=INVITE')
+const linkRoot = createRoot(document.getElementById('root'))
+await act(async () => { linkRoot.render(React.createElement(UI.App, {})) })
+check('an invite link skips the menu and opens the duel screen', /ONLINE DUEL/.test(txt()), txt().slice(0, 40))
+const linkField = document.getElementById('root').querySelector('input[placeholder="ROOM NAME"]')
+check('the room from the link is already filled in', linkField?.value === 'INVITE', linkField?.value ?? 'no field')
+check('the link lands you on EASY CONNECT, not the manual handshake', /EASY CONNECT/.test(txt()))
+await act(async () => { linkRoot.unmount() })
+window.history.replaceState({}, '', '/')
+
 console.log(`\n${fails === 0 ? 'ALL NETPLAY UI TESTS PASSED' : `${fails} NETPLAY UI FAILURE(S)`}  (${fails === 0 ? 'ok' : 'see above'})`)
 process.exit(fails ? 1 : 0)
