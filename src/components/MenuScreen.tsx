@@ -27,6 +27,20 @@ export default function MenuScreen({ save, onPlay, onBrawlers, onShop, onSetting
 
   const mascots = [save.equipped, ...save.unlocked.filter((id) => id !== save.equipped)].slice(0, 4)
 
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {})
+    } else {
+      document.documentElement
+        .requestFullscreen()
+        .then(() => {
+          const so = (screen as any).orientation
+          so?.lock?.('landscape').catch(() => {})
+        })
+        .catch(() => {})
+    }
+  }
+
   return (
     <div className="menu-screen">
       <div className="menu-bg" style={{ backgroundImage: `url(${menuBg})` }} />
@@ -54,6 +68,9 @@ export default function MenuScreen({ save, onPlay, onBrawlers, onShop, onSetting
           )}
         </div>
         <ResourceBar save={save} />
+        <button className="icon-btn" onClick={toggleFullscreen} title="Fullscreen">
+          ⛶
+        </button>
         <button className="icon-btn" onClick={onSettings} title="Settings">
           ⚙️
         </button>

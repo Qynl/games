@@ -1198,8 +1198,8 @@ body,
 }
 .fire-btn {
   position: absolute;
-  bottom: 252px;
-  right: 46px;
+  bottom: 268px;
+  right: 130px;
   width: 66px;
   height: 66px;
   border-radius: 50%;
@@ -1536,27 +1536,6 @@ body,
   }
 }
 
-/* ---- small screens: compact controls ---- */
-@media (max-width: 480px) {
-  .joy-zone, .aim-zone {
-    width: 112px;
-    height: 112px;
-    bottom: 84px;
-  }
-  .joy-zone { left: 10px; }
-  .aim-zone { right: 10px; }
-  .joy-base { width: 100px; height: 100px; }
-  .joy-knob { width: 44px; height: 44px; }
-  .aim-knob { width: 54px; height: 54px; }
-  .fire-btn {
-    width: 58px;
-    height: 58px;
-    bottom: 208px;
-    right: 20px;
-    font-size: 20px;
-  }
-}
-
 /* ================= RARITY & EQUIP (Brawl Stars style) ================= */
 .brawler-card {
   background: linear-gradient(180deg, var(--rarity-dark, #232c40) 0%, #131a2c 65%);
@@ -1750,27 +1729,50 @@ body,
 }
 
 /* ================= SCROLLABLE SCREENS ================= */
-.brawler-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
+/* brawler screen scrolls as a whole; header stays pinned and EQUIP is always visible */
+.brawler-screen {
+  overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 110px; /* keep content clear of the bottom tabs */
+  overscroll-behavior: contain;
+  padding-bottom: 120px;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 210, 63, 0.5) rgba(255, 255, 255, 0.06);
 }
-.brawler-scroll::-webkit-scrollbar {
+.brawler-screen::-webkit-scrollbar {
   width: 10px;
 }
-.brawler-scroll::-webkit-scrollbar-thumb {
+.brawler-screen::-webkit-scrollbar-thumb {
   background: rgba(255, 210, 63, 0.45);
   border-radius: 6px;
 }
-.brawler-scroll .brawler-grid,
-.brawler-scroll .brawler-detail {
+.brawler-screen .screen-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: linear-gradient(180deg, #0d1424 55%, rgba(13, 20, 36, 0.86));
+  backdrop-filter: blur(6px);
+  border-bottom: 2px solid rgba(255, 210, 63, 0.22);
+  border-radius: 0 0 14px 14px;
+}
+.brawler-screen .brawler-grid,
+.brawler-screen .brawler-detail {
   flex-shrink: 0;
+}
+.btn-equip-header {
+  font-size: 15px;
+  padding: 9px 18px;
+  animation: equipPulse 1.5s ease-in-out infinite;
+}
+.header-equipped {
+  font-family: 'Lilita One', sans-serif;
+  color: #7cf29c;
+  background: rgba(47, 158, 68, 0.25);
+  border: 2px solid rgba(74, 222, 128, 0.7);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  white-space: nowrap;
 }
 .mode-layout {
   overflow-y: auto;
@@ -1794,70 +1796,172 @@ html:fullscreen .app,
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* ================= BS-STYLE CONTROL CLUSTERS ================= */
+.ability-buttons {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 268px;
+  display: flex;
+  gap: 10px;
+  pointer-events: none;
+  z-index: 6;
+}
+.ability-btn {
+  pointer-events: auto;
+}
+.gadget-btn {
+  position: absolute;
+  left: 26px;
+}
+.super-btn {
+  position: absolute;
+  right: 26px;
+}
+
+/* ================= ROTATE HINT ================= */
+.rotate-hint {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.72);
+  color: var(--yellow);
+  font-family: 'Lilita One', sans-serif;
+  font-size: 15px;
+  letter-spacing: 1px;
+  padding: 8px 18px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 210, 63, 0.4);
+  display: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+@media (orientation: portrait) and (pointer: coarse) {
+  .rotate-hint {
+    display: block;
+  }
+}
+
+/* ================= LANDSCAPE PHONE = Brawl Stars left rail ================= */
+@media (orientation: landscape) and (max-height: 560px) {
+  .app.with-tabs {
+    padding-left: 88px;
+  }
+  .bottom-tabs {
+    top: 50%;
+    bottom: auto;
+    left: 6px;
+    transform: translateY(-50%);
+    flex-direction: column;
+    border-radius: 0 20px 20px 0;
+    border: 3px solid rgba(255, 255, 255, 0.14);
+    border-left: none;
+    padding: 10px 8px;
+    gap: 6px;
+  }
+  .tab-btn {
+    padding: 8px 12px;
+  }
+  .tab-icon {
+    font-size: 22px;
+  }
+}
+
 /* ================= COMPACT HUD (landscape phones / small screens) ================= */
 @media (max-height: 540px), (max-width: 480px) {
   .hud-top {
-    padding: 6px 10px;
+    padding: 6px 8px;
   }
   .hud-hpbar {
-    width: 110px;
-    height: 13px;
+    width: 100px;
+    height: 12px;
+  }
+  .hud-name {
+    font-size: 12px;
+  }
+  .hud-ammo {
+    gap: 2px;
+  }
+  .ammo-pip {
+    width: 12px;
+    height: 5px;
   }
   .hud-timer {
-    font-size: 17px;
-    padding: 1px 12px;
+    font-size: 16px;
+    padding: 1px 10px;
   }
   .hud-gems {
-    font-size: 13px;
-  }
-  .hud-safe-hud-bar,
-  .hud-safes .safe-hud-bar {
-    min-width: 0;
+    font-size: 12px;
   }
   .safe-hud-track {
-    width: 90px;
-    height: 8px;
+    width: 80px;
+    height: 7px;
+  }
+  .hud-btn {
+    width: 38px;
+    height: 38px;
+    font-size: 16px;
+    border-radius: 10px;
   }
   .event-feed {
-    top: 96px;
-    max-width: 60%;
+    top: 84px;
+    max-width: 55%;
   }
   .event-item {
     font-size: 11px;
     padding: 3px 10px;
   }
-  .ability-btn {
-    width: 52px;
-    height: 52px;
-    font-size: 11px;
-  }
-  .super-btn {
-    width: 84px;
-    height: 56px;
+  .gem-banner {
+    top: 44px;
+    font-size: 14px;
+    padding: 4px 12px;
   }
   .joy-zone, .aim-zone {
-    width: 104px;
-    height: 104px;
-    bottom: 12px;
+    width: 100px;
+    height: 100px;
+    bottom: 10px;
   }
   .joy-zone { left: 8px; }
   .aim-zone { right: 8px; }
-  .joy-base { width: 92px; height: 92px; }
-  .joy-knob { width: 42px; height: 42px; }
-  .aim-knob { width: 50px; height: 50px; }
+  .joy-base { width: 88px; height: 88px; }
+  .joy-knob { width: 40px; height: 40px; }
+  .aim-knob { width: 48px; height: 48px; }
+  .zone-label { display: none; }
   .fire-btn {
-    width: 54px;
-    height: 54px;
-    font-size: 19px;
-    bottom: 14px;
-    right: 116px;
+    width: 52px;
+    height: 52px;
+    font-size: 18px;
+    bottom: 118px;
+    right: 94px;
   }
-  .zone-label {
-    display: none;
+  .ability-buttons {
+    bottom: 118px;
   }
-  .gem-banner {
-    top: 46px;
-    font-size: 15px;
-    padding: 5px 14px;
+  .gadget-btn {
+    left: 10px;
   }
+  .super-btn {
+    right: 10px;
+  }
+  .ability-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 10px;
+    border-radius: 12px;
+  }
+  .super-btn {
+    width: 76px;
+    height: 52px;
+  }
+}
+
+/* ================= HUD POLISH ================= */
+.hud-hpfill {
+  background: linear-gradient(180deg, #8ef2a8, #43c463) !important;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25);
+}
+.hud-name {
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
 }

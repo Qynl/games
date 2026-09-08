@@ -69,12 +69,20 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
   const [endedText, setEndedText] = useState<{ title: string; sub: string; won: boolean } | null>(null)
   const [firePressed, setFirePressed] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [showRotate, setShowRotate] = useState(true)
 
   const toggleFullscreen = () => {
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {})
     } else {
-      document.documentElement.requestFullscreen().catch(() => {})
+      document.documentElement
+        .requestFullscreen()
+        .then(() => {
+          // lock to landscape like Brawl Stars (Android; iOS ignores)
+          const so = (screen as any).orientation
+          so?.lock?.('landscape').catch(() => {})
+        })
+        .catch(() => {})
     }
   }
 
@@ -336,6 +344,13 @@ export default function GameScreen({ mode, brawlerId, onExit, onFinish }: Props)
           </button>
         </div>
       </div>
+
+      {/* rotate hint (portrait phones) */}
+      {showRotate && (
+        <div className="rotate-hint" onClick={() => setShowRotate(false)}>
+          ↻ ROTATE YOUR PHONE
+        </div>
+      )}
 
       {/* events feed */}
       <div className="event-feed">

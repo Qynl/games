@@ -69,11 +69,16 @@ export default function BrawlerScreen({ save, setSave, from, onBack, onEquipped 
         </UiButton>
         <h2 className="screen-title">BRAWLERS</h2>
         <div className="header-right">
-          {from === 'battle' && <div className="pick-hint">PICK YOUR FIGHTER</div>}
+          {from === 'battle' && !equipped && <div className="pick-hint">PICK YOUR FIGHTER</div>}
+          {unlocked && !equipped && (
+            <UiButton variant="primary" className="btn-equip-header" onClick={handleEquip}>
+              ⚔️ EQUIP
+            </UiButton>
+          )}
+          {unlocked && equipped && <div className="header-equipped">✓ EQUIPPED</div>}
         </div>
       </div>
 
-      <div className="brawler-scroll">
       <div className="brawler-grid">
         {BRAWLERS.map((b) => {
           const isUnlocked = save.unlocked.includes(b.id)
@@ -179,7 +184,6 @@ export default function BrawlerScreen({ save, setSave, from, onBack, onEquipped 
             </div>
           )}
         </div>
-      </div>
       </div>
     </div>
   )

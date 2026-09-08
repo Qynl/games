@@ -1361,7 +1361,7 @@ function drawMapTo(ctx: CanvasRenderingContext2D, map: GameMap) {
     for (let x = 0; x < w; x++) {
       const px = x * TILE
       const py = y * TILE
-      ctx.fillStyle = (x + y) % 2 === 0 ? '#7cc550' : '#73bd47'
+      ctx.fillStyle = (x + y) % 2 === 0 ? '#8abe51' : '#81b248'
       ctx.fillRect(px, py, TILE, TILE)
       // mottle blobs
       const h1 = hash(x * 13.3 + y * 7.7)
