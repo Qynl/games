@@ -438,6 +438,15 @@ function timeToLand (s) {
   check('16 DASH: but not all of it — the old heading survives', s4.m.vel.z < -2,
     `vz ${s4.m.vel.z.toFixed(2)}`)
 
+  // the burst is a burst: no Quake ground-strafing your way to 50 m/s
+  const s6 = from(true)
+  s6.m.dash(0, -1, TUNE.dashImpulse, TUNE.dashFloor)
+  const burst = s6.hs()
+  let peak = burst
+  s6.run(0.5, (t, sim) => { sim.input.right = 1; sim.input.mouseDx = 22; peak = Math.max(peak, sim.hs()) })
+  check('16 DASH: the burst cannot be multiplied by steering', peak <= burst + 0.6,
+    `${burst.toFixed(2)} → peak ${peak.toFixed(2)} m/s`)
+
   // in the air a dash keeps your fall — it is a redirect, not a lift
   const s5 = new Sim()
   s5.hold('forward', 1); s5.hold('sprint', true); s5.run(1.6)

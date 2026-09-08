@@ -274,8 +274,10 @@ export class MovementController {
       if (this.sliding) {
         this.slideMove(dt, _wish)
       } else if (this.dashWindow > 0) {
-        // a dash keeps its speed for a beat — friction would eat the whole point
-        this.accelerate(_wish, Math.max(TUNE.sprintSpeed, this.horizontalSpeed), TUNE.groundAccel, dt)
+        // The burst holds its speed for a beat, because ground friction would
+        // eat three quarters of it. It also holds its heading: accelerating
+        // here would be Quake ground-strafing, and that multiplies speed
+        // without limit. Steering comes back the instant the window closes.
       } else {
         this.friction(dt, TUNE.friction, TUNE.stopSpeed)
         const target = (this.crouching ? TUNE.crouchSpeed : this.sprinting ? TUNE.sprintSpeed : TUNE.walkSpeed) * this.speedMult
